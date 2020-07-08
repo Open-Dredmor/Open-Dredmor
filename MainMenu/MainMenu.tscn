@@ -1,0 +1,26 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://MainMenu/main_menu.gd" type="Script" id=1]
+
+[node name="MainMenu" type="Control"]
+margin_right = 40.0
+margin_bottom = 40.0
+script = ExtResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Background" type="TextureRect" parent="."]
+expand = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="BackgroundButton" type="TextureButton" parent="."]
+margin_left = 932.882
+margin_top = 557.729
+margin_right = 972.882
+margin_bottom = 597.729
+__meta__ = {
+"_edit_use_anchors_": false
+}
