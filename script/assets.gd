@@ -23,8 +23,10 @@ var _assets = {
 		],
 		"chrome": "ui/menus/main_menubg.png",		
 		"button": {
-			"cycle_background": button_paths("ui/menus/main_bg_button"),
-			"quit": button_paths("ui/menus/main_quit")
+			"new_game": button_paths("ui/menus/main_newgame"),
+			"load_game": button_paths("ui/menus/main_loadgame"),
+			"quit": button_paths("ui/menus/main_quit"),
+			"cycle_background": button_paths("ui/menus/main_bg_button"),			
 		},
 		"music": "tunes/finaltitle.ogg",
 	}
@@ -39,11 +41,17 @@ func main_menu_backgrounds():
 func main_menu_chrome():
 	return Load.image(_assets.main_menu.chrome)
 
-func main_menu_background_button():
-	return button_images(_assets.main_menu.button.cycle_background)
+func main_menu_new_game_button():
+	return button_images(_assets.main_menu.button.new_game)
+
+func main_menu_load_game_button():
+	return button_images(_assets.main_menu.button.load_game)
 
 func main_menu_quit_button():
 	return button_images(_assets.main_menu.button.quit)
+	
+func main_menu_background_button():
+	return button_images(_assets.main_menu.button.cycle_background)
 
 func main_menu_music():
 	return Load.audio(_assets.main_menu.music)

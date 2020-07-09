@@ -23,12 +23,24 @@ func _ready():
 	menu_chrome.anchor_top = .1	
 	background.add_child(menu_chrome)
 	
+	var new_game_button = TextureButton.new()
+	Chrome.button(new_game_button, Assets.main_menu_new_game_button())
+	new_game_button.anchor_left = .5
+	new_game_button.anchor_top = .18
+	new_game_button.connect("pressed",self,"_on_NewGameButton_pressed")
+	menu_chrome.add_child(new_game_button)
+	
+	var load_game_button = TextureButton.new()
+	Chrome.button(load_game_button, Assets.main_menu_load_game_button())
+	load_game_button.anchor_left = .5
+	load_game_button.anchor_top = .28
+	load_game_button.connect("pressed",self,"_on_LoadGameButton_pressed")
+	menu_chrome.add_child(load_game_button)
+	
 	var quit_button = TextureButton.new()
 	Chrome.button(quit_button, Assets.main_menu_quit_button())
 	quit_button.anchor_left = .5
 	quit_button.anchor_top = .78
-	quit_button.margin_left = -(quit_button.texture_normal.get_width()/2)
-	quit_button.margin_top = -(quit_button.texture_normal.get_height()/2)	
 	quit_button.connect("pressed",self,"_on_QuitButton_pressed")
 	menu_chrome.add_child(quit_button)
 	
@@ -36,8 +48,6 @@ func _ready():
 	Chrome.button(background_button, Assets.main_menu_background_button())
 	background_button.anchor_left = .5
 	background_button.anchor_top = .89
-	background_button.margin_left = -(background_button.texture_normal.get_width()/2)
-	background_button.margin_top = -(background_button.texture_normal.get_height()/2)	
 	background_button.connect("pressed", self, "_on_BackgroundButton_pressed")
 	menu_chrome.add_child(background_button)
 	
@@ -45,6 +55,16 @@ func _ready():
 	music_player.stream = Assets.main_menu_music()
 	music_player.play()
 	main_menu.add_child(music_player)
+
+func _on_NewGameButton_pressed():
+	# TODO Implement
+	print("New game not yet implemented")
+	pass
+	
+func _on_LoadGameButton_pressed():
+	# TODO Implement
+	print("Load game not yet implemented")
+	pass
 
 func _on_QuitButton_pressed():
 	get_tree().quit()
