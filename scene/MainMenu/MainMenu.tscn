@@ -9,23 +9,3 @@ script = ExtResource( 1 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
-
-[node name="Background" type="TextureRect" parent="."]
-expand = true
-__meta__ = {
-"_edit_use_anchors_": false
-}
-
-[node name="MenuChrome" type="TextureRect" parent="Background"]
-__meta__ = {
-"_edit_use_anchors_": false
-}
-
-[node name="BackgroundButton" type="TextureButton" parent="Background/MenuChrome"]
-__meta__ = {
-"_edit_use_anchors_": false
-}
-
-[node name="MusicPlayer" type="AudioStreamPlayer" parent="."]
-bus = "Music"
-[connection signal="pressed" from="Background/MenuChrome/BackgroundButton" to="." method="_on_BackgroundButton_pressed"]
