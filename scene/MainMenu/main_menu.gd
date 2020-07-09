@@ -37,6 +37,13 @@ func _ready():
 	load_game_button.connect("pressed",self,"_on_LoadGameButton_pressed")
 	menu_chrome.add_child(load_game_button)
 	
+	var settings_button = TextureButton.new()
+	Chrome.button(settings_button, Assets.main_menu_settings_button())
+	settings_button.anchor_left = .5
+	settings_button.anchor_top = .68
+	settings_button.connect("pressed",self,"_on_SettingsButton_pressed")
+	menu_chrome.add_child(settings_button)
+	
 	var quit_button = TextureButton.new()
 	Chrome.button(quit_button, Assets.main_menu_quit_button())
 	quit_button.anchor_left = .5
@@ -64,6 +71,11 @@ func _on_NewGameButton_pressed():
 func _on_LoadGameButton_pressed():
 	# TODO Implement
 	print("Load game not yet implemented")
+	pass
+
+func _on_SettingsButton_pressed():
+	# TODO Implement
+	print("Settings not yet implemented")
 	pass
 
 func _on_QuitButton_pressed():

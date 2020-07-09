@@ -7,10 +7,10 @@ func button_paths(start):
 		"pressed":start + "2.png"	
 	}
 
-func button_images(lookup):
+func button_images(lookup,internal=false):
 	var images = {}
 	for key in lookup.keys():
-		images[key] = Load.image(lookup[key])
+		images[key] = Load.image(lookup[key], internal)
 	return images
 
 var _assets = {
@@ -25,6 +25,7 @@ var _assets = {
 		"button": {
 			"new_game": button_paths("ui/menus/main_newgame"),
 			"load_game": button_paths("ui/menus/main_loadgame"),
+			"settings": button_paths("menu/main_settings"),
 			"quit": button_paths("ui/menus/main_quit"),
 			"cycle_background": button_paths("ui/menus/main_bg_button"),			
 		},
@@ -46,6 +47,9 @@ func main_menu_new_game_button():
 
 func main_menu_load_game_button():
 	return button_images(_assets.main_menu.button.load_game)
+
+func main_menu_settings_button():
+	return button_images(_assets.main_menu.button.settings, true)
 
 func main_menu_quit_button():
 	return button_images(_assets.main_menu.button.quit)
