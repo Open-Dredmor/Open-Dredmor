@@ -16,15 +16,16 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="BackgroundButton" type="TextureButton" parent="."]
-margin_left = 932.882
-margin_top = 557.729
-margin_right = 972.882
-margin_bottom = 597.729
+[node name="MenuChrome" type="TextureRect" parent="Background"]
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="BackgroundButton" type="TextureButton" parent="Background/MenuChrome"]
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
 [node name="MusicPlayer" type="AudioStreamPlayer" parent="."]
 bus = "Music"
-[connection signal="pressed" from="BackgroundButton" to="." method="_on_BackgroundButton_pressed"]
+[connection signal="pressed" from="Background/MenuChrome/BackgroundButton" to="." method="_on_BackgroundButton_pressed"]

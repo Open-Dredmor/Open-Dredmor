@@ -25,6 +25,7 @@ Scenes="*res://script/scenes.gd"
 Assets="*res://script/assets.gd"
 Settings="*res://script/settings.gd"
 Load="*res://script/load.gd"
+Chrome="*res://script/chrome.gd"
 
 [display]
 
