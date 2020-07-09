@@ -16,12 +16,15 @@ _global_script_class_icons={
 [application]
 
 config/name="Open Dredmor"
-run/main_scene="res://MainMenu/MainMenu.tscn"
+run/main_scene="res://scene/Bootstrap/Bootstrap.tscn"
 config/icon="res://icon.png"
 
 [autoload]
 
-Util="*res://main.gd"
+Scenes="*res://script/scenes.gd"
+Assets="*res://script/assets.gd"
+Settings="*res://script/settings.gd"
+Load="*res://script/load.gd"
 
 [display]
 

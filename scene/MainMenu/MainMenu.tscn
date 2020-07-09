@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=2]
 
-[ext_resource path="res://MainMenu/main_menu.gd" type="Script" id=1]
+[ext_resource path="res://scene/MainMenu/main_menu.gd" type="Script" id=1]
 
 [node name="MainMenu" type="Control"]
 margin_right = 40.0
@@ -24,4 +24,7 @@ margin_bottom = 597.729
 __meta__ = {
 "_edit_use_anchors_": false
 }
+
+[node name="MusicPlayer" type="AudioStreamPlayer" parent="."]
+bus = "Music"
 [connection signal="pressed" from="BackgroundButton" to="." method="_on_BackgroundButton_pressed"]
