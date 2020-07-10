@@ -14,48 +14,49 @@ func button_images(lookup,internal=false):
 	return images
 
 var _assets = {
-	"main_menu": {
-		"backgrounds": [
+	main_menu = {
+		backgrounds = [
 			"ui/dredmor_main_big_org.png",
 			"expansion/ui/dredmor_main_big.png",
 			"expansion2/ui/dredmor_main_big.png",
 			"expansion3/ui/dredmor_main_big.png"
 		],
-		"chrome": "ui/menus/main_menubg.png",		
-		"button": {
-			"new_game": button_paths("ui/menus/main_newgame"),
-			"load_game": button_paths("ui/menus/main_loadgame"),
-			"settings": button_paths("menu/main_settings"),
-			"quit": button_paths("ui/menus/main_quit"),
-			"cycle_background": button_paths("ui/menus/main_bg_button"),			
+		chrome = "ui/menus/main_menubg.png",		
+		button = {
+			new_game = button_paths("ui/menus/main_newgame"),
+			load_game = button_paths("ui/menus/main_loadgame"),
+			settings = button_paths("menu/main_settings"),
+			quit = button_paths("ui/menus/main_quit"),
+			cycle_background = button_paths("ui/menus/main_bg_button"),			
 		},
-		"music": "tunes/finaltitle.ogg",
+		music = "tunes/finaltitle.ogg",
+	},
+	difficulty_menu = {
+		options_form = "ui/menus/panel_choosedifficulty107.png",
+		checkmark_large = "ui/menus/difficulty_x.png",
+		checkmark_small = "difficulty_x_small.png"
 	}
 }
 
-func main_menu_backgrounds():	
-	var images = []
-	for path in _assets.main_menu.backgrounds:
-		images.append(Load.image(path))
-	return images
-
-func main_menu_chrome():
-	return Load.image(_assets.main_menu.chrome)
-
-func main_menu_new_game_button():
-	return button_images(_assets.main_menu.button.new_game)
-
-func main_menu_load_game_button():
-	return button_images(_assets.main_menu.button.load_game)
-
-func main_menu_settings_button():
-	return button_images(_assets.main_menu.button.settings, true)
-
-func main_menu_quit_button():
-	return button_images(_assets.main_menu.button.quit)
+func main_menu():	
+	var background_images = []
+	for file in _assets.main_menu.backgrounds:
+		background_images.append(Load.image(file))
 	
-func main_menu_background_button():
-	return button_images(_assets.main_menu.button.cycle_background)
-
-func main_menu_music():
-	return Load.audio(_assets.main_menu.music)
+	var textures = {
+		chrome = Load.image(_assets.main_menu.chrome),
+		new_game_button = button_images(_assets.main_menu.button.new_game),
+		load_game_button = button_images(_assets.main_menu.button.load_game),
+		settings_button = button_images(_assets.main_menu.button.settings, true),
+		quit_button = button_images(_assets.main_menu.button.quit),
+		background_button = button_images(_assets.main_menu.button.cycle_background),
+		backgrounds = background_images	
+	}	
+	
+	var music = {
+		title = Load.audio(_assets.main_menu.music)
+	}
+	return {
+		textures = textures,
+		music = music
+	}
