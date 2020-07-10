@@ -2,47 +2,10 @@
 
 [ext_resource path="res://scene/Bootstrap/bootstrap.gd" type="Script" id=1]
 
-[node name="Control" type="Control"]
-margin_right = 709.0
-margin_bottom = 390.0
+[node name="Bootstrap" type="Control"]
 size_flags_horizontal = 2
 size_flags_vertical = 2
 script = ExtResource( 1 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
-
-[node name="Label" type="Label" parent="."]
-margin_left = 164.0
-margin_top = 84.0
-margin_right = 204.0
-margin_bottom = 98.0
-text = "Select the directory where Dungeons of Dredmor is installed."
-__meta__ = {
-"_edit_use_anchors_": false
-}
-
-[node name="DredmorPicker" type="FileDialog" parent="."]
-margin_right = 600.0
-margin_bottom = 400.0
-rect_min_size = Vector2( 600, 400 )
-window_title = "Open a Directory"
-dialog_text = "Select"
-mode = 2
-access = 2
-filters = PoolStringArray( "" )
-show_hidden_files = true
-current_dir = "/develop/open-dredmor"
-current_path = "/develop/open-dredmor/"
-
-[node name="DredmorPickerButton" type="Button" parent="."]
-margin_left = 263.0
-margin_top = 126.0
-margin_right = 326.0
-margin_bottom = 146.0
-text = "Select..."
-__meta__ = {
-"_edit_use_anchors_": false
-}
-[connection signal="dir_selected" from="DredmorPicker" to="." method="_on_DredmorPicker_dir_selected"]
-[connection signal="pressed" from="DredmorPickerButton" to="." method="_on_DredmorPickerButton_pressed"]
