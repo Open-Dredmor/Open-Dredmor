@@ -20,6 +20,7 @@ func _init_global_state():
 
 func _build_gui():
 		var bootstrap = get_node("../Container")
+		bootstrap.set_size(Settings.display_size())
 		
 		var container = VBoxContainer.new()
 		container.alignment = BoxContainer.ALIGN_CENTER

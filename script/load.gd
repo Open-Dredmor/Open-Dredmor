@@ -2,6 +2,9 @@ extends Node
 
 var cache = {}
 
+func clear_cache():
+	cache = {}
+
 func image(relative_path, internal=false):
 	if cache.has(relative_path):
 		return cache[relative_path]	

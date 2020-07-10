@@ -76,8 +76,7 @@ func _on_LoadGameButton_pressed():
 	pass
 
 func _on_SettingsButton_pressed():
-	# TODO Implement
-	print("Settings not yet implemented")
+	Scenes.goto(Scenes.SettingsMenu)
 	pass
 
 func _on_QuitButton_pressed():
