@@ -34,29 +34,53 @@ var _assets = {
 	difficulty_menu = {
 		options_form = "ui/menus/panel_choosedifficulty107.png",
 		checkmark_large = "ui/menus/difficulty_x.png",
-		checkmark_small = "difficulty_x_small.png"
+		checkmark_small = "ui/menus/difficulty_x_small.png",
+		choose_header = "title_choosedifficulty.png"
+	},
+	shared = {
+		button = {
+			back = button_paths("ui/skillselect_back"),
+			done = button_paths("ui/skillselect_done"),		
+		},
+		header_background = "ui/menus/topbar_horz_tile_bg.png"
 	}
 }
 
 func main_menu():	
+	var paths = _assets.main_menu
 	var background_images = []
-	for file in _assets.main_menu.backgrounds:
+	for file in paths.backgrounds:
 		background_images.append(Load.image(file))
 	
 	var textures = {
-		chrome = Load.image(_assets.main_menu.chrome),
-		new_game_button = button_images(_assets.main_menu.button.new_game),
-		load_game_button = button_images(_assets.main_menu.button.load_game),
-		settings_button = button_images(_assets.main_menu.button.settings, true),
-		quit_button = button_images(_assets.main_menu.button.quit),
-		background_button = button_images(_assets.main_menu.button.cycle_background),
+		chrome = Load.image(paths.chrome),
+		new_game_button = button_images(paths.button.new_game),
+		load_game_button = button_images(paths.button.load_game),
+		settings_button = button_images(paths.button.settings, true),
+		quit_button = button_images(paths.button.quit),
+		background_button = button_images(paths.button.cycle_background),
 		backgrounds = background_images	
 	}	
 	
 	var music = {
-		title = Load.audio(_assets.main_menu.music)
+		title = Load.audio(paths.music)
 	}
 	return {
 		textures = textures,
 		music = music
+	}
+	
+func difficulty_menu():
+	var paths = _assets.difficulty_menu
+	var textures = {
+		options_form = Load.image(paths.options_form),
+		checkmark_large = Load.image(paths.checkmark_large),
+		checkmark_small = Load.image(paths.checkmark_small),
+		done_button = button_images(_assets.shared.button.done),
+		back_button = button_images(_assets.shared.button.back),
+		choose_header = Load.image(paths.choose_header),
+		header_background = Load.image(_assets.shared.header_background)
+	}
+	return {
+		textures = textures
 	}

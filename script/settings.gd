@@ -30,3 +30,7 @@ func dredmor_install_dir():
 				dir += '/'
 			cached_install_dir = dir
 	return cached_install_dir
+	
+func display_size():
+	# ProjectSettings.get_setting("display/window/size/width"))
+	return get_viewport().size

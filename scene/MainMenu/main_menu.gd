@@ -5,16 +5,16 @@ var main_menu = null
 var background = null
 var background_image_index = 0
 
-func load_background_image():	
+func load_background_image():		
 	background.texture = assets.textures.backgrounds[background_image_index]
-	background.rect_min_size = Vector2(background.texture.get_width(), background.texture.get_height())
+	background.rect_size = Vector2(background.texture.get_width(), background.texture.get_height())
 
 func _ready():
-	main_menu = get_node("/root/Container")
-	
 	call_deferred("_build_gui")
 
 func _build_gui():
+	main_menu = get_node("../Container")
+	main_menu.set_size(Settings.display_size())
 	assets = Assets.main_menu()
 	
 	background = TextureRect.new()
@@ -62,10 +62,7 @@ func _build_gui():
 	background_button.connect("pressed", self, "_on_BackgroundButton_pressed")
 	menu_chrome.add_child(background_button)
 	
-	var music_player = AudioStreamPlayer.new()	
-	music_player.stream = assets.music.title
-	#@music_player.play()
-	main_menu.add_child(music_player)
+	Audio.play(assets.music.title)
 	
 	load_background_image()	
 

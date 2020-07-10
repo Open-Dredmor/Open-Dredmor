@@ -17,6 +17,7 @@ _global_script_class_icons={
 
 config/name="Open Dredmor"
 run/main_scene="res://scene/Bootstrap/Bootstrap.tscn"
+boot_splash/bg_color=Color( 0, 0, 0, 1 )
 config/icon="res://icon.png"
 
 [autoload]
@@ -26,6 +27,7 @@ Assets="*res://script/assets.gd"
 Settings="*res://script/settings.gd"
 Load="*res://script/load.gd"
 Chrome="*res://script/chrome.gd"
+Audio="*res://script/audio.gd"
 
 [display]
 
@@ -34,4 +36,5 @@ window/size/height=1050
 
 [rendering]
 
+environment/default_clear_color=Color( 0, 0, 0, 1 )
 environment/default_environment="res://default_env.tres"
