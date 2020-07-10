@@ -4,8 +4,12 @@ var selected_dir = null
 var directory_picker = null
 
 func _ready():
+	call_deferred("_init_global_state")		
+
+func _init_global_state():
 	print("Reading config from "+OS.get_user_data_dir())
 	Settings.load()
+	Audio.setup(get_tree().get_root())
 	var install_dir = Settings.dredmor_install_dir()
 	if install_dir != null:
 		print("Installation dir configured, load the game.")
@@ -13,7 +17,6 @@ func _ready():
 	else:
 		print("Installation dir not configured, prompt selection.")
 		call_deferred("_build_gui")
-		
 
 func _build_gui():
 		var bootstrap = get_node("../Container")
