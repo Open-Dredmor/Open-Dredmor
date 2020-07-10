@@ -28,6 +28,7 @@ Settings="*res://script/settings.gd"
 Load="*res://script/load.gd"
 Chrome="*res://script/chrome.gd"
 Audio="*res://script/audio.gd"
+DungeonSettings="*res://script/dungeon_settings.gd"
 
 [display]
 

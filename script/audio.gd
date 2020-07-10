@@ -5,9 +5,9 @@ var _current_stream = null
 var _root = null
 var _state = null
 
-var States = {
-	Playing = "Playing",
-	Stopped = "Stopped"
+enum States {
+	Playing,
+	Stopped
 }
 
 func setup(root):	

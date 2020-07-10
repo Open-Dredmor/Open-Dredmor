@@ -1,8 +1,12 @@
-[gd_scene load_steps=2 format=2]
+[gd_scene load_steps=3 format=2]
 
 [ext_resource path="res://scene/DifficultyMenu/difficulty_menu.gd" type="Script" id=1]
 
+[sub_resource type="Theme" id=1]
+Button/colors/BackgroundColor = Color( 0.639216, 0.215686, 0.215686, 1 )
+
 [node name="Container" type="Control"]
+theme = SubResource( 1 )
 script = ExtResource( 1 )
 __meta__ = {
 "_edit_use_anchors_": false

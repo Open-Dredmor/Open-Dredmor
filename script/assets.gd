@@ -35,7 +35,7 @@ var _assets = {
 		options_form = "ui/menus/panel_choosedifficulty107.png",
 		checkmark_large = "ui/menus/difficulty_x.png",
 		checkmark_small = "ui/menus/difficulty_x_small.png",
-		choose_header = "title_choosedifficulty.png"
+		choose_header = "ui/menus/title_choosedifficulty.png"
 	},
 	shared = {
 		button = {
