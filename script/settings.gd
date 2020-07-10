@@ -5,12 +5,13 @@ var _settings = null;
 var settings_path = "user://open-dredmor-settings.ini"
 
 func load():
-	print("Settings loaded")
 	var config = ConfigFile.new()
 	var err = config.load(settings_path)
 	if err == OK:		   
 		if not config.has_section_key("open_dredmor", "dredmor_install_directory"):
-			config.set_value("open_dredmor", "dredmor_install_directory", null)		    
+			config.set_value("open_dredmor", "dredmor_install_directory", null)
+		if not config.has_section_key("game","audio_volume_master_percent"):
+			config.set_value("game", "audio_volume_master_percent", 100)
 		config.save(settings_path)
 	_settings = config
 

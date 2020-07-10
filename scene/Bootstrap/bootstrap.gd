@@ -16,7 +16,7 @@ func _ready():
 		
 
 func _build_gui():
-		var bootstrap = get_tree().get_root()
+		var bootstrap = get_node("/root/Container")
 		
 		var container = VBoxContainer.new()
 		container.alignment = BoxContainer.ALIGN_CENTER

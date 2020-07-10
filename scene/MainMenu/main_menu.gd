@@ -10,7 +10,7 @@ func load_background_image():
 	background.rect_min_size = Vector2(background.texture.get_width(), background.texture.get_height())
 
 func _ready():
-	main_menu = get_tree().get_root()	
+	main_menu = get_node("/root/Container")
 	
 	call_deferred("_build_gui")
 
@@ -64,7 +64,7 @@ func _build_gui():
 	
 	var music_player = AudioStreamPlayer.new()	
 	music_player.stream = assets.music.title
-	music_player.play()
+	#@music_player.play()
 	main_menu.add_child(music_player)
 	
 	load_background_image()	
