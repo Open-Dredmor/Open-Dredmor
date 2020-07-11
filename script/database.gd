@@ -6,7 +6,10 @@ var result_cache = null
 func ingest():
 	if db_cache == null:		
 		db_cache = {}
+		# This loads vanilla datasets. Additional thought needed on how to manage the expansions
 		db_cache.skill_db = DataIngest.skills("game/skillDB.xml")
+		db_cache.crafting_recipe_db = DataIngest.crafting_recipes("game/craftDB.xml")
+		print("Database files ingested")
 
 func cache(key,result):
 	if result_cache == null:
