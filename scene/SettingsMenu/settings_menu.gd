@@ -3,6 +3,7 @@ extends Control
 var audio_enabled_checkbox;
 
 func _ready():
+	print("ready")
 	call_deferred("_build_gui")
 	
 func _build_gui():

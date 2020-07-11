@@ -141,8 +141,7 @@ func _build_gui():
 	_no_time_to_grind_checkmark.visible = _no_time_to_grind_enabled
 
 func _on_DoneButton_pressed():
-	# TODO Implement
-	print("Not yet implemented")
+	Scenes.goto(Scenes.SkillsMenu)
 	pass
 
 func _on_BackButton_pressed():

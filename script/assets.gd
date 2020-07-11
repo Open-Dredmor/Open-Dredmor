@@ -21,10 +21,18 @@ var _assets = {
 			"expansion2/ui/dredmor_main_big.png",
 			"expansion3/ui/dredmor_main_big.png"
 		],
+		title = "ui/menus/main_titletext.png",
+		subtitles = [
+			# Vanilla has no subtitle
+			"expansion/ui/rotdg_title_small2.png",
+			# At first glance, the second expansion subtitle isn't baked
+			"expansion3/ui/cotw_title.png"
+		],
 		chrome = "ui/menus/main_menubg.png",		
 		button = {
 			new_game = button_paths("ui/menus/main_newgame"),
 			load_game = button_paths("ui/menus/main_loadgame"),
+			high_scores = button_paths("ui/menus/main_highscores"),
 			settings = button_paths("menu/main_settings"),
 			quit = button_paths("ui/menus/main_quit"),
 			cycle_background = button_paths("ui/menus/main_bg_button"),			
@@ -36,6 +44,9 @@ var _assets = {
 		checkmark_large = "ui/menus/difficulty_x.png",
 		checkmark_small = "ui/menus/difficulty_x_small.png",
 		choose_header = "ui/menus/title_choosedifficulty.png"
+	},
+	skills_menu = {
+		skills_header = "ui/menus/title_chooseskills.png"
 	},
 	shared = {
 		button = {
@@ -52,14 +63,16 @@ func main_menu():
 	for file in paths.backgrounds:
 		background_images.append(Load.image(file))
 	
-	var textures = {
+	var textures = {		
+		backgrounds = background_images,
+		title = Load.image(paths.title),
 		chrome = Load.image(paths.chrome),
 		new_game_button = button_images(paths.button.new_game),
 		load_game_button = button_images(paths.button.load_game),
+		high_scores_button = button_images(paths.button.high_scores),
 		settings_button = button_images(paths.button.settings, true),
-		quit_button = button_images(paths.button.quit),
+		quit_button = button_images(paths.button.quit),		
 		background_button = button_images(paths.button.cycle_background),
-		backgrounds = background_images	
 	}	
 	
 	var music = {
@@ -80,6 +93,18 @@ func difficulty_menu():
 		back_button = button_images(_assets.shared.button.back),
 		choose_header = Load.image(paths.choose_header),
 		header_background = Load.image(_assets.shared.header_background)
+	}
+	return {
+		textures = textures
+	}
+
+func skills_menu():
+	var paths = _assets.skills_menu
+	var textures = {
+		done_button = button_images(_assets.shared.button.done),
+		back_button = button_images(_assets.shared.button.back),
+		header_background = Load.image(_assets.shared.header_background),
+		skills_header = Load.image(paths.skills_header)
 	}
 	return {
 		textures = textures

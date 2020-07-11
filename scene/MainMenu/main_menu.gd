@@ -1,7 +1,6 @@
 extends Control
 
 var assets = null
-var main_menu = null
 var background = null
 var background_image_index = 0
 
@@ -13,19 +12,25 @@ func _ready():
 	call_deferred("_build_gui")
 
 func _build_gui():
-	main_menu = get_node("../Container")
-	main_menu.set_size(Settings.display_size())
+	var container = get_node("../Container")
+	container.set_size(Settings.display_size())
 	assets = Assets.main_menu()
 	
 	background = TextureRect.new()
-	main_menu.add_child(background)		
+	container.add_child(background)		
+	
+	var title = TextureRect.new()
+	title.texture = assets.textures.title
+	title.anchor_left = .01
+	title.anchor_top = .01
+	container.add_child(title)
 	
 	var menu_chrome = TextureRect.new()
 	menu_chrome.texture = assets.textures.chrome
 	menu_chrome.rect_min_size = Vector2(menu_chrome.texture.get_width(), menu_chrome.texture.get_height())
 	menu_chrome.anchor_left = .8
 	menu_chrome.anchor_top = .1	
-	background.add_child(menu_chrome)
+	container.add_child(menu_chrome)
 	
 	var new_game_button = TextureButton.new()
 	Chrome.button(new_game_button, assets.textures.new_game_button)
@@ -40,6 +45,13 @@ func _build_gui():
 	load_game_button.anchor_top = .28
 	load_game_button.connect("pressed",self,"_on_LoadGameButton_pressed")
 	menu_chrome.add_child(load_game_button)
+	
+	var high_scores_button = TextureButton.new()
+	Chrome.button(high_scores_button, assets.textures.high_scores_button)
+	high_scores_button.anchor_left = .5
+	high_scores_button.anchor_top = .38
+	high_scores_button.connect("pressed",self,"_on_HighScoresButton_pressed")
+	menu_chrome.add_child(high_scores_button)
 	
 	var settings_button = TextureButton.new()
 	Chrome.button(settings_button, assets.textures.settings_button)
@@ -68,16 +80,17 @@ func _build_gui():
 
 func _on_NewGameButton_pressed():
 	Scenes.goto(Scenes.DifficultyMenu)
-	pass
 	
 func _on_LoadGameButton_pressed():
 	# TODO Implement
 	print("Load game not yet implemented")
-	pass
+
+func _on_HighScoresButton_pressed():
+	# TODO Implement
+	print("High scores not yet implemented")
 
 func _on_SettingsButton_pressed():
 	Scenes.goto(Scenes.SettingsMenu)
-	pass
 
 func _on_QuitButton_pressed():
 	get_tree().quit()
