@@ -39,7 +39,8 @@ func _build_gui():
 	done_button.connect("pressed",self,"_on_DoneButton_pressed")
 	container.add_child(done_button)	
 		
-		
+	var skills = Database.character_creation_skill_list()
+	print(skills)
 	
 
 

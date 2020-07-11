@@ -28,9 +28,15 @@ func skills(xml_path):
 					"skill":						
 						entry_kind = "skills"
 						entry_key = xml.get_named_attribute_value("id")
+						var attribute_count = xml.get_attribute_count()						
+						for ii in range(attribute_count):
+							entry_data[xml.get_attribute_name(ii)] = xml.get_attribute_value(ii)
 					"ability":
 						entry_kind = "abilities"
 						entry_key = xml.get_named_attribute_value("name")
+						var attribute_count = xml.get_attribute_count()						
+						for ii in range(attribute_count):
+							entry_data[xml.get_attribute_name(ii)] = xml.get_attribute_value(ii)
 					"secondarybuff","tag":
 						if ! entry_data.has(node_kind):
 							entry_data[node_kind] = []
