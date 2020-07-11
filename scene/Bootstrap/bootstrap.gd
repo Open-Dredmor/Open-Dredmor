@@ -10,6 +10,7 @@ func _init_global_state():
 	print("Reading config from "+OS.get_user_data_dir())
 	Settings.load()
 	Audio.setup(get_tree().get_root())
+	Database.ingest()
 	var install_dir = Settings.dredmor_install_dir()
 	if install_dir != null:
 		print("Installation dir configured, load the game.")
