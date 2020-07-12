@@ -21,8 +21,8 @@ func character_creation_skill_list():
 		return result_cache.character_creation_skill_list
 	var result = []
 	var skill = null
-	for skill_id in db_cache.skill_db.skills.list:
-		skill = db_cache.skill_db.skills.lookup[skill_id]
+	for skill_id in db_cache.skill_db.skill.list:
+		skill = db_cache.skill_db.skill.lookup[skill_id]
 		result.append({
 			name = skill.name,
 			description = skill.description,

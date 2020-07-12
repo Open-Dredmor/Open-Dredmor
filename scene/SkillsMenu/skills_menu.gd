@@ -38,13 +38,14 @@ func _build_gui():
 	done_button.margin_top = 0
 	done_button.connect("pressed",self,"_on_DoneButton_pressed")
 	container.add_child(done_button)	
-		
-	var skills = Database.character_creation_skill_list()
+			
 	var skills_container = GridContainer.new()
 	skills_container.columns = 10
 	skills_container.anchor_left = .2
-	skills_container.anchor_top = .3
+	skills_container.anchor_top = .3	
 	container.add_child(skills_container)
+	
+	var skills = Database.character_creation_skill_list()
 	for skill in skills:
 		var skill_icon = TextureRect.new()
 		skill_icon.texture = skill.icon
