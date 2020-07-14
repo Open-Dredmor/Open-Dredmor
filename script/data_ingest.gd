@@ -78,7 +78,11 @@ func monsters(xml_path):
 		top_level_nodes = [
 			'monster',
 		],
+		parent_nodes = [
+			'monster'
+		],
 		list_nodes = [
+			'monster',
 			'drop',
 			'onhit',
 			'secondarybuff',			
@@ -320,6 +324,8 @@ func xml_to_dictionary(options):
 	var pre_entry_key_handler = options.pre_entry_key_handler if options.has('pre_entry_key_handler') else null
 	var post_entry_key_handler = options.post_entry_key_handler if options.has('post_entry_key_handler') else null
 	
+	print("Ingesting "+xml_path)
+	
 	var result = {}
 	for node in top_level_nodes:
 		result[node] = {
@@ -340,6 +346,8 @@ func xml_to_dictionary(options):
 		match node_type:
 			XMLParser.NODE_ELEMENT_END:
 				var node_kind = xml.get_node_name()
+				if node_kind == skip_node:
+					continue
 				var is_parent = parent_nodes != null and parent_nodes.has(node_kind)
 				if (!is_parent) and (top_level_nodes != null and !top_level_nodes.has(node_kind)):
 					var warning = xml_path + " should denote " + node_kind + " as a parent node or top level node. Otherwise children will be appended to the top level node."
@@ -348,12 +356,14 @@ func xml_to_dictionary(options):
 						print(warning)
 				var depth_tree = depth_queue.tree()
 				# Remove array indices
-				while typeof(depth_queue.last()) == TYPE_INT:
-					print('Popped ' + str(depth_queue.pop()) + ' from '+str(depth_tree))
-				# Then remove data key
-				print('Popped ' + str(depth_queue.pop()) + ' from '+str(depth_tree))
+				if typeof(depth_queue.last()) == TYPE_INT:
+					print('Popping ' + str(depth_queue.last()) + ' from '+str(depth_tree))
+					depth_queue.pop()					
+				print('Popping ' + str(depth_queue.last()) + ' from '+str(depth_tree))
+				depth_queue.pop()				
 			XMLParser.NODE_ELEMENT:
 				var node_kind = xml.get_node_name()
+				var is_top_level = top_level_nodes != null and top_level_nodes.has(node_kind)
 				var is_parent = parent_nodes != null and parent_nodes.has(node_kind)
 				if fix_name_nodes != null and fix_name_nodes.has(node_kind):
 					node_kind = fix_name_nodes[node_kind]
@@ -367,14 +377,17 @@ func xml_to_dictionary(options):
 				var data_target = entry_data
 				var depth_tree = depth_queue.tree()				
 				if depth_tree != null:				
-					#print(depth_tree)
+					print(depth_tree)
 					for ii in range(depth_tree.size()):
+						if is_top_level:
+								is_top_level = false
 						if ii > 0:
-							data_target = data_target[depth_tree[ii]]
+							data_target = data_target[depth_tree[ii]]							
 									
 				if node_kind == skip_node:
 					pass
-				elif top_level_nodes != null and top_level_nodes.has(node_kind):					
+				elif is_top_level:				
+					#print("Found top level node "+node_kind)	
 					entry_kind = node_kind
 					if pre_entry_key_handler != null:
 						entry_key = call(pre_entry_key_handler,node_kind,xml)
@@ -382,7 +395,10 @@ func xml_to_dictionary(options):
 					var attribute_count = xml.get_attribute_count()						
 					for ii in range(attribute_count):
 						entry_data[xml.get_attribute_name(ii)] = xml.get_attribute_value(ii)
-				elif list_nodes != null and list_nodes.has(node_kind):																
+				elif list_nodes != null and list_nodes.has(node_kind):		
+					#print("Found list node "+node_kind)														
+					if node_kind == 'monster':
+						pass
 					if ! data_target.has(node_kind):
 						data_target[node_kind] = []
 					var child = {}
@@ -394,9 +410,10 @@ func xml_to_dictionary(options):
 						depth_queue.push(node_kind)
 						depth_queue.push(data_target[node_kind].size()-1)
 				elif is_parent:
-					print("Found parent node "+node_kind)
+					#print("Found parent node "+node_kind)
 					depth_queue.push(node_kind)
 				else:
+					#print("Found generic node "+node_kind)
 					if data_target.has(node_kind) and (child_override_nodes == null or !child_override_nodes.has(node_kind)):
 						var warning = xml_path + " should denote " + node_kind + " as a list node. Otherwise values will be overwritten and lost."
 						if ! warnings.has(warning):
