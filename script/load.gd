@@ -5,7 +5,7 @@ var cache = {}
 func clear_cache():
 	cache = {}
 
-func _resolve(relative_path):
+func resolve(relative_path):
 	return Settings.dredmor_install_dir() + relative_path
 
 func image(relative_path, internal=false):
@@ -21,7 +21,7 @@ func image(relative_path, internal=false):
 		return image_texture
 	else:
 		var img = Image.new()	
-		var absolute_path = _resolve(relative_path)
+		var absolute_path = resolve(relative_path)
 		img.load(absolute_path)
 		var texture = ImageTexture.new()
 		texture.create_from_image(img)
@@ -32,7 +32,7 @@ func audio(relative_path):
 	if cache.has(relative_path):
 		return cache[relative_path]
 	var file = File.new()
-	file.open(_resolve(relative_path), File.READ)
+	file.open(resolve(relative_path), File.READ)
 	var bytes = file.get_buffer(file.get_len())
 	var stream = AudioStreamOGGVorbis.new()
 	stream.loop = true
@@ -42,6 +42,6 @@ func audio(relative_path):
 	
 func xml(relative_path):
 	var xml_parser = XMLParser.new()
-	xml_parser.open(_resolve(relative_path))
+	xml_parser.open(resolve(relative_path))
 	xml_parser.read()
 	return xml_parser
