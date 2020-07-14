@@ -9,3 +9,5 @@ A full installation of Dungeons of Dredmor is required. Open Dredmor is only an 
 ## Future references
 
 https://github.com/gustavopateti/godot-xml-spritesheet-importer/blob/master/XML%20Spritesheet%20Importer/XMLSpritesheetImporter.gd
+
+.spr files are ProMotion sprite animations

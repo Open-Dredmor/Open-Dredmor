@@ -39,7 +39,7 @@ class Queue:
 		
 	func tree():
 		if _size == 0:
-			return null
+			return []
 		var result = []
 		var current = _head
 		while current != null:
