@@ -16,8 +16,7 @@ func ingest():
 		#db_cache.monster_db = DataIngest.monsters("game/monDB.xml")
 		#db_cache.quest_item_db = DataIngest.quest_targets("game/quests.xml")
 		## rooms.dat might not be used. Not sure.
-		db_cache.room_db = DataIngest.rooms("game/rooms.xml")
-		var json = JSON.print(db_cache.room_db)
+		db_cache.room_db = DataIngest.rooms("game/rooms.xml")		
 		## scrolls.xml didn't seem to be used
 		#db_cache.sound_db = DataIngest.sounds("game/soundfx.xml")
 		#db_cache.speech_db = DataIngest.speeches("game/speech.xml")
@@ -27,6 +26,8 @@ func ingest():
 		#db_cache.text_db = DataIngest.text("game/text.xml")
 		#db_cache.tutorial_db = DataIngest.tutorials("game/tutorial.xml")
 		#db_cache.tweak_db = DataIngest.tweaks("game/tweakDB.xml")
+		var buff_room = db_cache.room_db.room.lookup["Magic Buffing Chamber"]
+		var json = JSON.print(buff_room)
 		print("Database files ingested")
 
 func cache(key,result):
