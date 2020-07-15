@@ -40,8 +40,19 @@ func audio(relative_path):
 	cache[relative_path] = stream
 	return stream
 	
-func xml(relative_path):
+func xml(relative_path):	
+	var absolute_path = resolve(relative_path)
+	var file = File.new()
+	if ! file.file_exists(absolute_path):
+		print("Unable to find referenced file [" + absolute_path + "]")
+	file.open(absolute_path, File.READ)
+	var xml_content = file.get_as_text()
+	# Strip out all comments, otherwise godot can crash without any error
+	# https://github.com/godotengine/godot/issues/40415
+	var reg_ex = RegEx.new()
+	var expression = "<!--[\\s\\S\\n]*?-->"
+	reg_ex.compile(expression)
+	xml_content = reg_ex.sub(xml_content, "", true)
 	var xml_parser = XMLParser.new()
-	xml_parser.open(resolve(relative_path))
-	xml_parser.read()
+	xml_parser.open_buffer(xml_content.to_utf8())
 	return xml_parser
