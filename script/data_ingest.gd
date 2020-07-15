@@ -10,19 +10,22 @@ func xml(xml_path):
 		print("Unable to find referenced file [" + xml_path + "]")
 	var xml = Load.xml(xml_path)	
 	var manual_close_nodes = {}
-	while xml.read() == OK:
+	while xml.read() == OK:		
 		var node_type = xml.get_node_type()
+		print(node_type)
 		match node_type:
 			XMLParser.NODE_ELEMENT_END:
 				var node_kind = xml.get_node_name()
 				if ! manual_close_nodes.has(node_kind):
 					manual_close_nodes[node_kind] = true
 	manual_close_nodes = manual_close_nodes.keys()
+	print("Manual_close_nodes " + str(manual_close_nodes))
 	
 	var depth_queue = DataStructure.NewQueue()
 	xml = Load.xml(xml_path)
-	while xml.read() == OK:
+	while xml.read() == OK:		
 		var node_type = xml.get_node_type()
+		print(node_type)
 		match node_type:
 			XMLParser.NODE_ELEMENT_END:
 				var node_kind = xml.get_node_name()
@@ -52,5 +55,6 @@ func xml(xml_path):
 					depth_queue.push(node_kind)
 			_:
 				pass
+	print('result ready')
 	return result[result.keys()[0]]
 

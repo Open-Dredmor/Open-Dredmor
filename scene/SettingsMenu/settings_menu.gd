@@ -3,7 +3,6 @@ extends Control
 var audio_enabled_checkbox;
 
 func _ready():
-	print("ready")
 	call_deferred("_build_gui")
 	
 func _build_gui():
@@ -54,7 +53,6 @@ func _persist_settings():
 	var audio_enabled = audio_enabled_checkbox.is_pressed()
 	Settings.change("game", "audio_enabled", audio_enabled)
 	if ! audio_enabled:
-		print("Kill it")
 		Audio.stop()
 
 func _on_SaveButton_pressed():
