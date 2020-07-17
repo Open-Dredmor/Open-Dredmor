@@ -20,7 +20,7 @@ func _init_global_state():
 		call_deferred("_build_gui")
 
 func _build_gui():
-		var bootstrap = get_node("../Container")
+		var bootstrap = get_node("/root/Container")
 		bootstrap.set_size(Settings.display_size())
 		
 		var container = VBoxContainer.new()

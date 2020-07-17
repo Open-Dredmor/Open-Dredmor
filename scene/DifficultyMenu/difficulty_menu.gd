@@ -14,7 +14,7 @@ func _ready():
 func _build_gui():
 	DungeonSettings.reset()
 	var assets = Assets.difficulty_menu()
-	var difficulty_menu = get_node("../Container")
+	var difficulty_menu = get_node("/root/Container")
 	difficulty_menu.set_size(Settings.display_size())
 
 	var header_background = TextureRect.new()

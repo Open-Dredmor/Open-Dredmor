@@ -12,7 +12,7 @@ func _ready():
 	call_deferred("_build_gui")
 
 func _build_gui():
-	var container = get_node("../Container")
+	var container = get_node("/root/Container")
 	container.set_size(Settings.display_size())
 	assets = Assets.main_menu()
 	

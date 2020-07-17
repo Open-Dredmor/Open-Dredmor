@@ -1,21 +1,30 @@
 extends Control
 
+var MAX_SKILL_SELECTION = 7
+
 var _selected_skills = null
 var _container = null
 
 func _ready():	
 	call_deferred("_build_gui")
 	
-func _process(delta):
+func _process(_delta):
 	if _selected_skills != null and _container != null:
-		for key in _selected_skills.keys():
-			var node_path = '../Container/SkillsContainer/SkillsSelector/PickSkillBorder'+key+'/PickSkillButton'+key
-			Chrome.highlight(get_node(node_path))
+		var keys = _selected_skills.keys()
+		for ii in range(MAX_SKILL_SELECTION):
+			var selected_skill_path = "/root/Container/SkillsContainer/SelectedSkillsBackground/SelectedSkillsContainer/SelectedSkillButton#" + str(ii)
+			if ii < keys.size():
+				var key = _selected_skills.keys()[ii]
+				var skill_panel_path = '/root/Container/SkillsContainer/SkillsSelector/PickSkillBorder#'+key+'/PickSkillButton#'+key
+				Chrome.highlight(get_node(skill_panel_path))										
+				get_node(selected_skill_path).texture_normal = _selected_skills[key].icon
+			else:
+				get_node(selected_skill_path).texture_normal = null
 	
 func _build_gui():
 	DungeonSettings.reset()
 	var assets = Assets.skills_menu()
-	_container = get_node("../Container")
+	_container = get_node("/root/Container")
 	_container.set_size(Settings.display_size())
 
 	var header_background = TextureRect.new()
@@ -50,7 +59,7 @@ func _build_gui():
 			
 	var skills_container = VBoxContainer.new()
 	skills_container.name = 'SkillsContainer'
-	skills_container.anchor_left = .3
+	skills_container.anchor_left = .25
 	skills_container.anchor_top = .3
 	_container.add_child(skills_container)
 			
@@ -64,19 +73,32 @@ func _build_gui():
 	for skill in skills:
 		var skill_border = TextureRect.new()
 		skill_border.texture = assets.textures.skill_button_border
-		skill_border.name = "PickSkillBorder" + skill.id
+		skill_border.name = "PickSkillBorder#" + skill.id
 		skills_selector.add_child(skill_border)
 		
 		var pick_skill_button = Chrome.highlight_on_hover_button(skill.icon)
 		pick_skill_button.connect("pressed", self, "_select_skill",[skill])
-		pick_skill_button.name = "PickSkillButton" + skill.id
+		pick_skill_button.name = "PickSkillButton#" + skill.id
 		pick_skill_button.margin_top = 5
 		pick_skill_button.margin_left = 5
 		skill_border.add_child(pick_skill_button)
 		
 	var selected_skills_background = TextureRect.new()
 	selected_skills_background.texture = assets.textures.selected_skills_background
+	selected_skills_background.name = "SelectedSkillsBackground"
 	skills_container.add_child(selected_skills_background)
+	
+	var selected_skills_container = HBoxContainer.new()
+	selected_skills_container.name = "SelectedSkillsContainer"
+	selected_skills_container.anchor_left = 0.025
+	selected_skills_container.anchor_top = 0.2
+	selected_skills_container.set("custom_constants/separation", 24)
+	selected_skills_background.add_child(selected_skills_container)	
+	
+	for ii in range(MAX_SKILL_SELECTION):
+		var selected_skill_button = TextureButton.new()
+		selected_skill_button.name = "SelectedSkillButton#" + str(ii)
+		selected_skills_container.add_child(selected_skill_button)			
 	
 	var selected_skill_info_background = TextureRect.new()
 	selected_skill_info_background.texture = assets.textures.selected_skill_info_background
@@ -87,8 +109,9 @@ func _select_skill(skill):
 	if _selected_skills.has(skill.id):
 		_selected_skills.erase(skill.id)
 	else:
-		_selected_skills[skill.id] = skill
-	print(_selected_skills.keys())
+		if _selected_skills.keys().size() < MAX_SKILL_SELECTION:
+			_selected_skills[skill.id] = skill
+			
 
 func _on_DoneButton_pressed():
 	# TODO Implement

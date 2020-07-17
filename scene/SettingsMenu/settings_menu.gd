@@ -6,7 +6,7 @@ func _ready():
 	call_deferred("_build_gui")
 	
 func _build_gui():
-	var settings_menu = get_node("../Container")
+	var settings_menu = get_node("/root/Container")
 	settings_menu.set_size(Settings.display_size())
 
 	var container = VBoxContainer.new()

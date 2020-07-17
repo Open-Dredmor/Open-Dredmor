@@ -34,7 +34,6 @@ func xml(xml_path):
 		var node_type = xml.get_node_type()		
 		match node_type:
 			XMLParser.NODE_ELEMENT_END:
-				var node_kind = xml.get_node_name()
 				depth_queue.pop()
 			XMLParser.NODE_ELEMENT:
 				var node_kind = xml.get_node_name()
