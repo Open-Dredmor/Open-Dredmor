@@ -5,14 +5,20 @@ var cache = {}
 func clear_cache():
 	cache = {}
 
-func resolve(relative_path):
+func exists(relative_path, internal=false):
+	var file = File.new()
+	return file.file_exists(resolve(relative_path, internal))
+
+func resolve(relative_path, internal = false):
+	if internal:
+		return "res://asset/" + relative_path
 	return Settings.dredmor_install_dir() + relative_path
 
 func image(relative_path, internal=false):
 	if cache.has(relative_path):
 		return cache[relative_path]	
 	if internal:
-		var absolute_path = "res://asset/" + relative_path
+		var absolute_path = resolve(relative_path, true)
 		var stream_texture = load(absolute_path)
 		var image_texture = ImageTexture.new()
 		var img = stream_texture.get_data()

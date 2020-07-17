@@ -10,7 +10,8 @@ func button_paths(start):
 func button_images(lookup,internal=false):
 	var images = {}
 	for key in lookup.keys():
-		images[key] = Load.image(lookup[key], internal)
+		if Load.exists(lookup[key],internal):
+			images[key] = Load.image(lookup[key], internal)
 	return images
 
 var _assets = {
@@ -46,7 +47,10 @@ var _assets = {
 		choose_header = "ui/menus/title_choosedifficulty.png"
 	},
 	skills_menu = {
-		skills_header = "ui/menus/title_chooseskills.png"
+		skills_header = "ui/menus/title_chooseskills.png",
+		skill_button_border = "ui/menus/panel_skilliconbox.png",
+		selected_skills_background = "ui/menus/selected_skills_panel.png",
+		selected_skill_info_background ="ui/menus/skillchoose_skillinfo_bg.png"
 	},
 	shared = {
 		button = {
@@ -104,7 +108,10 @@ func skills_menu():
 		done_button = button_images(_assets.shared.button.done),
 		back_button = button_images(_assets.shared.button.back),
 		header_background = Load.image(_assets.shared.header_background),
-		skills_header = Load.image(paths.skills_header)
+		skills_header = Load.image(paths.skills_header),
+		skill_button_border = Load.image(paths.skill_button_border),
+		selected_skills_background = Load.image(paths.selected_skills_background),
+		selected_skill_info_background = Load.image(paths.selected_skill_info_background)
 	}
 	return {
 		textures = textures

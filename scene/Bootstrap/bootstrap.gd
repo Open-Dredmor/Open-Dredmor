@@ -14,7 +14,7 @@ func _init_global_state():
 	var install_dir = Settings.dredmor_install_dir()
 	if install_dir != null:
 		print("Installation dir configured, load the game.")
-		Scenes.goto(Scenes.MainMenu)
+		Scenes.goto(Scenes.SkillsMenu)
 	else:
 		print("Installation dir not configured, prompt selection.")
 		call_deferred("_build_gui")

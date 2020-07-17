@@ -7,6 +7,7 @@ func ingest():
 	if db_cache == null:		
 		# This loads vanilla datasets. Additional thought needed on how to manage the expansions
 		db_cache = {}
+		print("Ingesting vanilla game data")
 		# monDB.xml explains that branches are a feature scrapped during development
 		#db_cache.branch_db = DataIngest.branches("game/branchDB.xml")
 		db_cache.crafting_recipe_db = DataIngest.xml("game/craftDB.xml")
@@ -38,10 +39,12 @@ func character_creation_skill_list():
 		return result_cache.character_creation_skill_list
 	var result = []
 	for skill in db_cache.skill_db.skill:
-		result.append({
-			name = skill.name,
-			description = skill.description,
-			icon = Load.image(skill.art.icon)
-		})
+		if ! skill.has('deprecated') or int(skill.deprecated) != 1:
+			result.append({
+				name = skill.name,
+				description = skill.description,
+				icon = Load.image(skill.art.icon),
+				id = skill.id
+			})
 	cache("character_creation_skill_list",result)
 	return result
