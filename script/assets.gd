@@ -50,7 +50,9 @@ var _assets = {
 		skills_header = "ui/menus/title_chooseskills.png",
 		skill_button_border = "ui/menus/panel_skilliconbox.png",
 		selected_skills_background = "ui/menus/selected_skills_panel.png",
-		selected_skill_info_background ="ui/menus/skillchoose_skillinfo_bg.png"
+		selected_skill_info_background ="ui/menus/skillchoose_skillinfo_bg.png",
+		random_selection = button_paths("ui/menus/skills_random"),
+		last_selection = button_paths("ui/menus/skills_last")
 	},
 	shared = {
 		button = {
@@ -111,7 +113,9 @@ func skills_menu():
 		skills_header = Load.image(paths.skills_header),
 		skill_button_border = Load.image(paths.skill_button_border),
 		selected_skills_background = Load.image(paths.selected_skills_background),
-		selected_skill_info_background = Load.image(paths.selected_skill_info_background)
+		selected_skill_info_background = Load.image(paths.selected_skill_info_background),
+		last_selection_button = button_images(paths.last_selection),
+		random_selection_button = button_images(paths.random_selection)
 	}
 	return {
 		textures = textures

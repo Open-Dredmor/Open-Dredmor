@@ -32,43 +32,37 @@ func _build_gui():
 	menu_chrome.anchor_top = .1	
 	container.add_child(menu_chrome)
 	
-	var new_game_button = TextureButton.new()
-	Chrome.button(new_game_button, assets.textures.new_game_button)
+	var new_game_button = Chrome.button(assets.textures.new_game_button)
 	new_game_button.anchor_left = .5
 	new_game_button.anchor_top = .18
 	new_game_button.connect("pressed",self,"_on_NewGameButton_pressed")
 	menu_chrome.add_child(new_game_button)
 	
-	var load_game_button = TextureButton.new()
-	Chrome.button(load_game_button, assets.textures.load_game_button)
+	var load_game_button = Chrome.button(assets.textures.load_game_button)
 	load_game_button.anchor_left = .5
 	load_game_button.anchor_top = .28
 	load_game_button.connect("pressed",self,"_on_LoadGameButton_pressed")
 	menu_chrome.add_child(load_game_button)
 	
-	var high_scores_button = TextureButton.new()
-	Chrome.button(high_scores_button, assets.textures.high_scores_button)
+	var high_scores_button = Chrome.button(assets.textures.high_scores_button)
 	high_scores_button.anchor_left = .5
 	high_scores_button.anchor_top = .38
 	high_scores_button.connect("pressed",self,"_on_HighScoresButton_pressed")
 	menu_chrome.add_child(high_scores_button)
 	
-	var settings_button = TextureButton.new()
-	Chrome.button(settings_button, assets.textures.settings_button)
+	var settings_button = Chrome.button(assets.textures.settings_button)
 	settings_button.anchor_left = .5
 	settings_button.anchor_top = .68
 	settings_button.connect("pressed",self,"_on_SettingsButton_pressed")
 	menu_chrome.add_child(settings_button)
 	
-	var quit_button = TextureButton.new()
-	Chrome.button(quit_button, assets.textures.quit_button)
+	var quit_button = Chrome.button(assets.textures.quit_button)
 	quit_button.anchor_left = .5
 	quit_button.anchor_top = .78
 	quit_button.connect("pressed",self,"_on_QuitButton_pressed")
 	menu_chrome.add_child(quit_button)
 	
-	var background_button = TextureButton.new()
-	Chrome.button(background_button, assets.textures.background_button)
+	var background_button = Chrome.button(assets.textures.background_button)
 	background_button.anchor_left = .5
 	background_button.anchor_top = .89
 	background_button.connect("pressed", self, "_on_BackgroundButton_pressed")

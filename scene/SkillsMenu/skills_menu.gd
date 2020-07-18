@@ -4,16 +4,16 @@ var MAX_SKILL_SELECTION = 7
 
 var _selected_skills = null
 var _container = null
-var _skill_selection_slug = ""
+var _skills = null
+var _highlighted_panel_buttons = null
 
 func _ready():	
 	call_deferred("_build_gui")
 	
 func _process(_delta):
-	if _selected_skills != null:
-		for key in _selected_skills.keys():
-			var skill = _selected_skills[key]
-			var button = _get_skill_panel_button(skill.id)
+	if _highlighted_panel_buttons != null:
+		for key in _highlighted_panel_buttons.keys():
+			var button = _highlighted_panel_buttons[key]
 			Chrome.highlight(button)
 	
 func _remove_selected_skill_buttons():
@@ -34,6 +34,9 @@ func _build_gui():
 	var assets = Assets.skills_menu()
 	_container = get_node("/root/Container")
 	_container.set_size(Settings.display_size())
+	_skills = Database.character_creation_skill_list()	
+	_selected_skills = {}
+	_highlighted_panel_buttons = {}
 
 	var header_background = TextureRect.new()
 	header_background.texture = assets.textures.header_background
@@ -41,8 +44,7 @@ func _build_gui():
 	header_background.rect_size = Vector2(Settings.display_size().x, header_background.texture.get_height())
 	_container.add_child(header_background)
 	
-	var back_button = TextureButton.new()
-	Chrome.button(back_button, assets.textures.back_button)
+	var back_button = Chrome.button(assets.textures.back_button)
 	back_button.anchor_left = 0
 	back_button.anchor_top = 0
 	back_button.margin_left = 0
@@ -56,8 +58,7 @@ func _build_gui():
 	header_text.margin_left = - (header_text.texture.get_width()/2)
 	_container.add_child(header_text)	
 	
-	var done_button = TextureButton.new()
-	Chrome.button(done_button, assets.textures.done_button)
+	var done_button = Chrome.button(assets.textures.done_button)
 	done_button.anchor_left = 1
 	done_button.anchor_top = 0
 	done_button.margin_left = -done_button.texture_normal.get_width()
@@ -75,10 +76,8 @@ func _build_gui():
 	skills_selector.name = "SkillsSelector"
 	skills_selector.columns = 10	
 	skills_container.add_child(skills_selector)
-	
-	_selected_skills = {}
-	var skills = Database.character_creation_skill_list()	
-	for skill in skills:
+			
+	for skill in _skills:
 		var skill_border = TextureRect.new()
 		skill_border.texture = assets.textures.skill_button_border
 		skill_border.name = "PickSkillBorder#" + skill.id
@@ -90,7 +89,7 @@ func _build_gui():
 		pick_skill_button.margin_top = 5
 		pick_skill_button.margin_left = 5
 		skill_border.add_child(pick_skill_button)
-		
+			
 	var selected_skills_background = TextureRect.new()
 	selected_skills_background.texture = assets.textures.selected_skills_background
 	selected_skills_background.name = "SelectedSkillsBackground"
@@ -101,11 +100,19 @@ func _build_gui():
 	selected_skills_container.anchor_left = 0.025
 	selected_skills_container.anchor_top = 0.2
 	selected_skills_container.set("custom_constants/separation", 24)
-	selected_skills_background.add_child(selected_skills_container)				
+	selected_skills_background.add_child(selected_skills_container)	
+	
+	var random_selection_button = Chrome.button(assets.textures.random_selection_button)
+	random_selection_button.anchor_left = 0.838
+	random_selection_button.anchor_top = 0.55
+	random_selection_button.connect("pressed", self, "_on_RandomSelectionButton_pressed")
+	selected_skills_background.add_child(random_selection_button)				
 	
 	var selected_skill_info_background = TextureRect.new()
 	selected_skill_info_background.texture = assets.textures.selected_skill_info_background
 	skills_container.add_child(selected_skill_info_background)
+	
+	# Skill info uses the Dredmor asset font "Austin.ttf"
 	
 
 func _select_skill(skill):
@@ -114,9 +121,11 @@ func _select_skill(skill):
 	if _selected_skills.has(skill.id):		
 		Chrome.darken(skill_panel_button)		
 		_selected_skills.erase(skill.id)		
+		_highlighted_panel_buttons.erase(skill.id)
 	else:
 		if _selected_skills.keys().size() < MAX_SKILL_SELECTION:
 			Chrome.highlight(skill_panel_button)
+			_highlighted_panel_buttons[skill.id] = skill_panel_button
 			_selected_skills[skill.id] = skill						
 	if _selected_skills.keys().size() > 0:
 		var selected_skills_container = _get_selected_skills_container()
@@ -127,7 +136,18 @@ func _select_skill(skill):
 			selected_skill_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 			selected_skill_button.connect("pressed", self, "_select_skill",[selected_skill])			
 			selected_skills_container.add_child(selected_skill_button)
-			
+
+func _on_RandomSelectionButton_pressed():
+	for key in _highlighted_panel_buttons.keys():
+		Chrome.darken(_highlighted_panel_buttons[key])
+		_highlighted_panel_buttons.erase(key)
+	_remove_selected_skill_buttons()
+	_selected_skills = {}
+	var random_skills = _skills.duplicate()
+	random_skills.shuffle()
+	for ii in range(MAX_SKILL_SELECTION):
+		_select_skill(random_skills[ii])
+		
 
 func _on_DoneButton_pressed():
 	# TODO Implement

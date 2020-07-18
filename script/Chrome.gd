@@ -3,12 +3,14 @@ extends Node
 var hidden_button_style = null
 var deselected_button_style = null
 
-func button(node, textures):
+func button(textures):
+	var node = TextureButton.new()
 	for key in textures.keys():
 		node['texture_'+key] = textures[key]
 	node.margin_left = -(textures.normal.get_width()/2)
 	node.margin_top = -(textures.normal.get_height()/2)	
 	node.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	return node
 
 var highlight_color = Color(1,1,1,1)
 func highlight(node):
