@@ -38,13 +38,16 @@ func character_creation_skill_list():
 	if result_cache != null and result_cache.has('character_creation_skill_list'):
 		return result_cache.character_creation_skill_list
 	var result = []
+	var skill_index = 0
 	for skill in db_cache.skill_db.skill:
 		if ! skill.has('deprecated') or int(skill.deprecated) != 1:
 			result.append({
 				name = skill.name,
 				description = skill.description,
 				icon = Load.image(skill.art.icon),
-				id = skill.id
+				id = skill.id,				
+				index = skill_index
 			})
+			skill_index += 1
 	cache("character_creation_skill_list",result)
 	return result

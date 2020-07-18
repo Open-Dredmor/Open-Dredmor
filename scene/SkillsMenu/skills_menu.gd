@@ -4,22 +4,30 @@ var MAX_SKILL_SELECTION = 7
 
 var _selected_skills = null
 var _container = null
+var _skill_selection_slug = ""
 
 func _ready():	
 	call_deferred("_build_gui")
 	
 func _process(_delta):
-	if _selected_skills != null and _container != null:
-		var keys = _selected_skills.keys()
-		for ii in range(MAX_SKILL_SELECTION):
-			var selected_skill_path = "/root/Container/SkillsContainer/SelectedSkillsBackground/SelectedSkillsContainer/SelectedSkillButton#" + str(ii)
-			if ii < keys.size():
-				var key = _selected_skills.keys()[ii]
-				var skill_panel_path = '/root/Container/SkillsContainer/SkillsSelector/PickSkillBorder#'+key+'/PickSkillButton#'+key
-				Chrome.highlight(get_node(skill_panel_path))										
-				get_node(selected_skill_path).texture_normal = _selected_skills[key].icon
-			else:
-				get_node(selected_skill_path).texture_normal = null
+	if _selected_skills != null:
+		for key in _selected_skills.keys():
+			var skill = _selected_skills[key]
+			var button = _get_skill_panel_button(skill.id)
+			Chrome.highlight(button)
+	
+func _remove_selected_skill_buttons():
+	var parent = _get_selected_skills_container()
+	for child in parent.get_children():
+		parent.remove_child(child)
+	
+func _get_selected_skills_container():
+	var parent_path = "/root/Container/SkillsContainer/SelectedSkillsBackground/SelectedSkillsContainer"
+	return get_node(parent_path)
+
+func _get_skill_panel_button(skill_id):
+	var skill_panel_path = '/root/Container/SkillsContainer/SkillsSelector/PickSkillBorder#'+skill_id+'/PickSkillButton#'+skill_id
+	return get_node(skill_panel_path)
 	
 func _build_gui():
 	DungeonSettings.reset()
@@ -93,12 +101,7 @@ func _build_gui():
 	selected_skills_container.anchor_left = 0.025
 	selected_skills_container.anchor_top = 0.2
 	selected_skills_container.set("custom_constants/separation", 24)
-	selected_skills_background.add_child(selected_skills_container)	
-	
-	for ii in range(MAX_SKILL_SELECTION):
-		var selected_skill_button = TextureButton.new()
-		selected_skill_button.name = "SelectedSkillButton#" + str(ii)
-		selected_skills_container.add_child(selected_skill_button)			
+	selected_skills_background.add_child(selected_skills_container)				
 	
 	var selected_skill_info_background = TextureRect.new()
 	selected_skill_info_background.texture = assets.textures.selected_skill_info_background
@@ -106,11 +109,24 @@ func _build_gui():
 	
 
 func _select_skill(skill):
-	if _selected_skills.has(skill.id):
-		_selected_skills.erase(skill.id)
+	_remove_selected_skill_buttons()
+	var skill_panel_button = _get_skill_panel_button(skill.id)	
+	if _selected_skills.has(skill.id):		
+		Chrome.darken(skill_panel_button)		
+		_selected_skills.erase(skill.id)		
 	else:
 		if _selected_skills.keys().size() < MAX_SKILL_SELECTION:
-			_selected_skills[skill.id] = skill
+			Chrome.highlight(skill_panel_button)
+			_selected_skills[skill.id] = skill						
+	if _selected_skills.keys().size() > 0:
+		var selected_skills_container = _get_selected_skills_container()
+		for key in _selected_skills.keys():
+			var selected_skill = _selected_skills[key]
+			var selected_skill_button = TextureButton.new()
+			selected_skill_button.texture_normal = selected_skill.icon
+			selected_skill_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+			selected_skill_button.connect("pressed", self, "_select_skill",[selected_skill])			
+			selected_skills_container.add_child(selected_skill_button)
 			
 
 func _on_DoneButton_pressed():

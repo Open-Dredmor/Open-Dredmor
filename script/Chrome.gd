@@ -18,11 +18,12 @@ var darken_color = Color(0.5,0.5,0.5,1)
 func darken(node):
 	node.set_modulate(darken_color)
 
-func highlight_on_hover_button(texture, click_locks_highlight=false):
+func highlight_on_hover_button(texture):
 	var button = TextureButton.new()
 	button.set_modulate(darken_color)
 	button.connect("mouse_entered", self, "highlight", [button])
 	button.connect("mouse_exited", self, "darken", [button])
+	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	button.texture_normal = texture
 	return button
 	
