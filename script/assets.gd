@@ -59,7 +59,10 @@ var _assets = {
 			back = button_paths("ui/skillselect_back"),
 			done = button_paths("ui/skillselect_done"),		
 		},
-		header_background = "ui/menus/topbar_horz_tile_bg.png"
+		header_background = "ui/menus/topbar_horz_tile_bg.png",
+		font = {
+			default = "fonts/Austin.ttf"
+		}
 	}
 }
 
@@ -117,6 +120,11 @@ func skills_menu():
 		last_selection_button = button_images(paths.last_selection),
 		random_selection_button = button_images(paths.random_selection)
 	}
+	var fonts = {
+		info_header = Load.font(_assets.shared.font.default, 36),
+		info_details = Load.font(_assets.shared.font.default, 20),
+	}
 	return {
-		textures = textures
+		textures = textures,
+		fonts = fonts
 	}

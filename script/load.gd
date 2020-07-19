@@ -62,3 +62,17 @@ func xml(relative_path):
 	var xml_parser = XMLParser.new()
 	xml_parser.open_buffer(xml_content.to_utf8())
 	return xml_parser
+
+func font(relative_path, size):
+	var slug = relative_path + str(size)
+	if cache.has(slug):
+		return cache[slug]
+	var font = DynamicFont.new()
+	font.size = size
+	font.font_data = load(resolve(relative_path))
+	cache[slug] = font
+	return font
+	#font.size = 120
+	#font.outline_size = 5
+	#font.outline_color = Color( 0, 0, 0, 1 )
+	#font.use_filter = true

@@ -24,7 +24,7 @@ func _build_gui():
 	difficulty_menu.add_child(header_background)
 	
 	var back_button = TextureButton.new()
-	Chrome.button(back_button, assets.textures.back_button)
+	Chrome.button(assets.textures.back_button)
 	back_button.anchor_left = 0
 	back_button.anchor_top = 0
 	back_button.margin_left = 0
@@ -39,7 +39,7 @@ func _build_gui():
 	difficulty_menu.add_child(header_text)	
 	
 	var done_button = TextureButton.new()
-	Chrome.button(done_button, assets.textures.done_button)
+	Chrome.button(assets.textures.done_button)
 	done_button.anchor_left = 1
 	done_button.anchor_top = 0
 	done_button.margin_left = -done_button.texture_normal.get_width()
