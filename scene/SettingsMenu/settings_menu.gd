@@ -57,12 +57,12 @@ func _persist_settings():
 
 func _on_SaveButton_pressed():
 	_persist_settings()
-	Scenes.goto(Scenes.MainMenu)
+	Scenes.goto(Scenes.MAIN_MENU)
 
 func _on_CancelButton_pressed():
-	Scenes.goto(Scenes.MainMenu)
+	Scenes.goto(Scenes.MAIN_MENU)
 
 func _on_ForgetInstallationDirButton_pressed():
 	Settings.change("open_dredmor","dredmor_install_directory","")
 	Load.clear_cache()
-	Scenes.goto(Scenes.Bootstrap)
+	Scenes.goto(Scenes.BOOTSTRAP)

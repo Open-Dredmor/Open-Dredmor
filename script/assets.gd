@@ -54,6 +54,9 @@ var _assets = {
 		random_selection = button_paths("ui/menus/skills_random"),
 		last_selection = button_paths("ui/menus/skills_last")
 	},
+	character_menu = {
+		character_header = "ui/menus/title_choosename.png"
+	},
 	shared = {
 		button = {
 			back = button_paths("ui/skillselect_back"),
@@ -121,10 +124,22 @@ func skills_menu():
 		random_selection_button = button_images(paths.random_selection)
 	}
 	var fonts = {
-		info_header = Load.font(_assets.shared.font.default, 36),
+		info_header = Load.font(_assets.shared.font.default, 25),
 		info_details = Load.font(_assets.shared.font.default, 20),
 	}
 	return {
 		textures = textures,
 		fonts = fonts
+	}
+
+func character_menu():
+	var paths = _assets.character_menu
+	var textures = {
+		done_button = button_images(_assets.shared.button.done),
+		back_button = button_images(_assets.shared.button.back),
+		header_background = Load.image(_assets.shared.header_background),
+		character_header = Load.image(paths.character_header)
+	}
+	return {
+		textures = textures
 	}

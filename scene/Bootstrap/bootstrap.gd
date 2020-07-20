@@ -2,6 +2,7 @@ extends Control
 
 var selected_dir = null
 var directory_picker = null
+var first_scene = Scenes.MAIN_MENU
 
 func _ready():
 	call_deferred("_init_global_state")		
@@ -15,7 +16,7 @@ func _init_global_state():
 	var install_dir = Settings.dredmor_install_dir()
 	if install_dir != null:
 		print("Installation dir configured, load the game.")
-		Scenes.goto(Scenes.SkillsMenu)
+		Scenes.goto(first_scene)
 	else:
 		print("Installation dir not configured, prompt selection.")
 		call_deferred("_build_gui")
@@ -57,5 +58,5 @@ func _on_DirectoryPicker_dir_selected(dir):
 	# TODO Some validation around whether or not the chosen dir is actually a Dredmor installation
 	# TODO Preload all assets into a bundle?
 	Settings.change("open_dredmor","dredmor_install_directory",dir)
-	Scenes.goto(Scenes.MainMenu)
+	Scenes.goto(Scenes.MAIN_MENU)
 	pass

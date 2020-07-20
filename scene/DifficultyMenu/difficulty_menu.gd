@@ -23,8 +23,7 @@ func _build_gui():
 	header_background.rect_size = Vector2(Settings.display_size().x, header_background.texture.get_height())
 	difficulty_menu.add_child(header_background)
 	
-	var back_button = TextureButton.new()
-	Chrome.button(assets.textures.back_button)
+	var back_button = Chrome.button(assets.textures.back_button)
 	back_button.anchor_left = 0
 	back_button.anchor_top = 0
 	back_button.margin_left = 0
@@ -38,8 +37,7 @@ func _build_gui():
 	header_text.margin_left = - (header_text.texture.get_width()/2)
 	difficulty_menu.add_child(header_text)	
 	
-	var done_button = TextureButton.new()
-	Chrome.button(assets.textures.done_button)
+	var done_button = Chrome.button(assets.textures.done_button)
 	done_button.anchor_left = 1
 	done_button.anchor_top = 0
 	done_button.margin_left = -done_button.texture_normal.get_width()
@@ -141,11 +139,11 @@ func _build_gui():
 	_no_time_to_grind_checkmark.visible = _no_time_to_grind_enabled
 
 func _on_DoneButton_pressed():
-	Scenes.goto(Scenes.SkillsMenu)
+	Scenes.goto(Scenes.SKILLS_MENU)
 	pass
 
 func _on_BackButton_pressed():
-	Scenes.goto(Scenes.MainMenu)
+	Scenes.goto(Scenes.MAIN_MENU)
 
 func _select_difficulty(mode):
 	_easy_checkmark.visible = mode == DungeonSettings.Difficulty.Easy

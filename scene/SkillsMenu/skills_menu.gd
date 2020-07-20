@@ -7,6 +7,7 @@ var _skills = null
 var _highlighted_panel_buttons = null
 
 var _container = null
+var _done_button = null
 var _info_header = null
 var _info_details = null
 
@@ -18,19 +19,8 @@ func _process(_delta):
 		for key in _highlighted_panel_buttons.keys():
 			var button = _highlighted_panel_buttons[key]
 			Chrome.highlight(button)
-	
-func _remove_selected_skill_buttons():
-	var parent = _get_selected_skills_container()
-	for child in parent.get_children():
-		parent.remove_child(child)
-	
-func _get_selected_skills_container():
-	var parent_path = "/root/Container/SkillsContainer/SelectedSkillsBackground/SelectedSkillsContainer"
-	return get_node(parent_path)
-
-func _get_skill_panel_button(skill_id):
-	var skill_panel_path = '/root/Container/SkillsContainer/SkillsSelector/PickSkillBorder#'+skill_id+'/PickSkillButton#'+skill_id
-	return get_node(skill_panel_path)
+	if _selected_skills != null:
+		_done_button.visible = _selected_skills.keys().size() == MAX_SKILL_SELECTION
 	
 func _build_gui():
 	DungeonSettings.reset()
@@ -61,13 +51,13 @@ func _build_gui():
 	header_text.margin_left = - (header_text.texture.get_width()/2)
 	_container.add_child(header_text)	
 	
-	var done_button = Chrome.button(assets.textures.done_button)
-	done_button.anchor_left = 1
-	done_button.anchor_top = 0
-	done_button.margin_left = -done_button.texture_normal.get_width()
-	done_button.margin_top = 0
-	done_button.connect("pressed",self,"_on_DoneButton_pressed")
-	_container.add_child(done_button)	
+	_done_button = Chrome.button(assets.textures.done_button)
+	_done_button.anchor_left = 1
+	_done_button.anchor_top = 0
+	_done_button.margin_left = -_done_button.texture_normal.get_width()
+	_done_button.margin_top = 0
+	_done_button.connect("pressed",self,"_on_DoneButton_pressed")
+	_container.add_child(_done_button)	
 			
 	var skills_container = VBoxContainer.new()
 	skills_container.name = 'SkillsContainer'
@@ -111,6 +101,8 @@ func _build_gui():
 	random_selection_button.anchor_left = 0.838
 	random_selection_button.anchor_top = 0.55
 	random_selection_button.connect("pressed", self, "_on_RandomSelectionButton_pressed")
+	random_selection_button.connect("mouse_entered", self, "_describe_skill",["_random"])
+	random_selection_button.connect("mouse_exited", self, "_describe_skill",[null])
 	selected_skills_background.add_child(random_selection_button)				
 	
 	var selected_skill_info_background = TextureRect.new()
@@ -156,6 +148,30 @@ func _build_gui():
 	_info_details.size_flags_vertical = SIZE_FILL | SIZE_EXPAND
 	info_text_container.add_child(_info_details)
 
+func _remove_selected_skill_buttons():
+	var parent = _get_selected_skills_container()
+	for child in parent.get_children():
+		parent.remove_child(child)
+	
+func _get_selected_skills_container():
+	var parent_path = "/root/Container/SkillsContainer/SelectedSkillsBackground/SelectedSkillsContainer"
+	return get_node(parent_path)
+
+func _get_skill_panel_button(skill_id):
+	var skill_panel_path = '/root/Container/SkillsContainer/SkillsSelector/PickSkillBorder#'+skill_id+'/PickSkillButton#'+skill_id
+	return get_node(skill_panel_path)
+
+func _describe_skill(skill):
+	if skill == null:
+		_info_header.text = ""
+		_info_details.text = ""	
+	elif typeof(skill) == TYPE_STRING and skill == "_random":
+		_info_header.text = "Random Skills"
+		_info_details.text = "You start the game with seven skills chosen, excitingly, at random."
+	else:
+		_info_header.text = skill.name
+		_info_details.text = skill.description
+
 func _select_skill(skill):
 	_remove_selected_skill_buttons()
 	var skill_panel_button = _get_skill_panel_button(skill.id)	
@@ -180,13 +196,12 @@ func _select_skill(skill):
 			selected_skill_button.connect("mouse_exited", self, "_describe_skill", [null])	
 			selected_skills_container.add_child(selected_skill_button)
 
-func _describe_skill(skill):
-	if skill == null:
-		_info_header.text = ""
-		_info_details.text = ""
-	else:
-		_info_header.text = skill.name
-		_info_details.text = skill.description
+func _on_DoneButton_pressed():
+	Scenes.goto(Scenes.CHARACTER_MENU)
+	pass
+
+func _on_BackButton_pressed():
+	Scenes.goto(Scenes.DIFFICULTY_MENU)
 
 func _on_RandomSelectionButton_pressed():
 	for key in _highlighted_panel_buttons.keys():
@@ -200,10 +215,4 @@ func _on_RandomSelectionButton_pressed():
 		_select_skill(random_skills[ii])
 		
 
-func _on_DoneButton_pressed():
-	# TODO Implement
-	print("Not yet implemented")
-	pass
 
-func _on_BackButton_pressed():
-	Scenes.goto(Scenes.DifficultyMenu)

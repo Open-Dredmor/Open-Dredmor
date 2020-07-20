@@ -73,7 +73,7 @@ func _build_gui():
 	load_background_image()	
 
 func _on_NewGameButton_pressed():
-	Scenes.goto(Scenes.DifficultyMenu)
+	Scenes.goto(Scenes.DIFFICULTY_MENU)
 	
 func _on_LoadGameButton_pressed():
 	# TODO Implement
@@ -84,7 +84,7 @@ func _on_HighScoresButton_pressed():
 	print("High scores not yet implemented")
 
 func _on_SettingsButton_pressed():
-	Scenes.goto(Scenes.SettingsMenu)
+	Scenes.goto(Scenes.SETTINGS_MENU)
 
 func _on_QuitButton_pressed():
 	get_tree().quit()
