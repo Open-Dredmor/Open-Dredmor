@@ -28,7 +28,7 @@ func image(relative_path, internal=false):
 	else:
 		var img = Image.new()	
 		var absolute_path = resolve(relative_path)
-		img.load(absolute_path)
+		_handle_err(absolute_path, img.load(absolute_path))
 		var texture = ImageTexture.new()
 		texture.create_from_image(img)
 		cache[relative_path] = texture
@@ -38,7 +38,8 @@ func audio(relative_path):
 	if cache.has(relative_path):
 		return cache[relative_path]
 	var file = File.new()
-	file.open(resolve(relative_path), File.READ)
+	var absolute_path = resolve(relative_path)
+	_handle_err(absolute_path, file.open(absolute_path, File.READ))
 	var bytes = file.get_buffer(file.get_len())
 	var stream = AudioStreamOGGVorbis.new()
 	stream.loop = true
@@ -49,9 +50,7 @@ func audio(relative_path):
 func xml(relative_path):	
 	var absolute_path = resolve(relative_path)
 	var file = File.new()
-	if ! file.file_exists(absolute_path):
-		print("Unable to find referenced file [" + absolute_path + "]")
-	file.open(absolute_path, File.READ)
+	_handle_err(absolute_path, file.open(absolute_path, File.READ))
 	var xml_content = file.get_as_text()
 	# Strip out all comments, otherwise godot can crash without any error
 	# https://github.com/godotengine/godot/issues/40415
@@ -72,7 +71,10 @@ func font(relative_path, size):
 	font.font_data = load(resolve(relative_path))
 	cache[slug] = font
 	return font
-	#font.size = 120
-	#font.outline_size = 5
-	#font.outline_color = Color( 0, 0, 0, 1 )
-	#font.use_filter = true
+	
+func _handle_err(resource_path, err):
+	if err != OK:
+		print("An error occurred while loading [" + resource_path + "]. Error code "+str(err))
+		Scenes.quit()
+	
+	

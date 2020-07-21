@@ -2,7 +2,7 @@ extends Control
 
 var selected_dir = null
 var directory_picker = null
-var first_scene = Scenes.MAIN_MENU
+var first_scene = Scenes.CHARACTER_MENU
 
 func _ready():
 	call_deferred("_init_global_state")		

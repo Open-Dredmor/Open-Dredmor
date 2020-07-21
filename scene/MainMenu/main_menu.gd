@@ -87,7 +87,7 @@ func _on_SettingsButton_pressed():
 	Scenes.goto(Scenes.SETTINGS_MENU)
 
 func _on_QuitButton_pressed():
-	get_tree().quit()
+	Scenes.quit()
 
 func _on_BackgroundButton_pressed():
 	background_image_index += 1

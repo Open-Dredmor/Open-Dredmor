@@ -55,7 +55,11 @@ var _assets = {
 		last_selection = button_paths("ui/menus/skills_last")
 	},
 	character_menu = {
-		character_header = "ui/menus/title_choosename.png"
+		character_header = "ui/menus/title_choosename.png",
+		choose_name_background = "ui/menus/panel_choosename.png",
+		choose_hero_background = "ui/menus/panel_choosehero.png",
+		hero_portrait = "ui/portrait/portrait_100_stare.png",
+		heroine_portrait = "ui/portrait/portraitf_100_stare.png"
 	},
 	shared = {
 		button = {
@@ -138,8 +142,18 @@ func character_menu():
 		done_button = button_images(_assets.shared.button.done),
 		back_button = button_images(_assets.shared.button.back),
 		header_background = Load.image(_assets.shared.header_background),
-		character_header = Load.image(paths.character_header)
+		character_header = Load.image(paths.character_header),
+		choose_name_background = Load.image(paths.choose_name_background),
+		choose_hero_background = Load.image(paths.choose_hero_background),
+		hero_portrait = Load.image(paths.hero_portrait),
+		heroine_portrait = Load.image(paths.heroine_portrait)
 	}
+	
+	var fonts = {
+		name_edit = Load.font(_assets.shared.font.default, 25)
+	}
+	
 	return {
-		textures = textures
+		textures = textures,
+		fonts = fonts
 	}
