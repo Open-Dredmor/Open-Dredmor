@@ -2,7 +2,6 @@ extends Control
 
 var selected_dir = null
 var directory_picker = null
-var first_scene = Scenes.CHARACTER_MENU
 
 func _ready():
 	call_deferred("_init_global_state")		
@@ -10,13 +9,11 @@ func _ready():
 func _init_global_state():
 	print("Reading config from "+OS.get_user_data_dir())	
 	Settings.load()
-	randomize()
-	Audio.setup(get_tree().get_root())
-	Database.ingest()
+	randomize()	
 	var install_dir = Settings.dredmor_install_dir()
 	if install_dir != null:
 		print("Installation dir configured, load the game.")
-		Scenes.goto(first_scene)
+		Scenes.goto(Scenes.PRELOAD_ASSETS)
 	else:
 		print("Installation dir not configured, prompt selection.")
 		call_deferred("_build_gui")

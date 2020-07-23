@@ -4,6 +4,7 @@ var BOOTSTRAP = "Bootstrap"
 var CHARACTER_MENU = "CharacterMenu"
 var DIFFICULTY_MENU = "DifficultyMenu"
 var MAIN_MENU = "MainMenu"
+var PRELOAD_ASSETS = "PreloadAssets"
 var SETTINGS_MENU = "SettingsMenu"
 var SKILLS_MENU = "SkillsMenu"
 
