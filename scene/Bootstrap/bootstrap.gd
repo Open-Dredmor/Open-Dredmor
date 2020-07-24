@@ -1,5 +1,7 @@
 extends Control
 
+var first_scene = Scenes.SPRITE_TEST
+
 var selected_dir = null
 var directory_picker = null
 
@@ -13,7 +15,7 @@ func _init_global_state():
 	var install_dir = Settings.dredmor_install_dir()
 	if install_dir != null:
 		print("Installation dir configured, load the game.")
-		Scenes.goto(Scenes.PRELOAD_ASSETS)
+		Scenes.goto(first_scene)
 	else:
 		print("Installation dir not configured, prompt selection.")
 		call_deferred("_build_gui")

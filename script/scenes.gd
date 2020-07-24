@@ -7,6 +7,7 @@ var MAIN_MENU = "MainMenu"
 var PRELOAD_ASSETS = "PreloadAssets"
 var SETTINGS_MENU = "SettingsMenu"
 var SKILLS_MENU = "SkillsMenu"
+var SPRITE_TEST = "SpriteTest"
 
 func quit():
 	get_tree().quit()
