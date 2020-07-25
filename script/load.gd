@@ -133,7 +133,9 @@ func sprite_pro_motion(relative_path):
 		# color_table ignore index = 0
 		for jj in range(frame.image_data.size()):
 			pixels.append_array(frame.color_table[frame.image_data[jj]])
-		img.create_from_data(width, height, false, Image.FORMAT_RGB8, pixels)
+			pixels.append(0 if frame.image_data[jj] == 0 else 255) # Set alpha to 0 if transparent lookup
+				
+		img.create_from_data(width, height, false, Image.FORMAT_RGBA8, pixels)
 		image_texture.create_from_image(img)
 		var test_node = TextureRect.new()
 		test_node.texture = image_texture

@@ -13,8 +13,11 @@ __meta__ = {
 }
 
 [node name="Label" type="Label" parent="Control"]
-margin_left = 166.489
-margin_top = 120.11
-margin_right = 207.489
-margin_bottom = 134.11
+margin_left = 1033.76
+margin_top = 799.173
+margin_right = 1074.76
+margin_bottom = 813.173
 text = "READY"
+__meta__ = {
+"_edit_use_anchors_": false
+}

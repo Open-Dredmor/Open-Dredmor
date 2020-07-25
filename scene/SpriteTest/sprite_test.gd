@@ -6,11 +6,14 @@ func _ready():
 func _load_sprite():	
 	var container = get_node("/root/Container")
 	
+	var body = KinematicBody2D.new()
+	container.add_child(body)
+	
 	var pm_sprite = Load.sprite_pro_motion("sprites/hero/hero_atk_axe_d.spr")
 	#var pm_sprite = Load.sprite_pro_motion("sprites/test.spr")
 	pm_sprite.name = "ProMotionSprite"
 	pm_sprite.position = Vector2(300,300)
-	container.add_child(pm_sprite)
+	body.add_child(pm_sprite)
 	pm_sprite.play()
 	
 	var _xml_sprite = Load.sprite_xml("sprites/hero/hero_atk_dagger_d.xml")
