@@ -96,25 +96,26 @@ func sprite_pro_motion(relative_path):
 	var frames = []
 	var trans_chunk = null
 	print("Width "+str(width)+", Height: "+str(height)+", Size: "+str(width*height)+", frames: "+str(frame_count))
-	var watcher = null
 	for _ii in range(frame_count):
-		var _delay_milliseconds = read_int(file, 2)
-		if _ii == 0:
-			print("0 - "+str(_delay_milliseconds))
-		var frame_bytes = file.get_buffer(256) # var red = read_int(file, 8)
-		if _ii == 0:
-			print("1 - "+str(frame_bytes.size()))			
-		frame_bytes.append_array(file.get_buffer(256)) # var green = read_int(file, 8)
-		if _ii == 0:
-			print("2 - "+str(frame_bytes.size()))
-		frame_bytes.append_array(file.get_buffer(256)) # var blue = read_int(file, 8)
-		if _ii == 0:
-			print("3 - "+str(frame_bytes.size()))
-		watcher = file.get_buffer(width * height)
-		frame_bytes.append_array(watcher) # var image = file.get_buffer(width * height)
-		if _ii == 0:
-			print("4 - "+str(frame_bytes.size()))
-		frames.append(frame_bytes)
+		var delay_milliseconds = read_int(file, 2)
+		var color_table_bytes = file.get_buffer(256*3)
+		var color_table = {}
+		var color_table_index = 0
+		var lookup_index = 0
+		while color_table_index + 2 < color_table_bytes.size():
+			color_table[lookup_index] = [
+				color_table_bytes[color_table_index],
+				color_table_bytes[color_table_index+1],
+				color_table_bytes[color_table_index+2]
+			]
+			color_table_index += 3
+			lookup_index += 1
+		var image_data = file.get_buffer(width * height)
+		frames.append({
+			delay_milliseconds = delay_milliseconds,
+			color_table = color_table,
+			image_data = image_data
+		})
 	if file.get_len() > file.get_position():
 			var _trans_header = file.get_buffer(6).get_string_from_ascii()
 			trans_chunk = file.get_buffer(width*height)
@@ -123,11 +124,23 @@ func sprite_pro_motion(relative_path):
 		print("No alpha found")
 	var sprite_frames = SpriteFrames.new()
 	sprite_frames.add_animation(relative_path)
+	var ii = 0
 	for frame in frames:
 		var image_texture = ImageTexture.new()
 		var img = Image.new()
-		img.create_from_data(width, height, false, Image.FORMAT_RGB8, frame)
+		var pixels = PoolByteArray()
+		# 156, 154, 156 -> Grey background
+		# color_table ignore index = 0
+		for jj in range(frame.image_data.size()):
+			pixels.append_array(frame.color_table[frame.image_data[jj]])
+		img.create_from_data(width, height, false, Image.FORMAT_RGB8, pixels)
 		image_texture.create_from_image(img)
+		var test_node = TextureRect.new()
+		test_node.texture = image_texture
+		ii+=1
+		test_node.margin_left = (ii if ii < 6 else ii-5) * 200
+		test_node.margin_top = (1 if ii < 6 else 2) * 200
+		get_node("/root/Container").add_child(test_node)
 		sprite_frames.add_frame(relative_path, image_texture)
 	var result = AnimatedSprite.new()
 	result.set_sprite_frames(sprite_frames)
