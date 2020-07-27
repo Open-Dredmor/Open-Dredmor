@@ -1,5 +1,7 @@
 extends Node
 
+var ODAnimation = load("res://script/instance/od_animation.gd")	
+
 var cache = {}
 
 func clear_cache():
@@ -60,7 +62,72 @@ func xml(relative_path):
 	xml_content = reg_ex.sub(xml_content, "", true)
 	var xml_parser = XMLParser.new()
 	xml_parser.open_buffer(xml_content.to_utf8())
-	return xml_parser
+	var result = {}
+	var manual_close_nodes = {}
+	var reading = true
+	var err
+	
+	while reading:		
+		var node_type = xml_parser.get_node_type()
+		match node_type:
+			XMLParser.NODE_ELEMENT_END:
+				var node_kind = xml_parser.get_node_name()
+				if ! manual_close_nodes.has(node_kind):
+					manual_close_nodes[node_kind] = 1
+				else:
+					manual_close_nodes[node_kind] = manual_close_nodes[node_kind] + 1
+		err = xml_parser.read()
+		if err != OK:
+			if err != ERR_FILE_EOF:
+				print("An error occurred while reading XML: "+str(err))
+			reading = false
+	manual_close_nodes = manual_close_nodes.keys()
+	
+	xml_parser.seek(0)
+	var depth_queue = DataStructure.NewQueue()	
+	reading = true
+	err = null
+	while reading:		
+		var node_type = xml_parser.get_node_type()		
+		match node_type:
+			XMLParser.NODE_ELEMENT_END:
+				depth_queue.pop()
+			XMLParser.NODE_ELEMENT:
+				var node_kind = xml_parser.get_node_name()
+				var current_node = {}
+				var attribute_count = xml_parser.get_attribute_count()						
+				for ii in range(attribute_count):					
+					var attribute_name = xml_parser.get_attribute_name(ii)
+					current_node[attribute_name] = xml_parser.get_attribute_value(ii)
+				
+				var depth_tree = depth_queue.tree()
+				var target_node = result
+				for ii in range(depth_tree.size()):
+					target_node = target_node[depth_tree[ii]]
+					if typeof(target_node) == TYPE_ARRAY:
+						target_node = target_node[target_node.size()-1]
+				if target_node.has(node_kind):
+					if typeof(target_node[node_kind]) != TYPE_ARRAY:
+						target_node[node_kind] = [target_node[node_kind]]
+					target_node[node_kind].append(current_node)
+				else:
+					target_node[node_kind] = current_node
+				if manual_close_nodes.has(node_kind):
+					depth_queue.push(node_kind)
+			XMLParser.NODE_TEXT:
+				# I would prefer to hang a 'node_data' prop off the leaf node, but this is a quick and dirty workaround
+				if ! result.has('data_nodes'):
+					result['data_nodes'] = []
+				var node_data = xml_parser.get_node_data()
+				# FIXME This is a brittle workaround for some null looking characters showing up as NODE_TEXT
+				if node_data.length() > 4:
+					result['data_nodes'].append(node_data)
+			_:
+				pass
+		err = xml_parser.read()
+		if err != OK:
+			reading = false	
+	return result
 
 func font(relative_path, size):
 	var slug = relative_path + str(size)
@@ -79,23 +146,31 @@ func read_int(file, byte_count):
 		result += bytes[ii] * (pow(2, ii))
 	return result
 
-# https://docs.godotengine.org/en/stable/classes/class_file.html#class-file-method-get-64
-# https://docs.godotengine.org/en/stable/classes/class_spriteframes.html#class-spriteframes
-# https://github.com/godotengine/godot/issues/18269
-# https://github.com/godotengine/godot-proposals/issues/475
-func sprite_pro_motion(relative_path):	
+func animation(relative_path):
+	var parts = relative_path.split('.')
+	var extension = parts[parts.size()-1]
+	match extension:
+		"spr":
+			return _pro_motion_sprites(relative_path)
+		"xml":
+			return _xml_sprites(relative_path)
+		_:
+			print("No handler for animation "+relative_path)
+			Scenes.quit()
+
+# Pro Motion SPR spec
+# https://www.cosmigo.com/promotion/docs/onlinehelp/TechnicalInfos.htm
+func _pro_motion_sprites(relative_path):
 	var absolute_path = resolve(relative_path)
 	var file = File.new()
-	_handle_err(absolute_path, file.open(absolute_path, File.READ))
-	# Pro Motion SPR spec
-	# https://www.cosmigo.com/promotion/docs/onlinehelp/TechnicalInfos.htm
+	_handle_err(absolute_path, file.open(absolute_path, File.READ))	
 	var _header = file.get_buffer(3).get_string_from_ascii()
 	var frame_count = read_int(file, 2)
 	var width = read_int(file, 2)
 	var height = read_int(file, 2)
 	var frames = []
-	var trans_chunk = null
-	print("Width "+str(width)+", Height: "+str(height)+", Size: "+str(width*height)+", frames: "+str(frame_count))
+	var _trans_chunk = null
+	#print("Width "+str(width)+", Height: "+str(height)+", Size: "+str(width*height)+", frames: "+str(frame_count))
 	for _ii in range(frame_count):
 		var delay_milliseconds = read_int(file, 2)
 		var color_table_bytes = file.get_buffer(256*3)
@@ -116,15 +191,13 @@ func sprite_pro_motion(relative_path):
 			color_table = color_table,
 			image_data = image_data
 		})
+	# TODO Apply this transparency information to the frame textures
 	if file.get_len() > file.get_position():
 			var _trans_header = file.get_buffer(6).get_string_from_ascii()
-			trans_chunk = file.get_buffer(width*height)
-			print("trans_chunk size: "+str(trans_chunk.size()))
-	else:
-		print("No alpha found")
-	var sprite_frames = SpriteFrames.new()
-	sprite_frames.add_animation(relative_path)
-	var ii = 0
+			_trans_chunk = file.get_buffer(width*height)
+			#print("trans_chunk size: "+str(trans_chunk.size()))
+		
+	var animation = ODAnimation.new()
 	for frame in frames:
 		var image_texture = ImageTexture.new()
 		var img = Image.new()
@@ -137,22 +210,25 @@ func sprite_pro_motion(relative_path):
 				
 		img.create_from_data(width, height, false, Image.FORMAT_RGBA8, pixels)
 		image_texture.create_from_image(img)
-		var test_node = TextureRect.new()
-		test_node.texture = image_texture
-		ii+=1
-		test_node.margin_left = (ii if ii < 6 else ii-5) * 200
-		test_node.margin_top = (1 if ii < 6 else 2) * 200
-		get_node("/root/Container").add_child(test_node)
-		sprite_frames.add_frame(relative_path, image_texture)
-	var result = AnimatedSprite.new()
-	result.set_sprite_frames(sprite_frames)
-	return result
+		animation.add_frame(image_texture, frame.delay_milliseconds)
+	
+	return animation
 
-func sprite_xml(_relative_path):
-	pass
-
-func sprite_palette(_relative_path):
-	pass
+func _xml_sprites(relative_path):
+	var document = xml(relative_path)
+	var animation = ODAnimation.new()
+	var image_count = document.data_nodes.size()
+	var path_parts = relative_path.split('/')
+	var image_root = ''
+	for ii in range(path_parts.size() - 1): # chop the XML file out of the path
+		image_root += path_parts[ii] + '/'
+	for ii in range(image_count):
+		var image_name = document.data_nodes[ii]
+		var image_path = image_root + image_name
+		var delay_milliseconds = document.sprite.frame[ii].delay
+		var texture = image(image_path)
+		animation.add_frame(texture, delay_milliseconds)
+	return animation
 	
 func _handle_err(resource_path, err):
 	if err != OK:

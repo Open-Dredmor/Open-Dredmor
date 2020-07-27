@@ -9,13 +9,16 @@ func _load_sprite():
 	var body = KinematicBody2D.new()
 	container.add_child(body)
 	
-	var pm_sprite = Load.sprite_pro_motion("sprites/hero/hero_atk_axe_d.spr")
-	#var pm_sprite = Load.sprite_pro_motion("sprites/test.spr")
+	var pm_sprite = Load.animation("sprites/hero/hero_atk_axe_d.spr")
 	pm_sprite.name = "ProMotionSprite"
 	pm_sprite.position = Vector2(300,300)
 	body.add_child(pm_sprite)
 	pm_sprite.play()
 	
-	var _xml_sprite = Load.sprite_xml("sprites/hero/hero_atk_dagger_d.xml")
-	var _sprite_palette = Load.sprite_palette("sprites/hero/ghost.pal")
-	pass
+	var xml_sprite = Load.animation("sprites/hero/hero_atk_dagger_d.xml")
+	xml_sprite.name = "XmlSprite"
+	xml_sprite.position = Vector2(500,500)
+	body.add_child(xml_sprite)
+	xml_sprite.play()
+
+	#var _sprite_palette = Load.sprite_palette("sprites/hero/ghost.pal")

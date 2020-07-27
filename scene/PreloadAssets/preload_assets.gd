@@ -1,6 +1,6 @@
 extends Node
 
-var first_scene = Scenes.CHARACTER_MENU
+var first_scene = Scenes.MAIN_MENU
 
 var _progress_label = null
 var _progress_percent = null

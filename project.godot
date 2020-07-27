@@ -8,9 +8,14 @@
 
 config_version=4
 
-_global_script_classes=[  ]
+_global_script_classes=[ {
+"base": "Node2D",
+"class": "ODAnimation",
+"language": "GDScript",
+"path": "res://script/instance/od_animation.gd"
+} ]
 _global_script_class_icons={
-
+"ODAnimation": ""
 }
 
 [application]
@@ -22,16 +27,15 @@ config/icon="res://icon.png"
 
 [autoload]
 
-Scenes="*res://script/scenes.gd"
-Assets="*res://script/assets.gd"
-Settings="*res://script/settings.gd"
-Load="*res://script/load.gd"
-Chrome="*res://script/chrome.gd"
-Audio="*res://script/audio.gd"
-DungeonSettings="*res://script/dungeon_settings.gd"
-Database="*res://script/database.gd"
-DataIngest="*res://script/data_ingest.gd"
-DataStructure="*res://script/data_structure.gd"
+Scenes="*res://script/global/scenes.gd"
+Assets="*res://script/global/assets.gd"
+Settings="*res://script/global/settings.gd"
+Load="*res://script/global/load.gd"
+Chrome="*res://script/global/chrome.gd"
+Audio="*res://script/global/audio.gd"
+DungeonSettings="*res://script/global/dungeon_settings.gd"
+Database="*res://script/global/database.gd"
+DataStructure="*res://script/global/data_structure.gd"
 
 [display]
 

@@ -10,24 +10,23 @@ func ingest():
 		print("Ingesting vanilla game data")
 		# monDB.xml explains that branches are a feature scrapped during development
 		#db_cache.branch_db = DataIngest.branches("game/branchDB.xml")
-		db_cache.crafting_recipe_db = DataIngest.xml("game/craftDB.xml")
-		db_cache.item_db = DataIngest.xml("game/itemDB.xml")
-		db_cache.magic_box_rooms_db = DataIngest.xml("game/magicBoxRooms.xml")
+		db_cache.crafting_recipe_db = Load.xml("game/craftDB.xml")
+		db_cache.item_db = Load.xml("game/itemDB.xml")
+		db_cache.magic_box_rooms_db = Load.xml("game/magicBoxRooms.xml")
 		## manual.xml was next to empty, consider it a placeholder
-		db_cache.monster_db = DataIngest.xml("game/monDB.xml")
-		db_cache.quest_item_db = DataIngest.xml("game/quests.xml")
+		db_cache.monster_db = Load.xml("game/monDB.xml")
+		db_cache.quest_item_db = Load.xml("game/quests.xml")
 #		## rooms.dat might not be used. Not sure.
-		db_cache.room_db = DataIngest.xml("game/rooms.xml")		
+		db_cache.room_db = Load.xml("game/rooms.xml")		
 #		# scrolls.xml didn't seem to be used
-		db_cache.sound_db = DataIngest.xml("game/soundfx.xml")
-		db_cache.speech_db = DataIngest.xml("game/speech.xml")
-		db_cache.skill_db = DataIngest.xml("game/skillDB.xml").skillDB
-		db_cache.spell_db = DataIngest.xml("game/spellDB.xml")
-		db_cache.template_db = DataIngest.xml("game/manTemplateDB.xml")
-		db_cache.text_db = DataIngest.xml("game/text.xml")
-		db_cache.tutorial_db = DataIngest.xml("game/tutorial.xml")
-		db_cache.tweak_db = DataIngest.xml("game/tweakDB.xml")
-		print("Database files ingested")
+		db_cache.sound_db = Load.xml("game/soundfx.xml")
+		db_cache.speech_db = Load.xml("game/speech.xml")
+		db_cache.skill_db = Load.xml("game/skillDB.xml").skillDB
+		db_cache.spell_db = Load.xml("game/spellDB.xml")
+		db_cache.template_db = Load.xml("game/manTemplateDB.xml")
+		db_cache.text_db = Load.xml("game/text.xml")
+		db_cache.tutorial_db = Load.xml("game/tutorial.xml")
+		db_cache.tweak_db = Load.xml("game/tweakDB.xml")
 
 func cache(key,result):
 	if result_cache == null:
