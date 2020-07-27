@@ -1,7 +1,5 @@
 extends Node
 
-var ODAnimation = load("res://script/instance/od_animation.gd")	
-
 var cache = {}
 
 func clear_cache():
@@ -234,5 +232,3 @@ func _handle_err(resource_path, err):
 	if err != OK:
 		print("An error occurred while loading [" + resource_path + "]. Error code "+str(err))
 		Scenes.quit()
-	
-	

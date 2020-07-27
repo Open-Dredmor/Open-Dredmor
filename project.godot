@@ -36,6 +36,7 @@ Audio="*res://script/global/audio.gd"
 DungeonSettings="*res://script/global/dungeon_settings.gd"
 Database="*res://script/global/database.gd"
 DataStructure="*res://script/global/data_structure.gd"
+OdAnimation="*res://script/instance/od_animation.gd"
 
 [display]
 

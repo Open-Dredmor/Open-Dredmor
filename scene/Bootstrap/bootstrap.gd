@@ -1,6 +1,6 @@
 extends Control
 
-var first_scene = Scenes.PRELOAD_ASSETS
+var first_scene = Scenes.SPRITE_TEST
 
 var selected_dir = null
 var directory_picker = null

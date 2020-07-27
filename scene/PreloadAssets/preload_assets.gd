@@ -22,7 +22,7 @@ var stages = [
 func _ready():
 	call_deferred("_build_gui")
 
-func _process(delta):
+func _process(_delta):
 	if _gui_ready and _stage_index < stages.size():
 		_progress_label.text = _preload(stages[_stage_index])
 		_progress_bar.value = round(float(_stage_index + 1) / float(stages.size()) * 100)
