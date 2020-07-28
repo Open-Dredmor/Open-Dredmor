@@ -1,6 +1,6 @@
 # Open Dredmor
 
-A clean room reimplementation of Dungeons of Dredmor.
+A reimplementation of Dungeons of Dredmor.
 
 ## What else do I need?
 

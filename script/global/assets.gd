@@ -68,6 +68,9 @@ var _assets = {
 	},
 	game = {
 		music = "tunes/spelunk-repeat.ogg",
+		tileset = {
+			basic = "tilesets/basic.png"
+		}
 	},
 	shared = {
 		button = {
@@ -179,6 +182,9 @@ func intro():
 func game():
 	var paths = _assets.game
 	return {
+		tileset = {
+			basic = Load.image(paths.tileset.basic)
+		},
 		music = {
 			default = Load.audio(paths.music)
 		}

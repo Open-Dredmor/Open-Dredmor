@@ -10,11 +10,17 @@ config_version=4
 
 _global_script_classes=[ {
 "base": "Node2D",
+"class": "Dungeon",
+"language": "GDScript",
+"path": "res://script/instance/dungeon.gd"
+}, {
+"base": "Node2D",
 "class": "ODAnimation",
 "language": "GDScript",
 "path": "res://script/instance/od_animation.gd"
 } ]
 _global_script_class_icons={
+"Dungeon": "",
 "ODAnimation": ""
 }
 
@@ -36,7 +42,6 @@ Audio="*res://script/global/audio.gd"
 DungeonSettings="*res://script/global/dungeon_settings.gd"
 Database="*res://script/global/database.gd"
 DataStructure="*res://script/global/data_structure.gd"
-OdAnimation="*res://script/instance/od_animation.gd"
 
 [display]
 

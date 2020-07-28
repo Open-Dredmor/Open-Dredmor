@@ -18,7 +18,7 @@ func ingest():
 		db_cache.monster_db = Load.xml("game/monDB.xml")
 		db_cache.quest_item_db = Load.xml("game/quests.xml")
 #		## rooms.dat might not be used. Not sure.
-		db_cache.room_db = Load.xml("game/rooms.xml")		
+		db_cache.room_db = Load.xml("game/rooms.xml").roomdb
 #		# scrolls.xml didn't seem to be used
 		db_cache.sound_db = Load.xml("game/soundfx.xml")
 		db_cache.speech_db = Load.xml("game/speech.xml")
@@ -51,3 +51,8 @@ func character_creation_skill_list():
 			skill_index += 1
 	cache("character_creation_skill_list",result)
 	return result
+	
+func get_room(room_name):	
+	for room in db_cache.room_db.room:
+		if room.name == room_name:
+			return room

@@ -12,7 +12,7 @@ var _sprite = null
 var _next_frame_timer = null
 var _frame_index = 0
 
-func _init():
+func _ready():
 	_frames = []
 	_sprite = Sprite.new()
 	_next_frame_timer = Timer.new()
