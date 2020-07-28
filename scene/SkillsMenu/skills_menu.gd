@@ -198,6 +198,7 @@ func _select_skill(skill):
 
 func _on_DoneButton_pressed():
 	Scenes.goto(Scenes.CHARACTER_MENU)
+	DungeonSettings.set_starting_skill_ids(_selected_skills.keys())
 	pass
 
 func _on_BackButton_pressed():

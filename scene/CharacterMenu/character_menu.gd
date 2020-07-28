@@ -110,16 +110,16 @@ func _build_gui():
 	container.add_child(_done_button)
 
 func _on_DoneButton_pressed():
-	# TODO Implement
-	print("CharacterMenu.Done button not implemented")
-	pass
+	Scenes.goto(Scenes.INTRO_ONE)
 
 func _on_BackButton_pressed():
 	Scenes.goto(Scenes.SKILLS_MENU)
 
 func _on_NameEdit_changed(new_text):
 	_character_name = new_text
+	DungeonSettings.set_name(new_text)
 
 func _select_hero(selection):
 	_selected_hero = selection
+	DungeonSettings.set_hero(selection)
 			

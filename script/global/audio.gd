@@ -33,6 +33,7 @@ func play(audio_stream):
 		if audio_stream != _current_stream:
 			_current_stream = audio_stream
 			_audio_player.stream = audio_stream
+			_audio_player.play()
 		if _state != States.Playing:
 			_audio_player.play()
 			_state = States.Playing

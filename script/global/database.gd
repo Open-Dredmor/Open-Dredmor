@@ -9,7 +9,8 @@ func ingest():
 		db_cache = {}
 		print("Ingesting vanilla game data")
 		# monDB.xml explains that branches are a feature scrapped during development
-		#db_cache.branch_db = DataIngest.branches("game/branchDB.xml")
+		# However, the expansions have them...so what could they be?
+		db_cache.branch_db = Load.xml("game/branchDB.xml")
 		db_cache.crafting_recipe_db = Load.xml("game/craftDB.xml")
 		db_cache.item_db = Load.xml("game/itemDB.xml")
 		db_cache.magic_box_rooms_db = Load.xml("game/magicBoxRooms.xml")

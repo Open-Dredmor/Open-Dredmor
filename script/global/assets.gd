@@ -61,6 +61,14 @@ var _assets = {
 		hero_portrait = "ui/portrait/portrait_100_stare.png",
 		heroine_portrait = "ui/portrait/portraitf_100_stare.png"
 	},
+	intro = {
+		primary = "ui/dredmor_intro1.png",
+		secondary_hero = "ui/dredmor_intro2.png",
+		secondary_heroine = "ui/dredmor_intro2_fem.png"
+	},
+	game = {
+		music = "tunes/spelunk-repeat.ogg",
+	},
 	shared = {
 		button = {
 			back = button_paths("ui/skillselect_back"),
@@ -156,4 +164,22 @@ func character_menu():
 	return {
 		textures = textures,
 		fonts = fonts
+	}
+	
+func intro():
+	var paths = _assets.intro
+	return {
+		textures = {
+			primary = Load.image(paths.primary),
+			secondary_hero = Load.image(paths.secondary_hero),
+			secondary_heroine = Load.image(paths.secondary_heroine)
+		}
+	}
+
+func game():
+	var paths = _assets.game
+	return {
+		music = {
+			default = Load.audio(paths.music)
+		}
 	}
