@@ -21,13 +21,7 @@ func _build_ui():
 	var container = get_node("/root/Container")
 	
 	var dungeon = Dungeon.new()
-	container.add_child(dungeon)
-	
-	var background = Node2D.new()
-	container.add_child(background)
-	
-	var foreground = Node2D.new()
-	container.add_child(foreground)
+	container.add_child(dungeon)	
 	
 	var gui = Control.new()
 	container.add_child(gui)

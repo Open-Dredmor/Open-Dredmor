@@ -23,11 +23,11 @@ func _build_ui():
 	room.height = int(room.height)
 	
 	# https://docs.godotengine.org/en/3.2/tutorials/2d/using_tilemaps.html
-	# 384 W x 640 H = Stairs tiles in basic tileset
-	# <tile name="stairsup" startx="10" starty="15" endy="17" /> from branchDB
-	# 384 W x 320 H is the cell size?
 	var floor_tiles = GridContainer.new()
 	var wall_tiles = GridContainer.new()
+	var cell_height = 32
+	var cell_width = 32
+	var first = false
 	for ii in range(room.height):
 		var row = room.row[ii].text
 		for jj in range(room.width):
@@ -35,10 +35,15 @@ func _build_ui():
 			match tile:
 				".":
 					var floor_tile = Sprite.new()
+					floor_tile.region_enabled = true
+					# 0,5 from branchDB
+					floor_tile.region_rect = Rect2(0 * cell_width, 5 * cell_height, cell_width, cell_height)
+					floor_tile.position = Vector2(cell_width * jj, cell_height * ii)
+					floor_tile.texture = assets.tileset.basic
 					floor_tiles.add_child(floor_tile)
 				_:
 					print("Unhandled tile "+tile)
-			print("y: " + str(ii) + ", x: " + str(jj) + ", t: "+tile)
-			
+	
 	add_child(floor_tiles)
+	add_child(wall_tiles)
 	
