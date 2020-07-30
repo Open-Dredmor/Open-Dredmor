@@ -207,5 +207,6 @@ func tilesets():
 	_tilesets.liquids.set_animation("lava", 0, 1, 6, 280)
 	_tilesets.liquids.set_animation("ice", 0, 0, 4, 280)
 	_tilesets.liquids.set_animation("goo", 0, 3, 3, 300)
+	#_tilesets.liquids.set_animation('stars', 0,4,4)
 	
 	return _tilesets

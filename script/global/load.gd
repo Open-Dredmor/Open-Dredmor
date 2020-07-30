@@ -144,6 +144,18 @@ func read_int(file, byte_count):
 		result += bytes[ii] * (pow(2, ii))
 	return result
 
+func png_sprite(relative_path, start, end, delay_milliseconds):
+	if not '.png' in relative_path and not '.spr' in relative_path:
+		var animation = ODAnimation.new()
+		animation.init()
+		var ii = start
+		while ii < end:
+			animation.add_texture_frame(image(relative_path+"000"+str(ii)+'.png'), delay_milliseconds)			
+			ii += 1
+		return animation
+	return null
+
+var cell_height = 32
 func animation(relative_path):
 	var parts = relative_path.split('.')
 	var extension = parts[parts.size()-1]
@@ -152,6 +164,12 @@ func animation(relative_path):
 			return _pro_motion_sprites(relative_path)
 		"xml":
 			return _xml_sprites(relative_path)
+		"png":
+			var sprite = Sprite.new()
+			sprite.texture = image(relative_path)
+			# Iron bars need offset?
+			#sprite.offset = Vector2(0, -cell_height/2)
+			return sprite
 		_:
 			print("No handler for animation "+relative_path)
 			Scenes.quit()
