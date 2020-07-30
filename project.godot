@@ -18,10 +18,16 @@ _global_script_classes=[ {
 "class": "ODAnimation",
 "language": "GDScript",
 "path": "res://script/instance/od_animation.gd"
+}, {
+"base": "Node",
+"class": "Tileset",
+"language": "GDScript",
+"path": "res://script/instance/tileset.gd"
 } ]
 _global_script_class_icons={
 "Dungeon": "",
-"ODAnimation": ""
+"ODAnimation": "",
+"Tileset": ""
 }
 
 [application]

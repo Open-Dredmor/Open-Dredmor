@@ -196,6 +196,7 @@ func _pro_motion_sprites(relative_path):
 			#print("trans_chunk size: "+str(trans_chunk.size()))
 		
 	var animation = ODAnimation.new()
+	animation.init()
 	for frame in frames:
 		var image_texture = ImageTexture.new()
 		var img = Image.new()
@@ -208,13 +209,14 @@ func _pro_motion_sprites(relative_path):
 				
 		img.create_from_data(width, height, false, Image.FORMAT_RGBA8, pixels)
 		image_texture.create_from_image(img)
-		animation.add_frame(image_texture, frame.delay_milliseconds)
+		animation.add_texture_frame(image_texture, frame.delay_milliseconds)
 	
 	return animation
 
 func _xml_sprites(relative_path):
 	var document = xml(relative_path)
 	var animation = ODAnimation.new()
+	animation.init()
 	var image_count = document.data_nodes.size()
 	var path_parts = relative_path.split('/')
 	var image_root = ''
@@ -225,7 +227,7 @@ func _xml_sprites(relative_path):
 		var image_path = image_root + image_name
 		var delay_milliseconds = document.sprite.frame[ii].delay
 		var texture = image(image_path)
-		animation.add_frame(texture, delay_milliseconds)
+		animation.add_texture_frame(texture, delay_milliseconds)
 	return animation
 	
 func _handle_err(resource_path, err):

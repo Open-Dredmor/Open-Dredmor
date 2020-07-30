@@ -67,10 +67,11 @@ var _assets = {
 		secondary_heroine = "ui/dredmor_intro2_fem.png"
 	},
 	game = {
-		music = "tunes/spelunk-repeat.ogg",
-		tileset = {
-			basic = "tilesets/basic.png"
-		}
+		music = "tunes/spelunk-repeat.ogg"		
+	},
+	tileset = {
+			basic = "tilesets/basic.png",
+			liquids = "tilesets/liquids.png"
 	},
 	shared = {
 		button = {
@@ -182,10 +183,29 @@ func intro():
 func game():
 	var paths = _assets.game
 	return {
-		tileset = {
-			basic = Load.image(paths.tileset.basic)
-		},
 		music = {
 			default = Load.audio(paths.music)
 		}
 	}
+
+var _tilesets = null
+
+func tilesets():
+	if _tilesets != null:
+		return _tilesets
+	var paths = _assets.tileset
+	_tilesets = {
+		basic = Tileset.new(),
+		liquids = Tileset.new()
+	}
+	_tilesets.basic.set_texture(Load.image(paths.basic))
+	_tilesets.basic.set_branch(0)
+	
+	_tilesets.liquids.set_texture(Load.image(paths.liquids))
+	# This should be pulled from branchDB instead of hard coded
+	_tilesets.liquids.set_animation("water", 0, 2, 3, 250)
+	_tilesets.liquids.set_animation("lava", 0, 1, 6, 280)
+	_tilesets.liquids.set_animation("ice", 0, 0, 4, 280)
+	_tilesets.liquids.set_animation("goo", 0, 3, 3, 300)
+	
+	return _tilesets
