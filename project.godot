@@ -49,6 +49,7 @@ DungeonSettings="*res://script/global/dungeon_settings.gd"
 Database="*res://script/global/database.gd"
 DataStructure="*res://script/global/data_structure.gd"
 ODMath="*res://script/global/od_math.gd"
+Log="*res://script/global/log.gd"
 
 [display]
 

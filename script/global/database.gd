@@ -26,7 +26,7 @@ func ingest():
 		db_cache.skill_db = Load.xml("game/skillDB.xml").skillDB
 		db_cache.spell_db = Load.xml("game/spellDB.xml")
 		db_cache.template_db = Load.xml("game/manTemplateDB.xml")
-		db_cache.text_db = Load.xml("game/text.xml")
+		db_cache.text_db = Load.xml("game/text.xml").text
 		db_cache.tutorial_db = Load.xml("game/tutorial.xml")
 		db_cache.tweak_db = Load.xml("game/tweakDB.xml")
 
@@ -58,6 +58,21 @@ func get_room(room_name):
 		if room.name == room_name:
 			return room
 
+func create_room_name():
+	var lookup = db_cache.text_db.duplicate()
+	for noun in lookup.noun:
+		if noun.text == "Cake":
+			lookup.noun[0] = noun
+	#lookup.noun.shuffle()
+	lookup.adjective.shuffle()
+	lookup.architecture.shuffle()
+	return {
+		name = lookup.adjective[0].text + " " + lookup.architecture[0].text + " of " + lookup.noun[0].text,
+		statue = lookup.noun[0].statue if lookup.noun[0].has('statue') else null,
+		flooring = lookup.noun[0]['floor'] if lookup.noun[0].has('floor') else null,
+		painting = lookup.noun[0].painting if lookup.noun[0].has('painting') else null,
+	}
+	
 func get_branch(branch_id):
 	for branch in db_cache.branch_db.branch:
 		if int(branch.id) == branch_id:

@@ -63,17 +63,44 @@ func custom_engraving_handler(layer, item, x, y):
 	if item.has('pngSprite'):
 		animation.play()
 
-func element_tile_handler(_layer, _item, _x, _y):
+func element_tile_handler(_layer, item, _x, _y):
+	if not item.has('type'):
+		return
+	match item.type:
+		"bookshelf":
+			pass
+		_:
+			Log.warn("Unhandled element tile type [" + item.name + "]")
+
+func loot_tile_handler(_layer, item, _x, _y):
+	if not item.has('type'):
+		return
+	match item.type:
+		'armor':
+			pass
+		'zorkmids':
+			pass
+		_:
+			Log.warn("Unhandled loot tile type [" + item.type + "]")
 	pass
 
-func loot_tile_handler(_layer, _item, _x, _y):
-	pass
-
-func monster_handler(_layer, _item, _x, _y):
-	pass
-	
-func horde_handler(_layer, _item, x, y):
-	pass
+func monster_handler(_layer, item, _x, _y):
+	if not item.has('name'):
+		return
+	match item.name:
+		'Diggle':
+			pass
+		_:
+			Log.warn("Unhandled monster tile type [" + item.name + "]")
+			
+func horde_handler(_layer, item, x, y):
+	if not item.has('name'):
+		return
+	match item.name:
+		"Lil Batty":
+			pass
+		_:
+			Log.warn("Unhandled horde tile type [" + item.name + "]")
 
 func add_tile_if_match(tile_layer, x, y, tile_character, tile_lookup, floor_tiles, has_floor, tile_handler):	
 	# X and Y inverted by data elements
@@ -97,6 +124,8 @@ func add_tile_if_match(tile_layer, x, y, tile_character, tile_lookup, floor_tile
 func _build_ui():
 	tilesets = Assets.tilesets()
 	
+	var room_name_info = Database.create_room_name()
+	
 	# Useful development rooms
 	# Starting Room - First place every run begins
 	# Batty Cave - Water
@@ -114,7 +143,7 @@ func _build_ui():
 #		rooms = {
 #			Batty_Cave = Database.get_room("Batty Cave")
 #		}
-#	})
+#	})	
 	
 	floors.append({
 		entry_room = "20x20_Large_Treasury",
@@ -122,6 +151,7 @@ func _build_ui():
 			"20x20_Large_Treasury": Database.get_room("20x20 Large Treasury")
 		}
 	})
+	print("Generating room " + room_name_info.name)
 	var _floor = floors[current_floor]
 	var room = _floor.rooms[_floor.entry_room]
 	room.width = int(room.width)
@@ -145,14 +175,20 @@ func _build_ui():
 	liquid_tiles.name = "LiquidTiles"
 	var floor_tiles = Node2D.new()
 	floor_tiles.name = "FloorTiles"
+	var floor_decoration_tiles = Node2D.new()
+	floor_decoration_tiles.name = "FloorDecorationTiles"
 	var custom_blocker_tiles = Node2D.new()
 	custom_blocker_tiles.name = "CustomBlockerTiles"
+	var statue_tiles = Node2D.new()
+	statue_tiles.name = "StatueTiles"
 	var custom_engraving_tiles = Node2D.new()
 	custom_engraving_tiles.name = "CustomEngravingTiles"
 	var element_tiles = Node2D.new()
 	element_tiles.name = "ElementTiles"
 	var wall_tiles = Node2D.new()
 	wall_tiles.name = "WallTiles"
+	var wall_decoration_tiles = Node2D.new()
+	wall_decoration_tiles.name = "WallDecorationTiles"
 	var loot_tiles = Node2D.new()
 	loot_tiles.name = "LootTiles"
 	var horde_tiles = Node2D.new()
@@ -161,13 +197,17 @@ func _build_ui():
 	monster_tiles.name = "MonsterTiles"
 	vbox.add_child(liquid_tiles)
 	vbox.add_child(floor_tiles)
+	vbox.add_child(floor_decoration_tiles)
 	vbox.add_child(wall_tiles)
+	vbox.add_child(wall_decoration_tiles)
 	vbox.add_child(custom_blocker_tiles)
+	vbox.add_child(statue_tiles)
 	vbox.add_child(custom_engraving_tiles)
 	vbox.add_child(element_tiles)	
 	vbox.add_child(loot_tiles)
 	vbox.add_child(horde_tiles)
 	vbox.add_child(monster_tiles)
+	
 	
 	# Prepare room asset lookups
 	var custom_blockers = prep_tile_data(room, 'customblocker')
@@ -177,17 +217,38 @@ func _build_ui():
 	var monsters = prep_tile_data(room, 'monster')
 	var hordes = prep_tile_data(room, 'horde')
 	
+	# Room definition info from mod instructions
+	# https://steamcommunity.com/sharedfiles/filedetails/?id=197131896
+	# Wall
+	#P Wall, plus possible tapestry or painting
+	#! Destroyable Wall
+	#. Floor Tile
+	#X Impassable Tile
+	#^ Possible Random Floor Decoration
+	#D Horizontal Door
+	#d Vertical Door
+	#@ Possible Random Floor Blocker
+	#S Shopkeeper (Brax)
+	#s Shop Entrance
+	#i Sales Pedestal
 	# Build room rows,cols one tile at a time	
+	
+	var layer_handlers = [
+		[custom_blocker_tiles, custom_blockers, "custom_blocker_handler"],
+		[custom_engraving_tiles, custom_engravings, "custom_engraving_handler"],
+		[element_tiles, elements, "element_tile_handler"],
+		[loot_tiles, loot, "loot_tile_handler"],
+		[monster_tiles, monsters, "monster_handler"],
+		[horde_tiles, hordes, "horde_handler"]
+	]
+	
 	for ii in range(room.height):
 		var row = room.row[ii].text
 		for jj in range(room.width):
 			var tile_character = row[jj]
-			var added_tile = add_tile_if_match(custom_blocker_tiles, jj, ii, tile_character, custom_blockers, floor_tiles, true, "custom_blocker_handler")
-			added_tile = added_tile or add_tile_if_match(custom_engraving_tiles, jj, ii, tile_character, custom_engravings,  floor_tiles, true, "custom_engraving_handler")
-			added_tile = added_tile or add_tile_if_match(element_tiles, jj, ii, tile_character, elements,  floor_tiles, true, "element_tile_handler")
-			added_tile = added_tile or add_tile_if_match(loot_tiles, jj, ii, tile_character, loot,  floor_tiles, true, "loot_tile_handler")			
-			added_tile = added_tile or add_tile_if_match(horde_tiles, jj, ii, tile_character, hordes,  floor_tiles, true, "horde_handler")			
-			added_tile = added_tile or add_tile_if_match(monster_tiles, jj, ii, tile_character, monsters,  floor_tiles, true, "monster_handler")			
+			var added_tile = false
+			for layer in layer_handlers:
+				added_tile = added_tile || add_tile_if_match(layer[0], jj, ii, tile_character, layer[1], floor_tiles, true, layer[2])
 			match tile_character:
 				".":			
 					var tile = tilesets.basic.get_tile("floor")
@@ -197,10 +258,14 @@ func _build_ui():
 					var tile = tilesets.basic.get_tile("wall")
 					tile.position = Vector2(jj * cell_width, ii * cell_height)
 					wall_tiles.add_child(tile)
+				"!": # Destrucible wall
+					var tile = tilesets.basic.get_tile("wall")
+					tile.position = Vector2(jj * cell_width, ii * cell_height)
+					wall_tiles.add_child(tile)
 				"d":
-					pass # Needs to be a L/R door sprite
+					pass # L/R door
 				"D":
-					pass # Needs to be a U/D door sprite
+					pass # U/D door
 				"W":						
 					var tile = tilesets.liquids.get_animation('water')
 					tile.position = Vector2(jj * cell_width, ii * cell_height)
@@ -221,10 +286,37 @@ func _build_ui():
 					tile.position = Vector2(jj * cell_width, ii * cell_height)
 					liquid_tiles.add_child(tile)				
 					tile.play()
-				" ": # Empty floor
+				"^":
+					var tile = tilesets.basic.get_tile("floor")
+					tile.position = Vector2(jj * cell_width, ii * cell_height)
+					floor_tiles.add_child(tile)
+					if room_name_info.flooring != null:
+						var decoration_tile = Load.animation(room_name_info.flooring)
+						decoration_tile.position = Vector2(jj * cell_width, ii * cell_height)
+						floor_decoration_tiles.add_child(decoration_tile)
+						decoration_tile.play()
+				"P":
+					var tile = tilesets.basic.get_tile("wall")
+					tile.position = Vector2(jj * cell_width, ii * cell_height)
+					wall_tiles.add_child(tile)
+					if room_name_info.painting != null:
+						var decoration_tile = Load.animation(room_name_info.painting)
+						decoration_tile.position = Vector2(jj * cell_width, ii * cell_height)
+						wall_decoration_tiles.add_child(decoration_tile)
+						decoration_tile.play()
+				"@":
+					var tile = tilesets.basic.get_tile("floor")
+					tile.position = Vector2(jj * cell_width, ii * cell_height)
+					floor_tiles.add_child(tile)
+					if room_name_info.statue != null:
+						var decoration_tile = Load.animation(room_name_info.statue)
+						decoration_tile.position = Vector2(jj * cell_width, ii * cell_height)
+						statue_tiles.add_child(decoration_tile)
+						decoration_tile.play()
+				" ": # Empty space
 					pass
 				_:
-					if not added_tile:
-						print("Unhandled tile " + tile_character)
+					if not added_tile:						
+						Log.warn("Unhandled tile " + tile_character)
 		
 	
