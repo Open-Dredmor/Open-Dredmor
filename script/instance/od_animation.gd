@@ -12,17 +12,15 @@ var _texture_frames = null
 var _sprite = null
 var _next_frame_timer = null
 var _frame_index = 0
-var _enable_sprite_frames = false
-
-func _ready():
-	add_child(_next_frame_timer)
-	add_child(_sprite)
+var _enable_sprite_frames = false	
 
 func init():
 	_sprite_frames = []
 	_texture_frames = []
 	_sprite = Sprite.new()
 	_next_frame_timer = Timer.new()
+	add_child(_next_frame_timer)
+	add_child(_sprite)
 
 func add_sprite_frame(sprite, display_milliseconds):
 	_enable_sprite_frames = true

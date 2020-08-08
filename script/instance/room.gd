@@ -16,16 +16,24 @@ var layer_names = [
 
 var _entity_grid
 var _definition
+var _doors = {
+	left_right = [],
+	up_down = []
+}
 
 var tilesets
 
-func init(room_database_name, entity_grid):	
-	_entity_grid = entity_grid
+func init(room_database_name):	
+	_entity_grid = EntityGrid.new()
+	_entity_grid.init()
+	add_child(_entity_grid)
 	_definition = Database.get_room(room_database_name)
-	grid_width = int(_definition.width)
-	grid_height = int(_definition.height)
+	# Rough passage 3 in game/rooms.xml has a width/height that doesn't match the data
+	# Count the strings lengths instead of trusting the reported values
+	grid_width = _definition.row[0].text.length()
+	grid_height = _definition.row.size()
 	var name_details = Database.create_room_name()
-	print("Generating room " + name_details.name)
+	print("Generating room id " + room_database_name + " with name " + name_details.name)
 	for layer_name in layer_names:
 		layer_lookup[layer_name] = prep_tile_data(layer_name)
 	# Build room rows,cols one tile at a time
@@ -47,10 +55,19 @@ func init(room_database_name, entity_grid):
 					has_wall = true
 				"!": # Destrucible wall
 					has_wall = true
-				"d":
-					pass # L/R door
-				"D":
-					pass # U/D door
+				# Doors between rooms are usually joined by either 3x2 or 2x3 floor tiles
+				"d": # TODO L/R door sprite
+					_doors.left_right.append({
+						x = jj,
+						y = ii,
+						kind = 'left_right'
+					})
+				"D": # TODO U/D door sprite
+					_doors.up_down.append({
+						x = jj,
+						y = ii,
+						kind = 'up_down'
+					})
 				"W":						
 					entity_name = "water"
 				"L":
@@ -85,6 +102,31 @@ func init(room_database_name, entity_grid):
 				_entity_grid.add_tile(jj, ii, "wall")
 			if entity_name != null:
 				_entity_grid.add_tile(jj, ii, entity_name, sprite_path)
+
+func has_available_doors():
+	return _doors.up_down.size() > 0 or _doors.left_right.size() > 0
+	
+func get_up_down_door():
+	if _doors.up_down.size() == 0:
+		return null
+	_doors.up_down.shuffle()
+	return _doors.up_down[0]
+	
+func get_left_right_door():
+	if _doors.left_right.size() == 0:
+		return null
+	_doors.left_right.shuffle()
+	return _doors.left_right[0]
+	
+func claim_door(x, y, kind):
+	var kill_index = null
+	var index = 0
+	for door in _doors[kind]:		
+		if door.x == x and door.y == y:
+			kill_index = index
+			break
+		index += 1
+	_doors[kind].remove(kill_index)
 
 func prep_tile_data(layer_name):
 	var result = {
@@ -150,7 +192,7 @@ func element_tile_handler(item, _x, _y):
 		"bookshelf":
 			pass
 		_:
-			Log.warn("Unhandled element tile type [" + item.name + "]")
+			Log.warn("Unhandled element tile type [" + item.type + "]")
 
 func loot_tile_handler(item, _x, _y):
 	if not item.has('type'):

@@ -52,7 +52,17 @@ func character_creation_skill_list():
 			skill_index += 1
 	cache("character_creation_skill_list",result)
 	return result
-	
+
+func random_room_id(floor_level):
+	var rooms = db_cache.room_db.room.duplicate()
+	rooms.shuffle()
+	for room in rooms:
+		if not room.has('flags') or not room.flags.has('minLevel'):
+			return room.name
+		if int(room.flags.minLevel) <= floor_level and int(room.flags.maxLevel) >= floor_level:
+			return room.name
+	return null
+
 func get_room(room_name):	
 	for room in db_cache.room_db.room:
 		if room.name == room_name:
@@ -60,10 +70,10 @@ func get_room(room_name):
 
 func create_room_name():
 	var lookup = db_cache.text_db.duplicate()
-	for noun in lookup.noun:
-		if noun.text == "Cake":
-			lookup.noun[0] = noun
-	#lookup.noun.shuffle()
+#	for noun in lookup.noun:
+#		if noun.text == "Cake":
+#			lookup.noun[0] = noun
+	lookup.noun.shuffle()
 	lookup.adjective.shuffle()
 	lookup.architecture.shuffle()
 	return {

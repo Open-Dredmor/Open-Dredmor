@@ -43,9 +43,12 @@ var _tilesets
 
 func init():
 	_tilesets = Assets.tilesets()	
+	var layer_order = 0
 	for layer_name in layer_names:
+		layer_order += 1
 		var layer = Node2D.new()
 		layer.name = layer_name
+		layer.z_index = layer_order
 		layers.lookup[layer.name] = layer
 		layers.list.append(layer)
 		add_child(layer)
