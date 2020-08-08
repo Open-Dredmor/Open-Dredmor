@@ -15,9 +15,19 @@ _global_script_classes=[ {
 "path": "res://script/instance/dungeon.gd"
 }, {
 "base": "Node2D",
+"class": "EntityGrid",
+"language": "GDScript",
+"path": "res://script/instance/entity_grid.gd"
+}, {
+"base": "Node2D",
 "class": "ODAnimation",
 "language": "GDScript",
 "path": "res://script/instance/od_animation.gd"
+}, {
+"base": "Node2D",
+"class": "Room",
+"language": "GDScript",
+"path": "res://script/instance/room.gd"
 }, {
 "base": "Node",
 "class": "Tileset",
@@ -26,7 +36,9 @@ _global_script_classes=[ {
 } ]
 _global_script_class_icons={
 "Dungeon": "",
+"EntityGrid": "",
 "ODAnimation": "",
+"Room": "",
 "Tileset": ""
 }
 

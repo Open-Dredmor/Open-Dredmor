@@ -1,5 +1,8 @@
 extends Node
 
+var CELL_PIXEL_HEIGHT = 32
+var CELL_PIXEL_WIDTH = 32
+
 func button_paths(start):
 	return {
 		"normal": start + "0.png",

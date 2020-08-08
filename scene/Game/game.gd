@@ -20,10 +20,27 @@ func _build_ui():
 	var assets = Assets.game()
 	var container = get_node("/root/Container")
 	
+	var centered_container = Panel.new()
+	centered_container.set_size(Settings.display_size())
+	container.add_child(centered_container)
+	var hbox = HBoxContainer.new()
+	hbox.anchor_left = .3
+	hbox.anchor_top = .2
+	hbox.alignment = BoxContainer.ALIGN_CENTER
+	centered_container.add_child(hbox)
+	var vbox = VBoxContainer.new()
+	vbox.alignment = BoxContainer.ALIGN_CENTER
+	hbox.add_child(vbox)
+	
+	var entity_grid = EntityGrid.new()
+	entity_grid.init()
+	vbox.add_child(entity_grid)
+	
 	var dungeon = Dungeon.new()
-	container.add_child(dungeon)	
+	dungeon.init(entity_grid)
+	vbox.add_child(dungeon)
 	
 	var gui = Control.new()
-	container.add_child(gui)
+	vbox.add_child(gui)
 	
 	Audio.play(assets.music.default)
