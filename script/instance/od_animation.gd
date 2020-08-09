@@ -14,6 +14,9 @@ var _next_frame_timer = null
 var _frame_index = 0
 var _enable_sprite_frames = false	
 
+func _ready():
+	play()
+
 func init():
 	_sprite_frames = []
 	_texture_frames = []

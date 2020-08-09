@@ -9,6 +9,8 @@ var layers = {
 
 var layer_names = [
 	"liquid",
+	"wall",
+	"wall_decoration",
 	"floor",
 	"floor_decoration",
 	"custom_blocker",
@@ -18,9 +20,7 @@ var layer_names = [
 	"loot",
 	"horde",
 	"monster",
-	"player",
-	"wall",
-	"wall_decoration",
+	"player",	
 ]
 
 var xml_name_to_layer_name = {
@@ -63,8 +63,6 @@ func add_animation(x, y, name, animation):
 	var layer = get_layer(name)
 	animation.position = Vector2(x * Assets.CELL_PIXEL_WIDTH, y * Assets.CELL_PIXEL_HEIGHT)
 	layer.add_child(animation)
-	if animation.has_method("play"):
-		animation.play()
 
 func add_tile(x, y, name, sprite_path = null):
 	var layer = get_layer(name)
@@ -80,5 +78,3 @@ func add_tile(x, y, name, sprite_path = null):
 			pass
 	tile.position = Vector2(x * Assets.CELL_PIXEL_WIDTH, y * Assets.CELL_PIXEL_HEIGHT)
 	layer.add_child(tile)
-	if tile.has_method("play"):
-		tile.play()

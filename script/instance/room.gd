@@ -2,6 +2,7 @@ extends Node2D
 
 class_name Room
 
+var collision_rect = ODRect.new()
 var grid_width
 var grid_height
 var layer_lookup = {}
@@ -24,18 +25,31 @@ var _doors = {
 }
 
 var tilesets
+var name_details
+
+func debug_info():
+		print("Clicked room id " + name_details.database_id + " with name " + name_details.name)
 
 func init(room_database_name):	
-	_entity_grid = EntityGrid.new()
+	_entity_grid = EntityGrid.new()	
 	_entity_grid.init()
 	add_child(_entity_grid)
+	
 	_definition = Database.get_room(room_database_name)
 	# Rough passage 3 in game/rooms.xml has a width/height that doesn't match the data
 	# Count the strings lengths instead of trusting the reported values
 	grid_width = _definition.row[0].text.length()
 	grid_height = _definition.row.size()
-	var name_details = Database.create_room_name()
-	print("Generating room id " + room_database_name + " with name " + name_details.name)
+	var debug_button = Chrome.invisible_button()
+	var hover_button_style = StyleBoxFlat.new()
+	hover_button_style.bg_color = Color(.5,.5,0,.3)
+	debug_button.add_stylebox_override("hover",hover_button_style)
+	debug_button.rect_size = Vector2(grid_width * Assets.CELL_PIXEL_WIDTH, grid_height * Assets.CELL_PIXEL_HEIGHT)
+	debug_button.connect("pressed", self, "debug_info")
+	add_child(debug_button)
+	name_details = Database.create_room_name()
+	name_details.database_id = room_database_name
+	#print("Generating room id " + room_database_name + " with name " + name_details.name)
 	for layer_name in layer_names:
 		layer_lookup[layer_name] = prep_tile_data(layer_name)
 	# Build room rows,cols one tile at a time
@@ -111,7 +125,7 @@ func init(room_database_name):
 					pass
 				_:
 					if not added_tile:						
-						Log.warn("Unhandled tile " + tile_character)
+						Log.warn("Unhandled tile [" + tile_character + "]")
 			if has_floor:
 				_entity_grid.add_tile(jj, ii, "floor")
 			if has_wall:
@@ -140,6 +154,12 @@ func claim_door(x, y, kind):
 			break
 		index += 1
 	_doors[kind].remove(kill_index)
+	# TODO Add the door and remove surrounding walls
+
+func seal_available_doors():
+	for kind in _doors.keys():
+		for door in _doors[kind]:
+			_entity_grid.add_tile(door.x, door.y, "wall")
 
 func prep_tile_data(layer_name):
 	var result = {

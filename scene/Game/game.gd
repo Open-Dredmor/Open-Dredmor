@@ -1,5 +1,7 @@
 extends Node2D
 
+var moveable_container
+
 func _ready():
 	call_deferred("_build_ui")
 
@@ -14,11 +16,39 @@ func _dev_seed():
 	DungeonSettings.set_name("Eyebrows")
 	DungeonSettings.set_starting_skill_ids([0,1,2,3,4,5,6])
 
+var speed = 200
+var drag_enabled = false
+var old_position
+func _input(ev):
+	if ev is InputEventKey and ev.is_pressed():
+		if ev.scancode == KEY_LEFT:
+			moveable_container.position.x += speed
+		if ev.scancode == KEY_RIGHT:
+			moveable_container.position.x -= speed
+		if ev.scancode == KEY_UP:
+			moveable_container.position.y += speed
+		if ev.scancode == KEY_DOWN:
+			moveable_container.position.y -= speed
+	if ev is InputEventMouseButton:
+		if ev.button_index == BUTTON_LEFT:
+			drag_enabled = ev.pressed
+			if ev.pressed:
+				old_position = get_global_mouse_position()
+		
+func _physics_process(delta):
+	if old_position != null and drag_enabled:
+		var new_position = get_global_mouse_position()
+		var delta_position = new_position - old_position;
+		moveable_container.position.x += delta_position.x
+		moveable_container.position.y += delta_position.y
+		old_position = new_position
+
 func _build_ui():
+	# TODO Remove unless testing
 	_dev_seed()
 	
 	var assets = Assets.game()
-	var container = get_node("/root/Container")
+	var	container = get_node("/root/Container")
 	
 	var centered_container = Panel.new()
 	centered_container.set_size(Settings.display_size())
@@ -32,15 +62,14 @@ func _build_ui():
 	vbox.alignment = BoxContainer.ALIGN_CENTER
 	hbox.add_child(vbox)
 	
-	var entity_grid = EntityGrid.new()
-	entity_grid.init()
-	vbox.add_child(entity_grid)
+	moveable_container = Node2D.new()
+	vbox.add_child(moveable_container)
 	
 	var dungeon = Dungeon.new()
-	dungeon.init(entity_grid)
-	vbox.add_child(dungeon)
+	dungeon.init()
+	moveable_container.add_child(dungeon)
 	
 	var gui = Control.new()
-	vbox.add_child(gui)
+	moveable_container.add_child(gui)
 	
 	Audio.play(assets.music.default)

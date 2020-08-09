@@ -29,7 +29,8 @@ func highlight_on_hover_button(texture):
 	button.texture_normal = texture
 	return button
 	
-func invisible_button(node):
+func invisible_button():
+	var node = Button.new()
 	if hidden_button_style == null:
 		hidden_button_style = StyleBoxFlat.new()
 		hidden_button_style.bg_color = Color(0,0,0,0)
@@ -39,3 +40,4 @@ func invisible_button(node):
 	node.add_stylebox_override("pressed",hidden_button_style)
 	node.add_stylebox_override("disabled",hidden_button_style)
 	node.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	return node

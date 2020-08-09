@@ -23,9 +23,8 @@ func _build_ui():
 	var info_graphic = TextureRect.new()
 	info_graphic.texture = assets.textures['secondary_'+DungeonSettings.get_settings()['hero']]
 	vertical.add_child(info_graphic)
-	var next_button = Button.new()
 	
-	Chrome.invisible_button(next_button)
+	var next_button = Chrome.invisible_button()
 	next_button.connect("pressed",self,"_on_NextButton_pressed")	
 	next_button.anchor_bottom = 1
 	next_button.anchor_right = 1

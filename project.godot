@@ -24,6 +24,11 @@ _global_script_classes=[ {
 "language": "GDScript",
 "path": "res://script/instance/od_animation.gd"
 }, {
+"base": "Node",
+"class": "ODRect",
+"language": "GDScript",
+"path": "res://script/instance/od_rect.gd"
+}, {
 "base": "Node2D",
 "class": "Room",
 "language": "GDScript",
@@ -38,6 +43,7 @@ _global_script_class_icons={
 "Dungeon": "",
 "EntityGrid": "",
 "ODAnimation": "",
+"ODRect": "",
 "Room": "",
 "Tileset": ""
 }
@@ -51,17 +57,17 @@ config/icon="res://icon.png"
 
 [autoload]
 
-Scenes="*res://script/global/scenes.gd"
-Assets="*res://script/global/assets.gd"
-Settings="*res://script/global/settings.gd"
-Load="*res://script/global/load.gd"
-Chrome="*res://script/global/chrome.gd"
-Audio="*res://script/global/audio.gd"
-DungeonSettings="*res://script/global/dungeon_settings.gd"
-Database="*res://script/global/database.gd"
-DataStructure="*res://script/global/data_structure.gd"
-ODMath="*res://script/global/od_math.gd"
-Log="*res://script/global/log.gd"
+Scenes="*res://script/singleton/scenes.gd"
+Assets="*res://script/singleton/assets.gd"
+Settings="*res://script/singleton/settings.gd"
+Load="*res://script/singleton/load.gd"
+Chrome="*res://script/singleton/chrome.gd"
+Audio="*res://script/singleton/audio.gd"
+DungeonSettings="*res://script/singleton/dungeon_settings.gd"
+Database="*res://script/singleton/database.gd"
+DataStructure="*res://script/singleton/data_structure.gd"
+ODMath="*res://script/singleton/od_math.gd"
+Log="*res://script/singleton/log.gd"
 
 [display]
 

@@ -62,10 +62,9 @@ func _build_gui():
 	_easy_checkmark.margin_top = -(_easy_checkmark.texture.get_height()/2)
 	options_form.add_child(_easy_checkmark)
 		
-	var easy_button = Button.new()
+	var easy_button = Chrome.invisible_button()
 	easy_button.connect("pressed",self,"_on_EasyDifficultyButton_pressed")	
 	easy_button.set_size(Vector2(options_form.texture.get_width() * .7,50))
-	Chrome.invisible_button(easy_button)
 	easy_button.anchor_top = .12
 	easy_button.anchor_left = .15
 	options_form.add_child(easy_button)	
@@ -78,8 +77,7 @@ func _build_gui():
 	_medium_checkmark.margin_top = -(_medium_checkmark.texture.get_height()/2)
 	options_form.add_child(_medium_checkmark)
 	
-	var medium_button = Button.new()
-	Chrome.invisible_button(medium_button)
+	var medium_button = Chrome.invisible_button()	
 	medium_button.connect("pressed",self,"_on_MediumDifficultyButton_pressed")	
 	medium_button.set_size(Vector2(options_form.texture.get_width() * .7,60))
 	medium_button.anchor_top = .22
@@ -94,8 +92,7 @@ func _build_gui():
 	_hard_checkmark.margin_top = -(_hard_checkmark.texture.get_height()/2)
 	options_form.add_child(_hard_checkmark)
 	
-	var hard_button = Button.new()
-	Chrome.invisible_button(hard_button)
+	var hard_button = Chrome.invisible_button()
 	hard_button.connect("pressed",self,"_on_HardDifficultyButton_pressed")	
 	hard_button.set_size(Vector2(options_form.texture.get_width() * .7,70))
 	hard_button.anchor_top = .34
@@ -110,8 +107,7 @@ func _build_gui():
 	_permadeath_checkmark.margin_top = -(_permadeath_checkmark.texture.get_height()/2)
 	options_form.add_child(_permadeath_checkmark)
 	
-	var permadeath_button = Button.new()
-	Chrome.invisible_button(permadeath_button)
+	var permadeath_button = Chrome.invisible_button()
 	permadeath_button.connect("pressed",self,"_on_PermadeathButton_pressed")	
 	permadeath_button.set_size(Vector2(options_form.texture.get_width() * .7,60))
 	permadeath_button.anchor_top = .50
@@ -126,8 +122,7 @@ func _build_gui():
 	_no_time_to_grind_checkmark.margin_top = -(_no_time_to_grind_checkmark.texture.get_height()/2)
 	options_form.add_child(_no_time_to_grind_checkmark)
 	
-	var no_time_to_grind_button = Button.new()
-	Chrome.invisible_button(no_time_to_grind_button)
+	var no_time_to_grind_button = Chrome.invisible_button()
 	no_time_to_grind_button.connect("pressed",self,"_on_NoTimeToGrindButton_pressed")	
 	no_time_to_grind_button.set_size(Vector2(options_form.texture.get_width() * .7,60))
 	no_time_to_grind_button.anchor_top = .65
