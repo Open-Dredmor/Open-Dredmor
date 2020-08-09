@@ -17,8 +17,10 @@ var layer_names = [
 var _entity_grid
 var _definition
 var _doors = {
-	left_right = [],
-	up_down = []
+	left = [],
+	right = [],
+	up = [],
+	down = []
 }
 
 var tilesets
@@ -57,17 +59,31 @@ func init(room_database_name):
 					has_wall = true
 				# Doors between rooms are usually joined by either 3x2 or 2x3 floor tiles
 				"d": # TODO L/R door sprite
-					_doors.left_right.append({
-						x = jj,
-						y = ii,
-						kind = 'left_right'
-					})
+					if jj < grid_width / 2:
+						_doors.left.append({
+							x = jj,
+							y = ii,
+							kind = 'left'
+						})
+					else:
+						_doors.right.append({
+							x = jj,
+							y = ii,
+							kind = 'right'
+						})					
 				"D": # TODO U/D door sprite
-					_doors.up_down.append({
-						x = jj,
-						y = ii,
-						kind = 'up_down'
-					})
+					if ii < grid_height / 2:
+						_doors.up.append({
+							x = jj,
+							y = ii,
+							kind = 'up'
+						})
+					else:
+						_doors.down.append({
+							x = jj,
+							y = ii,
+							kind = 'down'
+						})	
 				"W":						
 					entity_name = "water"
 				"L":
@@ -104,19 +120,16 @@ func init(room_database_name):
 				_entity_grid.add_tile(jj, ii, entity_name, sprite_path)
 
 func has_available_doors():
-	return _doors.up_down.size() > 0 or _doors.left_right.size() > 0
+	for key in _doors.keys():
+		if _doors[key].size() > 0:
+			return true
+	return false
 	
-func get_up_down_door():
-	if _doors.up_down.size() == 0:
-		return null
-	_doors.up_down.shuffle()
-	return _doors.up_down[0]
-	
-func get_left_right_door():
-	if _doors.left_right.size() == 0:
-		return null
-	_doors.left_right.shuffle()
-	return _doors.left_right[0]
+func get_door(kind):
+	if _doors[kind].size() == 0:
+		return null	
+	_doors[kind].shuffle()
+	return _doors[kind][0]
 	
 func claim_door(x, y, kind):
 	var kill_index = null
