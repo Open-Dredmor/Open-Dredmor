@@ -55,7 +55,6 @@ func _on_ChooseButton_pressed():
 
 func _on_DirectoryPicker_dir_selected(dir):
 	# TODO Some validation around whether or not the chosen dir is actually a Dredmor installation
-	# TODO Preload all assets into a bundle?
 	Settings.change("open_dredmor","dredmor_install_directory",dir)
-	Scenes.goto(Scenes.MAIN_MENU)
+	Scenes.goto(first_scene)
 	pass
