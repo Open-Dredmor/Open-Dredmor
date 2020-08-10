@@ -34,7 +34,10 @@ func dredmor_install_dir():
 	return cached_install_dir
 	
 func audio_enabled():
-	return _settings.get_value("game","audio_enabled")
+	var result = _settings.get_value("game","audio_enabled")
+	if result == null:
+		return true
+	return result
 	
 func display_size():
 	# ProjectSettings.get_setting("display/window/size/width"))
