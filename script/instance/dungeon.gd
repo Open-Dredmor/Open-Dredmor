@@ -82,7 +82,7 @@ func _build_ui():
 					position_x -= Assets.CELL_PIXEL_WIDTH * room.grid_width
 					position_y -= target_door.y * Assets.CELL_PIXEL_HEIGHT				
 			room.position = Vector2(source_room.position.x + position_x, source_room.position.y + position_y)
-			room.collision_rect.init(position_x / Assets.CELL_PIXEL_WIDTH, position_y / Assets.CELL_PIXEL_HEIGHT, room.grid_width, room.grid_height)
+			room.collision_rect.init(room.position.x / Assets.CELL_PIXEL_WIDTH, room.position.y / Assets.CELL_PIXEL_HEIGHT, room.grid_width + room.position.x / Assets.CELL_PIXEL_WIDTH, room.grid_height + room.position.y / Assets.CELL_PIXEL_HEIGHT)
 			
 			for existing_room in rooms:
 				if room.collision_rect.is_colliding(existing_room.collision_rect):
@@ -94,7 +94,12 @@ func _build_ui():
 #			print("To "+str(target_door.kind) + " at "+str(target_door.x)+","+str(target_door.y)+" in room "+room_name)
 			source_room.claim_door(source_door.x, source_door.y, source_door.kind)			
 			rooms.append(room)
-			add_child(room)
 			rooms_count -= 1
+	_entity_grid = EntityGrid.new()
+	_entity_grid.init()
+	_entity_grid.resize(1000,1000)
+	_entity_grid.recenter(500,500)
+	add_child(_entity_grid)
 	for room in rooms:
 		room.seal_available_doors()
+		_entity_grid.insert(room.entity_grid, room.position)

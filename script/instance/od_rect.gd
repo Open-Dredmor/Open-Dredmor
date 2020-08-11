@@ -14,4 +14,4 @@ func init(x, y, width, height):
 	y2 = y + height
 
 func is_colliding(target):
-	return x1 <= target.x2 and x2 >= target.x1 and y1 >= target.y2 and y2 <= target.y1 
+	return x1 <= target.x2 and x2 >= target.x1 and y1 <= target.y2 and y2 >= target.y1 

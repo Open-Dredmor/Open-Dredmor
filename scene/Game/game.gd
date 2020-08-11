@@ -35,7 +35,7 @@ func _input(ev):
 			if ev.pressed:
 				old_position = get_global_mouse_position()
 		
-func _physics_process(delta):
+func _physics_process(_delta):
 	if old_position != null and drag_enabled:
 		var new_position = get_global_mouse_position()
 		var delta_position = new_position - old_position;

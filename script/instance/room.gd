@@ -15,7 +15,7 @@ var layer_names = [
 	"horde"
 ]
 
-var _entity_grid
+var entity_grid
 var _definition
 var _doors = {
 	left = [],
@@ -29,12 +29,13 @@ var name_details
 
 func debug_info():
 	print("Clicked room id " + name_details.database_id + " with name " + name_details.name)
+	print(str(collision_rect.x1)+' x1, '+str(collision_rect.x2)+" x2 , "+str(collision_rect.y1)+" y1 , "+str(collision_rect.y2)+" y2")
 	z_index += 100
 
 func init(room_database_name):	
-	_entity_grid = EntityGrid.new()	
-	_entity_grid.init()
-	add_child(_entity_grid)
+	entity_grid = EntityGrid.new()	
+	entity_grid.init()
+	add_child(entity_grid)
 	
 	_definition = Database.get_room(room_database_name)
 	# Rough passage 3 in game/rooms.xml has a width/height that doesn't match the data
@@ -129,11 +130,11 @@ func init(room_database_name):
 					if not added_tile:						
 						Log.warn("Unhandled tile [" + tile_character + "]")
 			if has_floor:
-				_entity_grid.add_tile(jj, ii, "floor")
+				entity_grid.add_tile(jj, ii, "floor")
 			if has_wall:
-				_entity_grid.add_tile(jj, ii, "wall")
+				entity_grid.add_tile(jj, ii, "wall")
 			if entity_name != null:
-				_entity_grid.add_tile(jj, ii, entity_name, sprite_path)
+				entity_grid.add_tile(jj, ii, entity_name, sprite_path)
 
 func has_available_doors():
 	for key in _doors.keys():
@@ -161,7 +162,7 @@ func claim_door(x, y, kind):
 func seal_available_doors():
 	for kind in _doors.keys():
 		for door in _doors[kind]:
-			_entity_grid.add_tile(door.x, door.y, "wall")
+			entity_grid.add_tile(door.x, door.y, "wall")
 
 func prep_tile_data(layer_name):
 	var result = {
@@ -195,7 +196,7 @@ func add_tile_if_match(x, y, tile_character, layer_name):
 	if tile_character in layer:
 		item = layer[tile_character]
 	if item != null:
-		_entity_grid.add_tile(x, y, "floor")
+		entity_grid.add_tile(x, y, "floor")
 		if item.has('percent') and ! ODMath.chance(item.percent):
 			return true
 		call(layer_name + "_tile_handler", item, x, y)
@@ -209,7 +210,7 @@ func customblocker_tile_handler(item, x, y):
 	if item.has('png'):
 		animation = Load.animation(item.png)
 	if animation != null:
-		_entity_grid.add_animation(x, y, "customblocker", animation)
+		entity_grid.add_animation(x, y, "customblocker", animation)
 
 func customengraving_tile_handler(item, x, y):
 	var animation = null
@@ -218,7 +219,7 @@ func customengraving_tile_handler(item, x, y):
 	if item.has('png'):
 		animation = Load.animation(item.png)
 	if animation != null:
-		_entity_grid.add_animation(x, y, "customengraving", animation)
+		entity_grid.add_animation(x, y, "customengraving", animation)
 
 func element_tile_handler(item, _x, _y):
 	if not item.has('type'):

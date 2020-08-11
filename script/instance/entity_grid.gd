@@ -40,6 +40,8 @@ var animated_tile_lookup = {
 }
 
 var _tilesets
+var _grid_lookup = null
+var _grid_center = null
 
 func init():
 	_tilesets = Assets.tilesets()	
@@ -53,6 +55,25 @@ func init():
 		layers.list.append(layer)
 		add_child(layer)
 
+func resize(grid_width, grid_height):
+	_grid_lookup = {}
+	for ii in range(grid_width):
+		_grid_lookup[ii] = {}
+		for jj in range(grid_height):
+			_grid_lookup[ii][jj] = {}
+
+func recenter(x, y):
+	_grid_center = Vector2(x, y)
+
+func insert(source_grid, position):
+	for layer_key in source_grid.layers.lookup.keys():
+		var source_layer = source_grid.layers.lookup[layer_key]
+		var target_layer = layers.lookup[layer_key]
+		for child in source_layer.get_children():
+			child.get_parent().remove_child(child)
+			child.position = Vector2(child.position.x + position.x + _grid_center.x, child.position.y + position.y + _grid_center.y)
+			target_layer.add_child(child)
+				
 func get_layer(name):
 	if xml_name_to_layer_name.has(name):
 		return layers.lookup[xml_name_to_layer_name[name]]
