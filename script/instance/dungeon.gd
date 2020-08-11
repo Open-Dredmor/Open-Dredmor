@@ -33,7 +33,7 @@ func _build_ui():
 	rooms.append(first_room)
 	add_child(first_room)
 	var circuit_breaker = 1000
-	var rooms_count = 6
+	var rooms_count = 15
 	# TODO Prevent overlapping room placement
 	while rooms_count > 0:
 		circuit_breaker -= 1

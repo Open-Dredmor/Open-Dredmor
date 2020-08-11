@@ -28,7 +28,8 @@ var tilesets
 var name_details
 
 func debug_info():
-		print("Clicked room id " + name_details.database_id + " with name " + name_details.name)
+	print("Clicked room id " + name_details.database_id + " with name " + name_details.name)
+	z_index += 100
 
 func init(room_database_name):	
 	_entity_grid = EntityGrid.new()	
@@ -44,7 +45,8 @@ func init(room_database_name):
 	var hover_button_style = StyleBoxFlat.new()
 	hover_button_style.bg_color = Color(.5,.5,0,.3)
 	debug_button.add_stylebox_override("hover",hover_button_style)
-	debug_button.rect_size = Vector2(grid_width * Assets.CELL_PIXEL_WIDTH, grid_height * Assets.CELL_PIXEL_HEIGHT)
+	debug_button.rect_position = Vector2(-Assets.CELL_PIXEL_WIDTH/2 - 5, -Assets.CELL_PIXEL_HEIGHT/2 - 5)
+	debug_button.rect_size = Vector2(grid_width * Assets.CELL_PIXEL_WIDTH + 10, grid_height * Assets.CELL_PIXEL_HEIGHT + 10)
 	debug_button.connect("pressed", self, "debug_info")
 	add_child(debug_button)
 	name_details = Database.create_room_name()
