@@ -192,6 +192,7 @@ func prep_tile_data(layer_name):
 	
 func add_tile_if_match(x, y, tile_character, layer_name):	
 	# X and Y inverted in room xml vs everywhere else
+	# Also the coordinates are off by 1
 	var layer = layer_lookup[layer_name]
 	var item = null
 	if y in layer._coordinate and x in layer._coordinate[y]:
@@ -199,10 +200,10 @@ func add_tile_if_match(x, y, tile_character, layer_name):
 	if tile_character in layer:
 		item = layer[tile_character]
 	if item != null:
-		entity_grid.add_tile(x, y, "floor")
+		entity_grid.add_tile(x + 1, y + 1, "floor")
 		if item.has('percent') and ! ODMath.chance(item.percent):
 			return true
-		call(layer_name + "_tile_handler", item, x, y)
+		call(layer_name + "_tile_handler", item, y + 1, x + 1)
 		return true
 	return false
 

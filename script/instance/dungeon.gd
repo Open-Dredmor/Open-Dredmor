@@ -23,8 +23,7 @@ func _build_ui():
 	# Starting Room - First place every run begins
 	# Batty Cave - Water
 	# 20x20 Large Treasury - Lava
-	# Indulgent Tomb 1 - Custom blockers that don't place properly
-	# Stone Coffins 2 - More custom blockers that don't place properly
+	# Indulgent Tomb 1 - Custom blockers have a vertical gap (like the starting room iron bars)
 	var rooms = []
 	var first_room_name = "Starting Room"
 	var first_room = Room.new()
@@ -32,7 +31,7 @@ func _build_ui():
 	first_room.collision_rect.init(0, 0, first_room.grid_width, first_room.grid_height)
 	rooms.append(first_room)
 	add_child(first_room)
-	var circuit_breaker = 400
+	var circuit_breaker = 800
 	var rooms_count = 15
 	# TODO Prevent overlapping room placement
 	while rooms_count > 0:
@@ -82,6 +81,8 @@ func _build_ui():
 			room.position = Vector2(source_room.position.x + position_x, source_room.position.y + position_y)
 			room.collision_rect.init(room.position.x, room.position.y, room.grid_width, room.grid_height)
 			
+			# This is a naive implementation
+			# It would be much faster to only grab rooms that would fit in the first place
 			var collision = false
 			for existing_room in rooms:
 				if room.collision_rect.is_colliding(existing_room.collision_rect):
