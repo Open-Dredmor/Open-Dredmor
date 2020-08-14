@@ -26,6 +26,10 @@ var _doors = {
 
 var tilesets
 var name_details
+var debug_button
+
+func get_debug_button():
+	return debug_button
 
 func debug_info():
 	print("Clicked room id " + name_details.database_id + " with name " + name_details.name)
@@ -42,14 +46,13 @@ func init(room_database_name):
 	# Count the strings lengths instead of trusting the reported values
 	grid_width = _definition.row[0].text.length()
 	grid_height = _definition.row.size()
-	var debug_button = Chrome.invisible_button()
+	debug_button = Chrome.invisible_button()
 	var hover_button_style = StyleBoxFlat.new()
 	hover_button_style.bg_color = Color(.5,.5,0,.3)
 	debug_button.add_stylebox_override("hover",hover_button_style)
-	debug_button.rect_position = Vector2(-Assets.CELL_PIXEL_WIDTH/2 - 5, -Assets.CELL_PIXEL_HEIGHT/2 - 5)
-	debug_button.rect_size = Vector2(grid_width * Assets.CELL_PIXEL_WIDTH + 10, grid_height * Assets.CELL_PIXEL_HEIGHT + 10)
+	debug_button.rect_size = Vector2((grid_width + 1) * Assets.CELL_PIXEL_WIDTH, (grid_height + 1) * Assets.CELL_PIXEL_HEIGHT)
 	debug_button.connect("pressed", self, "debug_info")
-	add_child(debug_button)
+
 	name_details = Database.create_room_name()
 	name_details.database_id = room_database_name
 	#print("Generating room id " + room_database_name + " with name " + name_details.name)

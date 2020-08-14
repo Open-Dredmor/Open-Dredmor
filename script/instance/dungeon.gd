@@ -32,7 +32,7 @@ func _build_ui():
 	first_room.collision_rect.init(0, 0, first_room.grid_width, first_room.grid_height)
 	rooms.append(first_room)
 	add_child(first_room)
-	var circuit_breaker = 1000
+	var circuit_breaker = 400
 	var rooms_count = 15
 	# TODO Prevent overlapping room placement
 	while rooms_count > 0:
@@ -64,42 +64,46 @@ func _build_ui():
 		var target_door = room.get_door(target_door_kind)
 		if target_door != null:
 			# Need to factor in source_room position after moving out of the starting room
-			var position_x = (source_door.x * Assets.CELL_PIXEL_WIDTH)
-			var position_y = (source_door.y * Assets.CELL_PIXEL_HEIGHT)
+			var position_x = source_door.x
+			var position_y = source_door.y
 			match target_door.kind:
 				'up':
-					position_y += Assets.CELL_PIXEL_HEIGHT * 2
-					position_x -= target_door.x * Assets.CELL_PIXEL_WIDTH										
+					position_y += 2
+					position_x -= target_door.x
 				'down':
-					position_y -= Assets.CELL_PIXEL_HEIGHT
-					position_y -= Assets.CELL_PIXEL_HEIGHT * room.grid_height
-					position_x -= target_door.x * Assets.CELL_PIXEL_WIDTH
+					position_y -= room.grid_height
+					position_x -= target_door.x
 				'left':
-					position_x += Assets.CELL_PIXEL_WIDTH * 2
-					position_y -= target_door.y * Assets.CELL_PIXEL_HEIGHT
+					position_x += 2
+					position_y -= target_door.y
 				'right':
-					position_x -= Assets.CELL_PIXEL_WIDTH
-					position_x -= Assets.CELL_PIXEL_WIDTH * room.grid_width
-					position_y -= target_door.y * Assets.CELL_PIXEL_HEIGHT				
+					position_x -= room.grid_width
+					position_y -= target_door.y
 			room.position = Vector2(source_room.position.x + position_x, source_room.position.y + position_y)
-			room.collision_rect.init(room.position.x / Assets.CELL_PIXEL_WIDTH, room.position.y / Assets.CELL_PIXEL_HEIGHT, room.grid_width + room.position.x / Assets.CELL_PIXEL_WIDTH, room.grid_height + room.position.y / Assets.CELL_PIXEL_HEIGHT)
+			room.collision_rect.init(room.position.x, room.position.y, room.grid_width, room.grid_height)
 			
+			var collision = false
 			for existing_room in rooms:
 				if room.collision_rect.is_colliding(existing_room.collision_rect):
 					Log.warn("Overlapping rooms")
-					continue
-
-			room.claim_door(target_door.x, target_door.y, target_door.kind)
-#			print("Link " + str(source_door.kind) +" at "+str(source_door.x)+","+str(source_door.y))
-#			print("To "+str(target_door.kind) + " at "+str(target_door.x)+","+str(target_door.y)+" in room "+room_name)
-			source_room.claim_door(source_door.x, source_door.y, source_door.kind)			
-			rooms.append(room)
-			rooms_count -= 1
+					collision = true
+					break
+			if not collision:
+				room.claim_door(target_door.x, target_door.y, target_door.kind)
+	#			print("Link " + str(source_door.kind) +" at "+str(source_door.x)+","+str(source_door.y))
+	#			print("To "+str(target_door.kind) + " at "+str(target_door.x)+","+str(target_door.y)+" in room "+room_name)
+				source_room.claim_door(source_door.x, source_door.y, source_door.kind)			
+				rooms.append(room)
+				rooms_count -= 1
+			
 	_entity_grid = EntityGrid.new()
 	_entity_grid.init()
 	_entity_grid.resize(1000,1000)
-	_entity_grid.recenter(500,500)
 	add_child(_entity_grid)
 	for room in rooms:
 		room.seal_available_doors()
 		_entity_grid.insert(room.entity_grid, room.position)
+		var debug_button = room.get_debug_button()
+		debug_button.rect_position = _entity_grid.get_pixel_position(room.position.x, room.position.y) + _entity_grid.position - Vector2(32,32)
+		print("x: "+str(debug_button.rect_position.x) + ", y:" + str(debug_button.rect_position.y))
+		add_child(debug_button)

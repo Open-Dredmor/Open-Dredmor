@@ -20,7 +20,8 @@ var layer_names = [
 	"loot",
 	"horde",
 	"monster",
-	"player",	
+	"player",
+	
 ]
 
 var xml_name_to_layer_name = {
@@ -61,17 +62,21 @@ func resize(grid_width, grid_height):
 		_grid_lookup[ii] = {}
 		for jj in range(grid_height):
 			_grid_lookup[ii][jj] = {}
+	_grid_center = Vector2(grid_width / 2, grid_height / 2)
+	position = Vector2(-_grid_center.x * Assets.CELL_PIXEL_WIDTH, -_grid_center.y * Assets.CELL_PIXEL_HEIGHT)
 
-func recenter(x, y):
-	_grid_center = Vector2(x, y)
+func get_pixel_position(grid_x, grid_y):
+	var x = (grid_x + _grid_center.x) * Assets.CELL_PIXEL_WIDTH
+	var y = (grid_y + _grid_center.y) * Assets.CELL_PIXEL_HEIGHT
+	return Vector2(x, y)
 
-func insert(source_grid, position):
+func insert(source_grid, offset_position):
 	for layer_key in source_grid.layers.lookup.keys():
 		var source_layer = source_grid.layers.lookup[layer_key]
 		var target_layer = layers.lookup[layer_key]
 		for child in source_layer.get_children():
 			child.get_parent().remove_child(child)
-			child.position = Vector2(child.position.x + position.x + _grid_center.x, child.position.y + position.y + _grid_center.y)
+			child.position = get_pixel_position(child.position.x + offset_position.x, child.position.y + offset_position.y)
 			target_layer.add_child(child)
 				
 func get_layer(name):
@@ -82,7 +87,7 @@ func get_layer(name):
 
 func add_animation(x, y, name, animation):
 	var layer = get_layer(name)
-	animation.position = Vector2(x * Assets.CELL_PIXEL_WIDTH, y * Assets.CELL_PIXEL_HEIGHT)
+	animation.position = Vector2(x, y)
 	layer.add_child(animation)
 
 func add_tile(x, y, name, sprite_path = null):
@@ -97,5 +102,5 @@ func add_tile(x, y, name, sprite_path = null):
 			tile = Load.animation(sprite_path)
 		_:
 			pass
-	tile.position = Vector2(x * Assets.CELL_PIXEL_WIDTH, y * Assets.CELL_PIXEL_HEIGHT)
+	tile.position = Vector2(x, y)
 	layer.add_child(tile)
