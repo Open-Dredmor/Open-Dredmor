@@ -19,21 +19,18 @@ func _input(ev):
 			
 
 func _build_ui():	
-	# Useful development rooms
-	# Starting Room - First place every run begins
-	# Batty Cave - Water
-	# 20x20 Large Treasury - Lava
-	# Indulgent Tomb 1 - Custom blockers have a vertical gap (like the starting room iron bars)
+	_all_rooms_strategy()
+
+func _connect_doors_strategy():	
 	var rooms = []
 	var first_room_name = "Starting Room"
 	var first_room = Room.new()
 	first_room.init(first_room_name)
 	first_room.collision_rect.init(0, 0, first_room.grid_width, first_room.grid_height)
 	rooms.append(first_room)
-	add_child(first_room)
+	
 	var circuit_breaker = 800
 	var rooms_count = 15
-	# TODO Prevent overlapping room placement
 	while rooms_count > 0:
 		circuit_breaker -= 1
 		if circuit_breaker <= 0:
@@ -106,5 +103,76 @@ func _build_ui():
 		_entity_grid.insert(room.entity_grid, room.position)
 		var debug_button = room.get_debug_button()
 		debug_button.rect_position = _entity_grid.get_pixel_position(room.position.x, room.position.y) + _entity_grid.position - Vector2(32,32)
-		print("x: "+str(debug_button.rect_position.x) + ", y:" + str(debug_button.rect_position.y))
+		#print("x: "+str(debug_button.rect_position.x) + ", y:" + str(debug_button.rect_position.y))
 		add_child(debug_button)
+
+func _debug_rooms_strategy():
+	ODMath.fixed_chances(true)
+	_entity_grid = EntityGrid.new()
+	_entity_grid.init()
+	_entity_grid.resize(1,1)	
+	
+	# Useful development rooms
+	var debug_room_names = [			
+		# First place every run begins
+		"Starting Room",
+		# Water
+		"Batty Cave", 
+		# Lava
+		"20x20 Large Treasury", 
+		# Custom blockers have a vertical gap (like the starting room iron bars)
+		"Indulgent Tomb 1" ,
+		# Horizontal custom blockers
+		"Stone Coffins 2"
+	]
+	
+	var column_count = int(ceil(sqrt(debug_room_names.size())))
+	var row_count = column_count
+	var definition_index = 0
+	var buffer_width = 30
+	var buffer_height = 30
+	#print("Placing " + str(room_definitions.size()) + " rooms with col/row "+str(column_count))
+	for room_name in debug_room_names:
+		var room_x = definition_index % column_count
+		var room_y = floor(definition_index / row_count)
+		#print("Adding room " + room_definition.name + ", " + str(room_x) + " x, " + str(room_y) + " y")
+		var room = Room.new()
+		room.init(room_name)
+		room.position = Vector2(room_x * buffer_width, room_y * buffer_height)
+		_entity_grid.insert(room.entity_grid, room.position)
+		var debug_button = room.get_debug_button()
+		debug_button.rect_position = _entity_grid.get_pixel_position(room.position.x, room.position.y) + _entity_grid.position - Vector2(32,32)
+		#print("x: "+str(debug_button.rect_position.x) + ", y:" + str(debug_button.rect_position.y))
+		add_child(debug_button)
+		definition_index += 1
+	add_child(_entity_grid)
+
+func _all_rooms_strategy():
+	ODMath.fixed_chances(true)
+	
+	_entity_grid = EntityGrid.new()
+	_entity_grid.init()
+	_entity_grid.resize(1,1)
+	
+	var room_definitions = Database.get_all_rooms()
+	var column_count = int(ceil(sqrt(room_definitions.size())))
+	var row_count = column_count
+	var definition_index = 0
+	var buffer_width = 30
+	var buffer_height = 30
+	#print("Placing " + str(room_definitions.size()) + " rooms with col/row "+str(column_count))
+	for room_definition in room_definitions:
+		var room_x = definition_index % column_count
+		var room_y = floor(definition_index / row_count)
+		#print("Adding room " + room_definition.name + ", " + str(room_x) + " x, " + str(room_y) + " y")
+		var room = Room.new()
+		room.init(room_definition.name)
+		room.position = Vector2(room_x * buffer_width, room_y * buffer_height)
+		_entity_grid.insert(room.entity_grid, room.position)
+		var debug_button = room.get_debug_button()
+		debug_button.rect_position = _entity_grid.get_pixel_position(room.position.x, room.position.y) + _entity_grid.position - Vector2(32,32)
+		#print("x: "+str(debug_button.rect_position.x) + ", y:" + str(debug_button.rect_position.y))
+		add_child(debug_button)
+		definition_index += 1
+	add_child(_entity_grid)
+		

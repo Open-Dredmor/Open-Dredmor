@@ -12,7 +12,8 @@ var _texture_frames = null
 var _sprite = null
 var _next_frame_timer = null
 var _frame_index = 0
-var _enable_sprite_frames = false	
+var _enable_sprite_frames = false
+var _multi_cell_tall = false
 
 func _ready():
 	play()
@@ -33,6 +34,8 @@ func add_sprite_frame(sprite, display_milliseconds):
 	})
 
 func add_texture_frame(texture, display_milliseconds):
+	if texture.get_height() > Assets.CELL_PIXEL_HEIGHT * 1.7:
+		_multi_cell_tall = true
 	_texture_frames.append({
 		texture = texture,
 		display_seconds = float(display_milliseconds) / float(1000)
@@ -42,17 +45,19 @@ func play():
 	if ! _enable_sprite_frames:
 		var current_frame = _texture_frames[_frame_index]
 		_sprite.texture = current_frame.texture
-		_next_frame_timer.set_wait_time(current_frame.display_seconds)
-		_next_frame_timer.connect("timeout", self, "_on_NextFrameTimer_timeout")
-		_next_frame_timer.start()
+		if current_frame.display_seconds > 0:
+			_next_frame_timer.set_wait_time(current_frame.display_seconds)
+			_next_frame_timer.connect("timeout", self, "_on_NextFrameTimer_timeout")
+			_next_frame_timer.start()
 	else:
 		var current_frame = _sprite_frames[_frame_index]
 		_sprite.region_enabled = true
 		_sprite.region_rect = current_frame.sprite.region_rect
 		_sprite.texture = current_frame.sprite.texture		
-		_next_frame_timer.set_wait_time(current_frame.display_seconds)
-		_next_frame_timer.connect("timeout", self, "_on_NextFrameTimer_timeout")
-		_next_frame_timer.start()
+		if current_frame.display_seconds > 0:
+			_next_frame_timer.set_wait_time(current_frame.display_seconds)
+			_next_frame_timer.connect("timeout", self, "_on_NextFrameTimer_timeout")
+			_next_frame_timer.start()
 	
 # Disconnect and reconnect seems wasteful	
 func _on_NextFrameTimer_timeout():
@@ -63,3 +68,5 @@ func _on_NextFrameTimer_timeout():
 	_next_frame_timer.disconnect("timeout", self, "_on_NextFrameTimer_timeout")
 	play()
 
+func is_tall():
+	return _multi_cell_tall

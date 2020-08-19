@@ -89,3 +89,5 @@ func get_branch(branch_id):
 			return branch
 	return null
 	
+func get_all_rooms():
+	return db_cache.room_db.room

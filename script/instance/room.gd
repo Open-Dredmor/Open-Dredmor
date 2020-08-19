@@ -177,33 +177,31 @@ func prep_tile_data(layer_name):
 				if 'at' in entry:
 					result[entry.at] = entry
 				if 'x' in entry:
-					if not result._coordinate.has(int(entry.x) - 1):
-						result._coordinate[int(entry.x) - 1] = {}
-					result._coordinate[int(entry.x) - 1][int(entry.y) - 1] = entry
+					if not result._coordinate.has(int(entry.x)):
+						result._coordinate[int(entry.x)] = {}
+					result._coordinate[int(entry.x)][int(entry.y)] = entry
 		else:
 			var entry = _definition[layer_name]
 			if 'at' in entry:
 					result[entry.at] = entry
 			if 'x' in entry:
-				if not result._coordinate.has(int(entry.x) - 1):
-					result._coordinate[int(entry.x) - 1] = {}
-				result._coordinate[int(entry.x) - 1][int(entry.y) - 1] = entry
+				if not result._coordinate.has(int(entry.x)):
+					result._coordinate[int(entry.x)] = {}
+				result._coordinate[int(entry.x)][int(entry.y)] = entry
 	return result
 	
-func add_tile_if_match(x, y, tile_character, layer_name):	
-	# X and Y inverted in room xml vs everywhere else
-	# Also the coordinates are off by 1
+func add_tile_if_match(x, y, tile_character, layer_name):		
 	var layer = layer_lookup[layer_name]
 	var item = null
-	if y in layer._coordinate and x in layer._coordinate[y]:
-		item = layer._coordinate[y][x]
+	if x in layer._coordinate and y in layer._coordinate[x]:
+		item = layer._coordinate[x][y]
 	if tile_character in layer:
 		item = layer[tile_character]
 	if item != null:
-		entity_grid.add_tile(x + 1, y + 1, "floor")
+		entity_grid.add_tile(x, y, "floor")
 		if item.has('percent') and ! ODMath.chance(item.percent):
 			return true
-		call(layer_name + "_tile_handler", item, y + 1, x + 1)
+		call(layer_name + "_tile_handler", item, x, y)
 		return true
 	return false
 

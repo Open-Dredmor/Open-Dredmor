@@ -155,7 +155,6 @@ func png_sprite(relative_path, start, end, delay_milliseconds):
 		return animation
 	return null
 
-var cell_height = 32
 func animation(relative_path):
 	var parts = relative_path.split('.')
 	var extension = parts[parts.size()-1]
@@ -165,13 +164,14 @@ func animation(relative_path):
 		"xml":
 			return _xml_sprites(relative_path)
 		"png":
-			var sprite = Sprite.new()
-			sprite.texture = image(relative_path)
+			var animation = ODAnimation.new()
+			animation.init()
+			animation.add_texture_frame(image(relative_path), 0)
 			# Iron bars need offset?
 			#sprite.offset = Vector2(0, -cell_height/2)
-			return sprite
+			return animation
 		_:
-			print("No handler for animation "+relative_path)
+			print("No handler for animation " + relative_path)
 			Scenes.quit()
 
 # Pro Motion SPR spec

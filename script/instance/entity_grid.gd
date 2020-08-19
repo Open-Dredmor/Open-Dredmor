@@ -77,6 +77,11 @@ func insert(source_grid, offset_position):
 		for child in source_layer.get_children():
 			child.get_parent().remove_child(child)
 			child.position = get_pixel_position(child.position.x + offset_position.x, child.position.y + offset_position.y)
+			# Compensate for sprites greater than 1 tile height not being properly anchored.
+			# Might be another root cause, but this fixes the graphical problem of 2+ tile high sprites being drawn slightly too low
+			if child.has_method('is_tall'):				
+				if child.is_tall():
+					child.position.y -= Assets.CELL_PIXEL_HEIGHT / 2
 			target_layer.add_child(child)
 				
 func get_layer(name):
@@ -87,7 +92,7 @@ func get_layer(name):
 
 func add_animation(x, y, name, animation):
 	var layer = get_layer(name)
-	animation.position = Vector2(x, y)
+	animation.position = Vector2(x, y)	
 	layer.add_child(animation)
 
 func add_tile(x, y, name, sprite_path = null):
