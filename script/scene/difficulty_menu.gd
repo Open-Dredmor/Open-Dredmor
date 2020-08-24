@@ -1,5 +1,8 @@
 extends Control
 
+static func init_container():
+	return Control.new()
+
 var _no_time_to_grind_enabled = false
 var _permadeath_enabled = false
 var _permadeath_checkmark = null

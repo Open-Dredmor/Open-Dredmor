@@ -1,5 +1,8 @@
 extends Control
 
+static func init_container():
+	return Control.new()
+
 var audio_enabled_checkbox;
 
 func _ready():

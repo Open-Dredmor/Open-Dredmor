@@ -21,6 +21,7 @@ func load():
 func change(section, key, value):
 	_settings.set_value(section, key, value)
 	_settings.save(settings_path)
+	cached_install_dir = null
 
 var cached_install_dir = null
 

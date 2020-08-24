@@ -1,5 +1,8 @@
 extends Control
 
+static func init_container():
+	return Control.new()
+
 var assets = null
 var background = null
 var background_image_index = 0

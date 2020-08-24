@@ -1,5 +1,8 @@
-extends Node
+extends Control
 
+static func init_container():
+	return Control.new()
+	
 var first_scene = Scenes.MAIN_MENU
 
 var _progress_label = null

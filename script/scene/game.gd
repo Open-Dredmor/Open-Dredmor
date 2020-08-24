@@ -1,9 +1,44 @@
 extends Node2D
 
+static func init_container():
+	return Node2D.new()
+
 var moveable_container
 
 func _ready():
+	print("Ready called")
 	call_deferred("_build_ui")
+
+func _build_ui():
+	# TODO Remove unless testing
+	_dev_seed()
+	
+	var assets = Assets.game()	
+	var	container = Scenes.container()
+	
+	var centered_container = Panel.new()
+	centered_container.set_size(Settings.display_size())
+	container.add_child(centered_container)
+	var hbox = HBoxContainer.new()
+	hbox.anchor_left = .3
+	hbox.anchor_top = .2
+	hbox.alignment = BoxContainer.ALIGN_CENTER
+	centered_container.add_child(hbox)
+	var vbox = VBoxContainer.new()
+	vbox.alignment = BoxContainer.ALIGN_CENTER
+	hbox.add_child(vbox)
+	
+	moveable_container = Node2D.new()
+	vbox.add_child(moveable_container)
+	
+	var dungeon = Dungeon.new()
+	dungeon.init()
+	moveable_container.add_child(dungeon)
+	
+	var gui = Control.new()
+	moveable_container.add_child(gui)
+	
+	Audio.play(assets.music.default)
 
 func _dev_seed():
 	Audio.setup(get_tree().get_root())
@@ -42,34 +77,3 @@ func _physics_process(_delta):
 		moveable_container.position.x += delta_position.x
 		moveable_container.position.y += delta_position.y
 		old_position = new_position
-
-func _build_ui():
-	# TODO Remove unless testing
-	_dev_seed()
-	
-	var assets = Assets.game()
-	var	container = get_node("/root/Container")
-	
-	var centered_container = Panel.new()
-	centered_container.set_size(Settings.display_size())
-	container.add_child(centered_container)
-	var hbox = HBoxContainer.new()
-	hbox.anchor_left = .3
-	hbox.anchor_top = .2
-	hbox.alignment = BoxContainer.ALIGN_CENTER
-	centered_container.add_child(hbox)
-	var vbox = VBoxContainer.new()
-	vbox.alignment = BoxContainer.ALIGN_CENTER
-	hbox.add_child(vbox)
-	
-	moveable_container = Node2D.new()
-	vbox.add_child(moveable_container)
-	
-	var dungeon = Dungeon.new()
-	dungeon.init()
-	moveable_container.add_child(dungeon)
-	
-	var gui = Control.new()
-	moveable_container.add_child(gui)
-	
-	Audio.play(assets.music.default)

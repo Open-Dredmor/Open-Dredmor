@@ -1,5 +1,8 @@
 extends Control
 
+static func init_container():
+	return Control.new()
+
 var MAX_SKILL_SELECTION = 7
 
 var _selected_skills = null

@@ -1,5 +1,8 @@
 extends Node2D
 
+static func init_container():
+	return Node2D.new()
+
 func _ready():
 	call_deferred("_load_sprite")
 	

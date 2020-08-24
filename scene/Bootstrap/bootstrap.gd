@@ -1,7 +1,7 @@
 extends Control
 
-var first_scene = Scenes.GAME
-#var first_scene = Scenes.PRELOAD_ASSETS
+#var first_scene = Scenes.GAME
+var first_scene = Scenes.PRELOAD_ASSETS
 
 var selected_dir = null
 var directory_picker = null
@@ -14,8 +14,8 @@ func _init_global_state():
 	Settings.load()
 	randomize()	
 	var install_dir = Settings.dredmor_install_dir()
-	if install_dir != null:
-		print("Installation dir configured, load the game.")
+	if install_dir != null and install_dir != "":
+		print("Installation dir set to [" + install_dir + "], load the game.")
 		Scenes.goto(first_scene)
 	else:
 		print("Installation dir not configured, prompt selection.")

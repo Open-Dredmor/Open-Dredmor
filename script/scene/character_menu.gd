@@ -1,5 +1,8 @@
 extends Control
 
+static func init_container():
+	return Control.new()
+
 var _done_button = null
 var _select_hero_button = null
 var _select_heroine_button = null
