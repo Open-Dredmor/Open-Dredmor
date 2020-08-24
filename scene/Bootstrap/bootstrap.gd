@@ -1,7 +1,7 @@
 extends Control
 
-#var first_scene = Scenes.GAME
-var first_scene = Scenes.PRELOAD_ASSETS
+var first_scene = Scenes.GAME
+#var first_scene = Scenes.PRELOAD_ASSETS
 
 var selected_dir = null
 var directory_picker = null

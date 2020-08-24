@@ -8,6 +8,12 @@ var _branch_name = "The Dungeon"
 var _floor_level = 1
 var _entity_grid
 
+var FLOOR_STRATEGY = {
+	CONNECT_DOORS = "connect_doors",
+	DEBUG_ROOMS = "debug_rooms",
+	ALL_ROOMS = "all_rooms"
+}
+
 func init():	
 	call_deferred("_build_ui")
 
@@ -18,7 +24,7 @@ func _input(ev):
 			
 
 func _build_ui():
-	var strategy = "debug_rooms"
+	var strategy = FLOOR_STRATEGY.CONNECT_DOORS
 	_entity_grid = load("res://script/instance/room_placement/" + strategy + "_strategy.gd").generate(_branch_name, _floor_level)
 	add_child(_entity_grid)
 		

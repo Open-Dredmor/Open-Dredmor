@@ -213,10 +213,9 @@ func _on_RandomSelectionButton_pressed():
 		_highlighted_panel_buttons.erase(key)
 	_remove_selected_skill_buttons()
 	_selected_skills = {}
-	var random_skills = _skills.duplicate()
-	random_skills.shuffle()
-	for ii in range(MAX_SKILL_SELECTION):
-		_select_skill(random_skills[ii])
+	var random_skills = DataStructure.choose(_skills, MAX_SKILL_SELECTION)
+	for skill in random_skills:
+		_select_skill(skill)
 		
 
 

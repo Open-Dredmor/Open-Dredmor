@@ -6,7 +6,6 @@ static func init_container():
 var moveable_container
 
 func _ready():
-	print("Ready called")
 	call_deferred("_build_ui")
 
 func _build_ui():

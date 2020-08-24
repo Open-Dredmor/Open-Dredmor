@@ -1,5 +1,17 @@
 extends Node
 
+func choose(array, amount):
+	if amount == 1:
+		return array[randi() % array.size()]
+	var pick_lookup = {}
+	var picks = []
+	while pick_lookup.size() < amount:
+		var pick_index = randi() % array.size()
+		if not pick_lookup.has(pick_index):
+			pick_lookup[pick_index] = true
+			picks = array[pick_index]
+	return picks
+	
 class QueueItem:
 	var data = null
 	var next = null

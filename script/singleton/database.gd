@@ -54,14 +54,16 @@ func character_creation_skill_list():
 	return result
 
 func random_room_id(floor_level):
-	var rooms = db_cache.room_db.room.duplicate()
-	rooms.shuffle()
-	for room in rooms:
+	var short_circuit = 100
+	while true:
+		short_circuit -= 1
+		var room = DataStructure.choose(db_cache.room_db.room, 1)
 		if not room.has('flags') or not room.flags.has('minLevel'):
 			return room.name
 		if int(room.flags.minLevel) <= floor_level and int(room.flags.maxLevel) >= floor_level:
 			return room.name
-	return null
+		if short_circuit <= 0:
+			return null
 
 func get_room(room_name):	
 	for room in db_cache.room_db.room:
@@ -69,18 +71,19 @@ func get_room(room_name):
 			return room
 
 func create_room_name():
-	var lookup = db_cache.text_db.duplicate()
+	# DEBUG - Cake has a custom blocker
 #	for noun in lookup.noun:
 #		if noun.text == "Cake":
-#			lookup.noun[0] = noun
-	lookup.noun.shuffle()
-	lookup.adjective.shuffle()
-	lookup.architecture.shuffle()
+#			noun = noun
+	var noun = DataStructure.choose(db_cache.text_db.noun, 1)
+	var adjective = DataStructure.choose(db_cache.text_db.adjective, 1)
+	var architecture = DataStructure.choose(db_cache.text_db.architecture, 1)
+	
 	return {
-		name = lookup.adjective[0].text + " " + lookup.architecture[0].text + " of " + lookup.noun[0].text,
-		statue = lookup.noun[0].statue if lookup.noun[0].has('statue') else null,
-		flooring = lookup.noun[0]['floor'] if lookup.noun[0].has('floor') else null,
-		painting = lookup.noun[0].painting if lookup.noun[0].has('painting') else null,
+		name = adjective.text + " " + architecture.text + " of " + noun.text,
+		statue = noun.statue if noun.has('statue') else null,
+		flooring = noun['floor'] if noun.has('floor') else null,
+		painting = noun.painting if noun.has('painting') else null,
 	}
 	
 func get_branch(branch_id):
