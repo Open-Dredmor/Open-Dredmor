@@ -139,6 +139,13 @@ func init(room_database_name):
 			if entity_name != null:
 				entity_grid.add_tile(jj, ii, entity_name, sprite_path)
 
+func possible_doors():
+	var result = []
+	for key in _doors.keys():
+		if _doors[key].size() > 0:
+			result.append(key)
+	return result
+
 func has_available_doors():
 	for key in _doors.keys():
 		if _doors[key].size() > 0:

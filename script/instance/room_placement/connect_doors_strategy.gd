@@ -9,7 +9,7 @@ static func generate(_branch_name, floor_level):
 	first_room.collision_rect.init(0, 0, first_room.grid_width, first_room.grid_height)
 	rooms.append(first_room)
 	
-	var circuit_breaker = 800
+	var circuit_breaker = 400
 	var rooms_count = 15
 	while rooms_count > 0:
 		circuit_breaker -= 1
@@ -59,7 +59,7 @@ static func generate(_branch_name, floor_level):
 			room.collision_rect.init(room.position.x, room.position.y, room.grid_width, room.grid_height)
 			
 			# This is a naive implementation
-			# It would be much faster to only grab rooms that would fit in the first place
+			# It could be much faster to only grab rooms that would fit in the first place
 			var collision = false
 			for existing_room in rooms:
 				if room.collision_rect.is_colliding(existing_room.collision_rect):

@@ -11,7 +11,8 @@ var _entity_grid
 var FLOOR_STRATEGY = {
 	CONNECT_DOORS = "connect_doors",
 	DEBUG_ROOMS = "debug_rooms",
-	ALL_ROOMS = "all_rooms"
+	ALL_ROOMS = "all_rooms",
+	CENTER_PACK = "center_pack"
 }
 
 func init():	

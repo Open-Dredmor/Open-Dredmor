@@ -20,6 +20,7 @@ func ingest():
 		db_cache.quest_item_db = Load.xml("game/quests.xml")
 #		## rooms.dat might not be used. Not sure.
 		db_cache.room_db = Load.xml("game/rooms.xml").roomdb
+		#precompute_room_info()
 #		# scrolls.xml didn't seem to be used
 		db_cache.sound_db = Load.xml("game/soundfx.xml")
 		db_cache.speech_db = Load.xml("game/speech.xml")
@@ -64,6 +65,35 @@ func random_room_id(floor_level):
 			return room.name
 		if short_circuit <= 0:
 			return null
+
+func precompute_room_info():
+	var min_width = 10000
+	var min_height = 10000
+	var max_width = 0
+	var max_height = 0
+	for room in db_cache.room_db.room:
+		var width = room.row[0].text.length()
+		var height = room.row.size()
+		room.width = width
+		room.height = height
+		if width < min_width:
+			min_width = width
+		if width > max_width:
+			max_width = width
+		if height < min_height:
+			min_height = height
+		if height > max_height:
+			max_height = height
+	print("Min room dimensions: " + str(min_width) + " wide and " + str(min_height) + " tall")
+	print("Max room dimensions: " + str(max_width) + " wide and " + str(max_height) + " tall")
+
+func get_room_within(floor_level, max_width, max_height):
+	var rooms = []
+	for room in db_cache.room_db.room:		
+		if room.width <= max_width and room.height <= max_height:
+			if (not room.has('flags') or not room.flags.has('minLevel')) or (int(room.flags.minLevel) <= floor_level and int(room.flags.maxLevel) >= floor_level):
+				rooms.append(room)
+	return DataStructure.choose(rooms, 1).name
 
 func get_room(room_name):	
 	for room in db_cache.room_db.room:
