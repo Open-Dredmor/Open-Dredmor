@@ -127,11 +127,24 @@ func init(room_database_name):
 					if name_details.statue != null:
 						entity_name = "floor_decoration"
 						sprite_path = name_details.statue
+				"S":
+					has_floor = true
+					entity_name = "monster"
+					sprite_path = "sprites/monster/brax/brax_run_d.spr"
+				"s": # Brax teleport location while shopping
+					has_floor = true
+				"i": # sales pedestal
+					has_floor = true
+					entity_name = "customblocker"
+					sprite_path = "dungeon/store_pedestal.png"
+				"X": # Invisible blocker
+					has_floor = true
 				" ": # Empty space
 					pass
 				_:
-					if not added_tile:						
-						Log.warn("Unhandled tile [" + tile_character + "]")
+					if not added_tile:
+						if Log.warn("Unhandled tile [" + tile_character + "]"):
+							print(room_database_name)
 			if has_floor:
 				entity_grid.add_tile(jj, ii, "floor")
 			if has_wall:
@@ -163,6 +176,7 @@ func claim_door(x, y, kind):
 	var index = 0
 	for door in _doors[kind]:		
 		if door.x == x and door.y == y:
+			entity_grid.add_tile(door.x, door.y, "floor")
 			kill_index = index
 			break
 		index += 1
@@ -230,12 +244,18 @@ func customengraving_tile_handler(item, x, y):
 	if animation != null:
 		entity_grid.add_animation(x, y, "customengraving", animation)
 
-func element_tile_handler(item, _x, _y):
+func element_tile_handler(item, x, y):
 	if not item.has('type'):
 		return
 	match item.type:
 		"bookshelf":
-			pass
+			entity_grid.add_tile(x, y, "customblocker", "dungeon/bookshelf.spr")
+		"foodvending":
+			entity_grid.add_tile(x, y, "customblocker", "dungeon/dispenser_food0001.png")
+		"drinkvending":
+			entity_grid.add_tile(x, y, "customblocker", "dungeon/dispenser_drink0001.png")
+		"lever":
+			entity_grid.add_tile(x, y, "customblocker", "dungeon/lever1.spr")
 		_:
 			Log.warn("Unhandled element tile type [" + item.type + "]")
 

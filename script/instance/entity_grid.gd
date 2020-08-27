@@ -102,10 +102,8 @@ func add_tile(x, y, name, sprite_path = null):
 		"floor","wall":
 			tile = _tilesets.basic.get_tile(name)
 		"ice","lava","goo","water":
-			tile = _tilesets.liquids.get_animation(name)
-		"wall_decoration","floor_decoration":
-			tile = Load.animation(sprite_path)
+			tile = _tilesets.liquids.get_animation(name)			
 		_:
-			pass
+			tile = Load.animation(sprite_path)
 	tile.position = Vector2(x, y)
 	layer.add_child(tile)

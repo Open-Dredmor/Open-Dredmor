@@ -44,13 +44,13 @@ static func generate(_branch_name, floor_level):
 			var position_y = source_door.y
 			match target_door.kind:
 				'up':
-					position_y += 2
+					position_y += 1
 					position_x -= target_door.x
 				'down':
 					position_y -= room.grid_height
 					position_x -= target_door.x
 				'left':
-					position_x += 2
+					position_x += 1
 					position_y -= target_door.y
 				'right':
 					position_x -= room.grid_width

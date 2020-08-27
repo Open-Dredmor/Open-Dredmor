@@ -6,3 +6,5 @@ func warn(message):
 	if not warnings.has(message):
 		warnings[message] = true
 		print(message)
+		return true
+	return false
