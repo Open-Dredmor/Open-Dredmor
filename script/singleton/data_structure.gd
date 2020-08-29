@@ -1,6 +1,6 @@
 extends Node
 
-func choose(array, amount):
+func choose(array, amount = 1):
 	if array.size() == 0:
 		return null
 	if amount == 1:

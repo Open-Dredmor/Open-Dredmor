@@ -62,19 +62,55 @@ var paths = {
 	game = {
 		music = "tunes/spelunk-repeat.ogg"		
 	},
+	zorkmids = [
+		'items/cash0.png',
+		'items/cash1.png',
+		'items/cash2.png',
+		'items/cash3.png',
+		'items/cash4.png',
+		'items/cash5.png',
+	],
 	element = {
+		anvil = "dungeon/statue_anvil.spr",
+		bookshelf = "dungeon/bookshelf.spr",
+		dredmor_statue = "dungeon/statue_dredmor.png",
+		lever = "dungeon/lever1.spr",
+		lutefisk_statue = "dungeon/shrine_lutefisk_god.png",
+		statues = [
+			'dungeon/statue_book.spr',
+			'dungeon/statue_cake.spr',
+			'dungeon/statue_coffee.spr',
+			'dungeon/statue_fish.spr',
+			'dungeon/statue_fork.spr',
+			'dungeon/statue_fruit.spr',
+			'dungeon/statue_gears.spr',
+			'dungeon/statue_hammer.spr',
+			'dungeon/statue_mandrill.spr',
+			'dungeon/statue_penguin.spr',
+			'dungeon/statue_quest.spr',
+		],
 		vendor = {
-			food = [
-				'dungeon/dispenser_food0000.png',
-				'dungeon/dispenser_food0001.png'
+			bolt = [
+				'dungeon/dispenser_bolts0000.png',
+				'dungeon/dispenser_bolts0001.png'
+			],
+			craft = [
+				'dungeon/dispenser_crafts0000.png',
+				'dungeon/dispenser_crafts0001.png'
 			],
 			drink = [
 				'dungeon/dispenser_drink0000.png',
 				'dungeon/dispenser_drink0001.png'
-			]
-		},
-		lever = "dungeon/lever1.spr",
-		bookshelf = "dungeon/bookshelf.spr"
+			],
+			food = [
+				'dungeon/dispenser_food0000.png',
+				'dungeon/dispenser_food0001.png'
+			],
+			thrown = [
+				'dungeon/dispenser_thrown0000.png',
+				'dungeon/dispenser_thrown0001.png'
+			],
+		}		
 	},
 	tileset = {
 			basic = "tilesets/basic.png",

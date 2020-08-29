@@ -251,30 +251,49 @@ func element_tile_handler(item, x, y):
 		return
 	var asset = null
 	match item.type:
+		"anvil":
+			asset = assets.anvil
+		"boltvending":
+			asset = assets.vendor.bolt
 		"bookshelf":
 			asset = assets.bookshelf
-		"foodvending":
-			asset = assets.vendor.food
+		"craftvending":
+			asset = assets.vendor.craft
+		"dredmorstatue":
+			asset = assets.dredmor_statue
 		"drinkvending":
 			asset = assets.vendor.drink
+		"foodvending":
+			asset = assets.vendor.food
 		"lever":
 			asset = assets.lever
+		"lutefiskstatue":
+			asset = assets.lutefisk_statue
+		"statue":
+			asset = DataStructure.choose(assets.statues)
+		"thrownvending":
+			asset = assets.vendor.thrown
 		_:
 			Log.warn("Unhandled element tile type [" + item.type + "]")
 	if asset != null:
 		entity_grid.add_animation(x, y, "element", asset)
 
-func loot_tile_handler(item, _x, _y):
+func loot_tile_handler(item, x, y):
+	# TODO Loot should have a sparkling effect
 	if not item.has('type'):
 		return
+	var sprite = null
 	if item.type == 'zorkmids':
-		pass		
+		# TODO Base the amount and size on the current floor
+		sprite = Load.animation(DataStructure.choose(ODResource.paths.zorkmids))
 	else:
-		var loot = Database.get_loot(item.type, item.subtype if item.has('subtype') else null)
+		var loot = Database.get_loot(item.type, item.subtype if item.has('subtype') else null)		
 		if loot == null:
 			Log.warn("Unhandled loot tile type [" + item.type + "]")
 		else:
-			pass
+			sprite = Load.animation(loot.iconFile)
+	if sprite != null:
+		entity_grid.add_animation(x, y, 'loot', sprite)
 
 func monster_tile_handler(item, x, y):
 	if not item.has('name'):

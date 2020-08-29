@@ -176,8 +176,6 @@ func animation(relative_path):
 			var animation = ODAnimation.new()
 			animation.init()
 			animation.add_texture_frame(image(relative_path), 0)
-			# Iron bars need offset?
-			#sprite.offset = Vector2(0, -cell_height/2)
 			return animation
 		_:
 			print("No handler for animation " + relative_path)

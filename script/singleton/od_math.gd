@@ -13,4 +13,3 @@ func chance(text_value):
 	var float_value = float(text_value) / float(100)
 	var percent = randf()
 	return percent <= float_value
-	

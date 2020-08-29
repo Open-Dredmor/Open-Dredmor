@@ -115,15 +115,25 @@ func game():
 
 func elements():
 	var result = {
-		vendor = {
-			food = Load.split_animation(ODResource.paths.element.vendor.food),
-			drink = Load.split_animation(ODResource.paths.element.vendor.drink)
-		},
+		anvil = Load.animation(ODResource.paths.element.anvil),
+		bookshelf = Load.animation(ODResource.paths.element.bookshelf),
+		dredmor_statue = Load.animation(ODResource.paths.element.dredmor_statue),
 		lever = Load.animation(ODResource.paths.element.lever),
-		bookshelf = Load.animation(ODResource.paths.element.bookshelf)
+		lutefisk_statue = Load.animation(ODResource.paths.element.lutefisk_statue),
+		statues = [],
+		vendor = {
+			bolt = Load.split_animation(ODResource.paths.element.vendor.bolt),
+			craft = Load.split_animation(ODResource.paths.element.vendor.craft),
+			drink = Load.split_animation(ODResource.paths.element.vendor.drink),
+			food = Load.split_animation(ODResource.paths.element.vendor.food),
+			thrown = Load.split_animation(ODResource.paths.element.vendor.thrown)		
+		},
+		
 	}
 	result.lever.set_step_only(true)
 	result.bookshelf.set_step_only(true)
+	for statue in ODResource.paths.element.statues:
+		result.statues.append(Load.animation(statue))
 	return result
 
 var _tilesets = null
