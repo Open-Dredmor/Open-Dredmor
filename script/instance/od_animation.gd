@@ -14,17 +14,21 @@ var _next_frame_timer = null
 var _frame_index = 0
 var _enable_sprite_frames = false
 var _multi_cell_tall = false
+var _step_only = false
 
 func _ready():
 	play()
 
-func init():
+func init(step_only = false):
 	_sprite_frames = []
 	_texture_frames = []
 	_sprite = Sprite.new()
-	_next_frame_timer = Timer.new()
-	add_child(_next_frame_timer)
 	add_child(_sprite)
+	_step_only = step_only
+	if not _step_only:
+		_next_frame_timer = Timer.new()	
+		add_child(_next_frame_timer)	
+	
 
 func add_sprite_frame(sprite, display_milliseconds):
 	_enable_sprite_frames = true
@@ -45,7 +49,7 @@ func play():
 	if ! _enable_sprite_frames:
 		var current_frame = _texture_frames[_frame_index]
 		_sprite.texture = current_frame.texture
-		if current_frame.display_seconds > 0:
+		if not _step_only and current_frame.display_seconds > 0:
 			_next_frame_timer.set_wait_time(current_frame.display_seconds)
 			_next_frame_timer.connect("timeout", self, "_on_NextFrameTimer_timeout")
 			_next_frame_timer.start()
@@ -54,19 +58,29 @@ func play():
 		_sprite.region_enabled = true
 		_sprite.region_rect = current_frame.sprite.region_rect
 		_sprite.texture = current_frame.sprite.texture		
-		if current_frame.display_seconds > 0:
+		if not _step_only and current_frame.display_seconds > 0:
 			_next_frame_timer.set_wait_time(current_frame.display_seconds)
 			_next_frame_timer.connect("timeout", self, "_on_NextFrameTimer_timeout")
 			_next_frame_timer.start()
-	
-# Disconnect and reconnect seems wasteful	
+
+func next_frame():
+	_on_NextFrameTimer_timeout()
+
+# TODO Disconnect and reconnect seems wasteful	
 func _on_NextFrameTimer_timeout():
 	if _enable_sprite_frames:
 		_frame_index = (_frame_index + 1) % _sprite_frames.size()
 	else:
 		_frame_index = (_frame_index + 1) % _texture_frames.size()
-	_next_frame_timer.disconnect("timeout", self, "_on_NextFrameTimer_timeout")
+	if not _step_only:
+		_next_frame_timer.disconnect("timeout", self, "_on_NextFrameTimer_timeout")
 	play()
 
 func is_tall():
 	return _multi_cell_tall
+
+func set_step_only(step_only):
+	_step_only = step_only
+	if _next_frame_timer != null:
+		remove_child(_next_frame_timer)
+		_next_frame_timer = null

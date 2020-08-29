@@ -245,19 +245,23 @@ func customengraving_tile_handler(item, x, y):
 		entity_grid.add_animation(x, y, "customengraving", animation)
 
 func element_tile_handler(item, x, y):
+	var assets = Assets.elements()
 	if not item.has('type'):
 		return
+	var asset = null
 	match item.type:
 		"bookshelf":
-			entity_grid.add_tile(x, y, "customblocker", "dungeon/bookshelf.spr")
+			asset = assets.bookshelf
 		"foodvending":
-			entity_grid.add_tile(x, y, "customblocker", "dungeon/dispenser_food0001.png")
+			asset = assets.vendor.food
 		"drinkvending":
-			entity_grid.add_tile(x, y, "customblocker", "dungeon/dispenser_drink0001.png")
+			asset = assets.vendor.drink
 		"lever":
-			entity_grid.add_tile(x, y, "customblocker", "dungeon/lever1.spr")
+			asset = assets.lever
 		_:
 			Log.warn("Unhandled element tile type [" + item.type + "]")
+	if asset != null:
+		entity_grid.add_animation(x, y, "element", asset)
 
 func loot_tile_handler(item, _x, _y):
 	if not item.has('type'):

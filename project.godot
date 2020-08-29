@@ -68,6 +68,7 @@ Database="*res://script/singleton/database.gd"
 DataStructure="*res://script/singleton/data_structure.gd"
 ODMath="*res://script/singleton/od_math.gd"
 Log="*res://script/singleton/log.gd"
+ODResource="*res://script/singleton/od_resource.gd"
 
 [display]
 

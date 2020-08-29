@@ -1,5 +1,7 @@
 extends Node
 
+var DEFAULT_ANIMATION_FRAME_RATE_MILLISECONDS = 400
+
 var cache = {}
 
 func clear_cache():
@@ -154,6 +156,13 @@ func png_sprite(relative_path, start, end, delay_milliseconds):
 			ii += 1
 		return animation
 	return null
+
+func split_animation(relative_paths):
+	var animation = ODAnimation.new()
+	animation.init()
+	for path in relative_paths:
+		animation.add_texture_frame(image(path), DEFAULT_ANIMATION_FRAME_RATE_MILLISECONDS)
+	return animation
 
 func animation(relative_path):
 	var parts = relative_path.split('.')

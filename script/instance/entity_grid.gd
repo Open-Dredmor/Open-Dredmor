@@ -21,7 +21,6 @@ var layer_names = [
 	"horde",
 	"monster",
 	"player",
-	
 ]
 
 var xml_name_to_layer_name = {
