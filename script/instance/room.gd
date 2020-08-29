@@ -130,6 +130,7 @@ func init(room_database_name):
 				"S":
 					has_floor = true
 					entity_name = "monster"
+					# TODO Use the Brax monster instead of a sprite
 					sprite_path = "sprites/monster/brax/brax_run_d.spr"
 				"s": # Brax teleport location while shopping
 					has_floor = true
@@ -266,14 +267,14 @@ func element_tile_handler(item, x, y):
 func loot_tile_handler(item, _x, _y):
 	if not item.has('type'):
 		return
-	match item.type:
-		'armor':
-			pass
-		'zorkmids':
-			pass
-		_:
+	if item.type == 'zorkmids':
+		pass		
+	else:
+		var loot = Database.get_loot(item.type, item.subtype if item.has('subtype') else null)
+		if loot == null:
 			Log.warn("Unhandled loot tile type [" + item.type + "]")
-	pass
+		else:
+			pass
 
 func monster_tile_handler(item, x, y):
 	if not item.has('name'):

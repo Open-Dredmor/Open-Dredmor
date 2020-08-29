@@ -1,6 +1,8 @@
 extends Node
 
 func choose(array, amount):
+	if array.size() == 0:
+		return null
 	if amount == 1:
 		return array[randi() % array.size()]
 	var pick_lookup = {}

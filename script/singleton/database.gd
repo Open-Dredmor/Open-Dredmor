@@ -13,7 +13,7 @@ func ingest():
 		# They seem like tilemap definitions.
 		cache.branches = Load.xml("game/branchDB.xml").branchDB.branch
 		cache.crafting_recipe_db = Load.xml("game/craftDB.xml")
-		cache.item_db = Load.xml("game/itemDB.xml")
+		cache.items = Load.xml("game/itemDB.xml").itemDB.item
 		cache.magic_box_rooms_db = Load.xml("game/magicBoxRooms.xml")
 		## manual.xml was next to empty, consider it a placeholder
 		cache.monsters = Load.xml("game/monDB.xml").monDB.monster		
@@ -32,6 +32,7 @@ func ingest():
 		cache.tweak_db = Load.xml("game/tweakDB.xml")
 		
 		_build_monster_info()
+		_build_loot_info()
 
 func cache_result(key,result):
 	if result_cache == null:
@@ -143,3 +144,50 @@ func get_monster(name):
 	if not result_cache["monster_info"].has(name):
 		return null
 	return result_cache["monster_info"][name]
+	
+func _build_loot_info():
+	var loot = {
+		armour = [],
+		artifact = [],
+		bolts = [],
+		component = [],
+		food = [],
+		misc = [],
+		potion = [],
+		reagent = [],
+		toolkit = [],
+		wand = [],
+		weapon = [],
+		_find_by_name = {}
+	}
+	var prop_driven_loot = [
+		'armour',		
+		'artifact',
+		'food',
+		'potion',		
+		'wand',
+		'weapon'
+	]
+	for item in cache.items:
+		loot._find_by_name[item.name] = item
+		for prop in prop_driven_loot:
+			if item.has(prop):
+				if prop == 'weapon' and int(item.type) == GameDataKind.WEAPON.BOLT:
+					loot.bolts.append(item)
+				else:
+					loot[prop].append(item)
+	# TODO misc is always lockpicks
+	# component and reagent are different categories of crafting ingredients.
+	# research how to tell the difference between kinds of crafting input
+	# It only matters when no subtype is provided (like in Small Alchemy Lab room)
+	cache_result("loot_info", loot)
+
+func get_loot(loot_kind, loot_sub_kind = null):
+	var lookup = result_cache['loot_info']
+	if loot_sub_kind != null:
+		if lookup.has('_find_by_name') and lookup._find_by_name.has(loot_sub_kind):
+			return lookup._find_by_name[loot_sub_kind]
+		return null
+	if not lookup.has(loot_kind):
+		return null
+	return DataStructure.choose(lookup[loot_kind], 1)
