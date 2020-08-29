@@ -275,20 +275,22 @@ func loot_tile_handler(item, _x, _y):
 			Log.warn("Unhandled loot tile type [" + item.type + "]")
 	pass
 
-func monster_tile_handler(item, _x, _y):
+func monster_tile_handler(item, x, y):
 	if not item.has('name'):
 		return
-	match item.name:
-		'Diggle':
-			pass
-		_:
-			Log.warn("Unhandled monster tile type [" + item.name + "]")
+	var monster = Database.get_monster(item.name)
+	if monster == null:
+		Log.warn("Unhandled monster tile type [" + item.name + "]")
+		return
+	var animation = Load.animation(monster.idleSprite.down)
+	entity_grid.add_animation(x, y, 'monster', animation)
 			
-func horde_tile_handler(item, _x, _y):
+func horde_tile_handler(item, x, y):
 	if not item.has('name'):
 		return
-	match item.name:
-		"Lil Batty":
-			pass
-		_:
-			Log.warn("Unhandled horde tile type [" + item.name + "]")
+	var monster = Database.get_monster(item.name)
+	if monster == null:
+		Log.warn("Unhandled horde tile type [" + item.name + "]")
+		return
+	var animation = Load.animation(monster.idleSprite.down)
+	entity_grid.add_animation(x, y, 'horde', animation)

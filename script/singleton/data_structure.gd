@@ -12,6 +12,23 @@ func choose(array, amount):
 			picks = array[pick_index]
 	return picks
 	
+func merge(dict_a, dict_b):
+	var result = dict_a.duplicate()
+	var copy_b = dict_b.duplicate()
+	for key in copy_b.keys():
+		if result.has(key):
+			
+			if typeof(result[key]) != TYPE_ARRAY:
+				var copy_a_content = result[key]
+				result[key] = [copy_a_content]
+			if typeof(copy_b[key]) == TYPE_ARRAY:
+				result[key] += copy_b[key]
+			else:
+				result[key].append(copy_b[key])			
+		else:
+			result[key] = copy_b[key]
+	return result
+	
 class QueueItem:
 	var data = null
 	var next = null
