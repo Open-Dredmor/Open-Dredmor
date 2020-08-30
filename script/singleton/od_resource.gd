@@ -72,7 +72,15 @@ var paths = {
 			'items/cash4.png',
 			'items/cash5.png',
 		],
-	},	
+	},
+	pedestal = "dungeon/pedestal_empty.spr",
+	traps = [
+		'dungeon/trap_pressure_plate0.png',
+		'dungeon/trap_mine.png',
+		'dungeon/trap_magic0.png',
+		'dungeon/trap_slime0.png',
+		'dungeon/trap_wall_gargoyle0.png'
+	],
 	element = {
 		anvil = "dungeon/statue_anvil.spr",
 		bookshelf = "dungeon/bookshelf.spr",

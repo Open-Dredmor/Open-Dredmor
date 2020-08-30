@@ -6,8 +6,14 @@ var collision_rect = ODRect.new()
 var grid_width
 var grid_height
 var layer_lookup = {}
+
+# Still need pedestal, script, trap, custombreakable
+
 var layer_names = [
 	"customblocker",
+	"custombreakable",
+	"trap",
+	"pedestal",
 	"customengraving",
 	"element",
 	"loot",
@@ -153,42 +159,6 @@ func init(room_database_name):
 			if entity_name != null:
 				entity_grid.add_tile(jj, ii, entity_name, sprite_path)
 
-func possible_doors():
-	var result = []
-	for key in _doors.keys():
-		if _doors[key].size() > 0:
-			result.append(key)
-	return result
-
-func has_available_doors():
-	for key in _doors.keys():
-		if _doors[key].size() > 0:
-			return true
-	return false
-	
-func get_door(kind):
-	if _doors[kind].size() == 0:
-		return null	
-	_doors[kind].shuffle()
-	return _doors[kind][0]
-	
-func claim_door(x, y, kind):
-	var kill_index = null
-	var index = 0
-	for door in _doors[kind]:		
-		if door.x == x and door.y == y:
-			entity_grid.add_tile(door.x, door.y, "floor")
-			kill_index = index
-			break
-		index += 1
-	_doors[kind].remove(kill_index)
-	# TODO Add the door and remove surrounding walls
-
-func seal_available_doors():
-	for kind in _doors.keys():
-		for door in _doors[kind]:
-			entity_grid.add_tile(door.x, door.y, "wall")
-
 func prep_tile_data(layer_name):
 	var result = {
 		_coordinate = {}
@@ -247,8 +217,6 @@ func customengraving_tile_handler(item, x, y):
 
 func element_tile_handler(item, x, y):
 	var assets = Assets.elements()
-	if not item.has('type'):
-		return
 	var asset = null
 	match item.type:
 		"anvil":
@@ -280,8 +248,6 @@ func element_tile_handler(item, x, y):
 
 func loot_tile_handler(item, x, y):
 	# TODO Loot should have a sparkling effect
-	if not item.has('type'):
-		return
 	var sprite = null
 	if item.type == 'zorkmids':
 		# TODO Base the amount and size on the current floor
@@ -300,7 +266,11 @@ func loot_tile_handler(item, x, y):
 func monster_tile_handler(item, x, y):
 	if not item.has('name'):
 		return
-	var monster = Database.get_monster(item.name)
+	var monster = null
+	if item.has('name'):
+		monster = Database.get_monster(item.name)
+	else:
+		monster = Database.get_random_monster()
 	if monster == null:
 		Log.warn("Unhandled monster tile type [" + item.name + "]")
 		return
@@ -316,3 +286,68 @@ func horde_tile_handler(item, x, y):
 		return
 	var animation = Load.animation(monster.idleSprite.down)
 	entity_grid.add_animation(x, y, 'horde', animation)
+
+func pedestal_tile_handler(item, x, y):
+	var animation = Load.animation(ODResource.paths.pedestal)
+	entity_grid.add_animation(x, y, 'pedestal', animation)
+
+func custombreakable_tile_handler(item, x, y):
+	var animation = Load.animation(item.png)
+	entity_grid.add_animation(x, y, 'custom_breakable', animation)
+	
+func trap_tile_handler(item, x, y):
+	# TODO All of these graphics are placeholders
+	var animation = null
+	if not item.has('name'):
+		animation = Load.animation(DataStructure.choose(ODResource.paths.traps))
+	else:
+		match item.name:
+			"Gargoyle Arrow Trap":
+				animation = Load.animation(ODResource.paths.traps[0])
+			"Gargoyle Acid Bolt Trap":
+				animation = Load.animation(ODResource.paths.traps[1])
+			"Robo Bolt Trigger":
+				animation = Load.animation(ODResource.paths.traps[2])
+			"Scalding Steam Mine":
+				animation = Load.animation(ODResource.paths.traps[3])
+			"Shoddy Dwarven IED":
+				animation = Load.animation(ODResource.paths.traps[4])
+			_:
+				Log.warn("Unhandled trap [" + item.name + "]")
+	entity_grid.add_animation(x, y, 'trap', animation)
+	
+func possible_doors():
+	var result = []
+	for key in _doors.keys():
+		if _doors[key].size() > 0:
+			result.append(key)
+	return result
+
+func has_available_doors():
+	for key in _doors.keys():
+		if _doors[key].size() > 0:
+			return true
+	return false
+	
+func get_door(kind):
+	if _doors[kind].size() == 0:
+		return null	
+	_doors[kind].shuffle()
+	return _doors[kind][0]
+	
+func claim_door(x, y, kind):
+	var kill_index = null
+	var index = 0
+	for door in _doors[kind]:		
+		if door.x == x and door.y == y:
+			entity_grid.add_tile(door.x, door.y, "floor")
+			kill_index = index
+			break
+		index += 1
+	_doors[kind].remove(kill_index)
+	# TODO Add the door and remove surrounding walls
+
+func seal_available_doors():
+	for kind in _doors.keys():
+		for door in _doors[kind]:
+			entity_grid.add_tile(door.x, door.y, "wall")

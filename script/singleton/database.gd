@@ -141,7 +141,10 @@ func _build_monster_info():
 				monsters[child.name] = DataStructure.merge(monster, child)			
 	cache_result("monster_info", monsters)
 
-func get_monster(name):
+func get_random_monster():
+	return DataStructure.choose(result_cache["monster_info"])
+
+func get_monster(name):		
 	if not result_cache["monster_info"].has(name):
 		return null
 	return result_cache["monster_info"][name]

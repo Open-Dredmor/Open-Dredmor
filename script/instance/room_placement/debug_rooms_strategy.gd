@@ -7,27 +7,19 @@ static func generate(_branch_name, _floor_level):
 	entity_grid.resize(1,1)	
 	
 	# Useful development rooms
-	var debug_room_names = [			
-		# First place every run begins
-		"Starting Room",
-		# Water
-		"Batty Cave", 
-		# Lava, zorkmids, artifact, hordes
-		"20x20 Large Treasury", 
-		# Custom blockers have a vertical gap (like the starting room iron bars)
-		"Indulgent Tomb 1",
-		# Horizontal custom blockers
-		"Stone Coffins 2",
-		# misc loot and traps
-		"Rogue Tricks 1",
-		# brazier script
-		"Ignition Hall 1",
-		# loot types
-		"Smithery",
-		# reagent without subtype
-		"Small Alchemy Lab",
-		# component without subtype
-		"Small Workshop"
+	var debug_room_names = [					
+		"Starting Room", # First place every run begins		
+		"Batty Cave", # Water		
+		"20x20 Large Treasury", # Lava, zorkmids, artifact, hordes		
+		"Indulgent Tomb 1", # Custom blockers have a vertical gap (like the starting room iron bars)		
+		"Stone Coffins 2", # Horizontal custom blockers		
+		"Rogue Tricks 1", # misc loot and traps		
+		"Ignition Hall 1", # brazier script		
+		"Smithery", # loot types		
+		"Small Alchemy Lab", # reagent without subtype		
+		"Small Workshop", # component without subtype
+		"Magic Buffing Chamber", # custom breakable, pedestal
+		"Traps for Treasure", # lots of traps and random monsters
 	]
 	
 	var column_count = int(ceil(sqrt(debug_room_names.size())))
