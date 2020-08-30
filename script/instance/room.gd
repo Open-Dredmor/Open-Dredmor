@@ -285,7 +285,9 @@ func loot_tile_handler(item, x, y):
 	var sprite = null
 	if item.type == 'zorkmids':
 		# TODO Base the amount and size on the current floor
-		sprite = Load.animation(DataStructure.choose(ODResource.paths.zorkmids))
+		sprite = Load.animation(DataStructure.choose(ODResource.paths.loot.zorkmids))
+	elif item.type == 'misc': # misc is always lockpicks
+		sprite = Load.animation(ODResource.paths.loot.lockpick)
 	else:
 		var loot = Database.get_loot(item.type, item.subtype if item.has('subtype') else null)		
 		if loot == null:

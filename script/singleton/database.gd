@@ -12,7 +12,7 @@ func ingest():
 		# However, the expansions have them...so what could they be?
 		# They seem like tilemap definitions.
 		cache.branches = Load.xml("game/branchDB.xml").branchDB.branch
-		cache.crafting_recipe_db = Load.xml("game/craftDB.xml")
+		cache.crafts = Load.xml("game/craftDB.xml").craftDB.craft
 		cache.items = Load.xml("game/itemDB.xml").itemDB.item
 		cache.magic_box_rooms_db = Load.xml("game/magicBoxRooms.xml")
 		## manual.xml was next to empty, consider it a placeholder
@@ -31,8 +31,9 @@ func ingest():
 		cache.tutorial_db = Load.xml("game/tutorial.xml")
 		cache.tweak_db = Load.xml("game/tweakDB.xml")
 		
-		_build_monster_info()
 		_build_loot_info()
+		_build_craft_info()
+		_build_monster_info()
 
 func cache_result(key,result):
 	if result_cache == null:
@@ -133,11 +134,11 @@ func _build_monster_info():
 	for monster in cache.monsters:
 		monsters[monster.name] = monster
 		if monster.has('monster'):
-			if typeof(monster.monster) == TYPE_ARRAY:
-				for child in monster.monster:
-					monsters[child.name] = DataStructure.merge(monster, child)
-			if typeof(monster.monster) == TYPE_DICTIONARY:
-				monsters[monster.monster.name] = DataStructure.merge(monster, monster.monster)
+			var children = monster.monster
+			if typeof(children) == TYPE_DICTIONARY:
+				children = [children]
+			for child in children:
+				monsters[child.name] = DataStructure.merge(monster, child)			
 	cache_result("monster_info", monsters)
 
 func get_monster(name):
@@ -176,7 +177,7 @@ func _build_loot_info():
 					loot.bolts.append(item)
 				else:
 					loot[prop].append(item)
-	# TODO misc is always lockpicks
+	# TODO
 	# component and reagent are different categories of crafting ingredients.
 	# research how to tell the difference between kinds of crafting input
 	# It only matters when no subtype is provided (like in Small Alchemy Lab room)
@@ -188,6 +189,33 @@ func get_loot(loot_kind, loot_sub_kind = null):
 		if lookup.has('_find_by_name') and lookup._find_by_name.has(loot_sub_kind):
 			return lookup._find_by_name[loot_sub_kind]
 		return null
+	if loot_kind == 'component':
+		return lookup._find_by_name[DataStructure.choose(result_cache.component_list)]
+	if loot_kind == 'reagent':
+		return lookup._find_by_name[DataStructure.choose(result_cache.reagent_list)]
 	if not lookup.has(loot_kind):
 		return null
 	return DataStructure.choose(lookup[loot_kind], 1)
+	
+func _build_craft_info():
+	var reagents = {
+		lookup = {},
+		list = []
+	}
+	var components = {
+		lookup = {},
+		list = []
+	}
+	for craft in cache.crafts:
+		# TODO I don't know if this is correct or not, but it will do for a best guess at the moment
+		var kind = 'reagent' if craft.tool.tag == 'still' or craft.tool.tag == 'alchemy' else 'component'		
+		var inputs = craft.input
+		if typeof(inputs) == TYPE_DICTIONARY:
+			inputs = [inputs]
+		for input in inputs:
+			var ledger = components if kind == 'component' else reagents
+			if not ledger.lookup.has(input.name):
+				ledger.lookup[input.name] = true
+				ledger.list.append(input.name)
+	cache_result('component_list', components.list)
+	cache_result('reagent_list', reagents.list)

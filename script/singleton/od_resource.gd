@@ -62,14 +62,17 @@ var paths = {
 	game = {
 		music = "tunes/spelunk-repeat.ogg"		
 	},
-	zorkmids = [
-		'items/cash0.png',
-		'items/cash1.png',
-		'items/cash2.png',
-		'items/cash3.png',
-		'items/cash4.png',
-		'items/cash5.png',
-	],
+	loot = {
+		lockpick = 'items/lockpick.png',
+		zorkmids = [
+			'items/cash0.png',
+			'items/cash1.png',
+			'items/cash2.png',
+			'items/cash3.png',
+			'items/cash4.png',
+			'items/cash5.png',
+		],
+	},	
 	element = {
 		anvil = "dungeon/statue_anvil.spr",
 		bookshelf = "dungeon/bookshelf.spr",

@@ -12,12 +12,22 @@ static func generate(_branch_name, _floor_level):
 		"Starting Room",
 		# Water
 		"Batty Cave", 
-		# Lava
+		# Lava, zorkmids, artifact, hordes
 		"20x20 Large Treasury", 
 		# Custom blockers have a vertical gap (like the starting room iron bars)
-		"Indulgent Tomb 1" ,
+		"Indulgent Tomb 1",
 		# Horizontal custom blockers
-		"Stone Coffins 2"
+		"Stone Coffins 2",
+		# misc loot and traps
+		"Rogue Tricks 1",
+		# brazier script
+		"Ignition Hall 1",
+		# loot types
+		"Smithery",
+		# reagent without subtype
+		"Small Alchemy Lab",
+		# component without subtype
+		"Small Workshop"
 	]
 	
 	var column_count = int(ceil(sqrt(debug_room_names.size())))

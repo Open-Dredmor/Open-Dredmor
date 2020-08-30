@@ -25,7 +25,7 @@ func _input(ev):
 			
 
 func _build_ui():
-	var strategy = FLOOR_STRATEGY.ALL_ROOMS
+	var strategy = FLOOR_STRATEGY.DEBUG_ROOMS
 	_entity_grid = load("res://script/instance/room_placement/" + strategy + "_strategy.gd").generate(_branch_name, _floor_level)
 	add_child(_entity_grid)
 		
