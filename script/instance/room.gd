@@ -64,6 +64,31 @@ func init(room_database_name):
 	#print("Generating room id " + room_database_name + " with name " + name_details.name)
 	for layer_name in layer_names:
 		layer_lookup[layer_name] = prep_tile_data(layer_name)
+	var script_location = {
+		_coordinate = {}
+	}
+	if _definition.has('script'):
+		var scripts = DataStructure.arrayify(_definition.script)
+		for script in scripts:
+			if script.has('condition'):
+				var conditions = DataStructure.arrayify(script.condition)
+				for condition in conditions:
+					if 'at' in condition:
+						script_location[condition.at] = condition
+					if 'x' in condition:
+						if not script_location._coordinate.has(int(condition.x)):
+							script_location._coordinate[int(condition.x)] = {}
+						script_location._coordinate[int(condition.x)][int(condition.y)] = condition
+			if script.has('action'):
+				var actions = DataStructure.arrayify(script.action)
+				for action in actions:
+					if 'at' in action:
+						script_location[action.at] = action
+					if 'x' in action:
+						if not script_location._coordinate.has(int(action.x)):
+							script_location._coordinate[int(action.x)] = {}
+						script_location._coordinate[int(action.x)][int(action.y)] = action				
+			
 	# Build room rows,cols one tile at a time
 	for ii in range(grid_height):
 		var row = _definition.row[ii].text
@@ -71,11 +96,17 @@ func init(room_database_name):
 			var tile_character = row[jj]
 			var added_tile = false
 			for layer_name in layer_names:
-				added_tile = added_tile || add_tile_if_match(jj, ii, tile_character, layer_name)
+				added_tile = added_tile || add_tile_if_match(jj, ii, tile_character, layer_name)			
 			var has_floor = false
 			var has_wall = false
 			var sprite_path = null
 			var	entity_name = null
+			if script_location.has(ii) and script_location[ii].has(jj):				
+				added_tile = true
+				has_floor = true
+			if script_location.has(tile_character):
+				added_tile = true
+				has_floor = true
 			match tile_character:
 				".":			
 					has_floor = true
@@ -287,7 +318,7 @@ func horde_tile_handler(item, x, y):
 	var animation = Load.animation(monster.idleSprite.down)
 	entity_grid.add_animation(x, y, 'horde', animation)
 
-func pedestal_tile_handler(item, x, y):
+func pedestal_tile_handler(_item, x, y):
 	var animation = Load.animation(ODResource.paths.pedestal)
 	entity_grid.add_animation(x, y, 'pedestal', animation)
 

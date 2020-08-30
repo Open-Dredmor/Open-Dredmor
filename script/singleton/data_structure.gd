@@ -30,7 +30,13 @@ func merge(dict_a, dict_b):
 		else:
 			result[key] = copy_b[key]
 	return result
-	
+
+# Makes accessing dictionaried XML simpler, might be cleaner to move this into the data ingest
+func arrayify(input):
+	if typeof(input) != TYPE_ARRAY:
+		return [input]
+	return input
+
 class QueueItem:
 	var data = null
 	var next = null

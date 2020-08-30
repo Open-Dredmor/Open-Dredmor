@@ -134,9 +134,7 @@ func _build_monster_info():
 	for monster in cache.monsters:
 		monsters[monster.name] = monster
 		if monster.has('monster'):
-			var children = monster.monster
-			if typeof(children) == TYPE_DICTIONARY:
-				children = [children]
+			var children = DataStructure.arrayify(monster.monster)
 			for child in children:
 				monsters[child.name] = DataStructure.merge(monster, child)			
 	cache_result("monster_info", monsters)
@@ -212,9 +210,7 @@ func _build_craft_info():
 	for craft in cache.crafts:
 		# TODO I don't know if this is correct or not, but it will do for a best guess at the moment
 		var kind = 'reagent' if craft.tool.tag == 'still' or craft.tool.tag == 'alchemy' else 'component'		
-		var inputs = craft.input
-		if typeof(inputs) == TYPE_DICTIONARY:
-			inputs = [inputs]
+		var inputs = DataStructure.arrayify(craft.input)
 		for input in inputs:
 			var ledger = components if kind == 'component' else reagents
 			if not ledger.lookup.has(input.name):
