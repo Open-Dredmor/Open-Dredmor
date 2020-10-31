@@ -23,6 +23,7 @@ var layer_names = [
 	"loot",
 	"horde",
 	"monster",
+	"cursor",
 	"player",
 ]
 
@@ -114,3 +115,6 @@ func add_tile(x, y, name, sprite_path = null):
 			tile = Load.animation(sprite_path)
 	tile.position = Vector2(x, y)
 	layer.add_child(tile)
+	
+func move(target_x, target_y, entity):
+	entity.position = get_pixel_position(target_x, target_y)

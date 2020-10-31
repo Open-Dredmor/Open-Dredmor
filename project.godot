@@ -22,7 +22,7 @@ _global_script_classes=[ {
 "base": "Node2D",
 "class": "ODAnimation",
 "language": "GDScript",
-"path": "res://script/instance/od_animation.gd"
+"path": "res://script/instance/animation/od_animation.gd"
 }, {
 "base": "Node",
 "class": "ODRect",
@@ -30,14 +30,29 @@ _global_script_classes=[ {
 "path": "res://script/instance/od_rect.gd"
 }, {
 "base": "Node2D",
+"class": "ODSpriteFrames",
+"language": "GDScript",
+"path": "res://script/instance/animation/od_sprite_frames.gd"
+}, {
+"base": "Node2D",
+"class": "ODTextureFrames",
+"language": "GDScript",
+"path": "res://script/instance/animation/od_texture_frames.gd"
+}, {
+"base": "Node2D",
 "class": "PlayerCharacter",
 "language": "GDScript",
-"path": "res://script/instance/player_character.gd"
+"path": "res://script/instance/entity/player_character.gd"
 }, {
 "base": "Node2D",
 "class": "Room",
 "language": "GDScript",
 "path": "res://script/instance/room.gd"
+}, {
+"base": "Node2D",
+"class": "TargetCursor",
+"language": "GDScript",
+"path": "res://script/instance/entity/target_cursor.gd"
 }, {
 "base": "Node",
 "class": "Tileset",
@@ -49,8 +64,11 @@ _global_script_class_icons={
 "EntityGrid": "",
 "ODAnimation": "",
 "ODRect": "",
+"ODSpriteFrames": "",
+"ODTextureFrames": "",
 "PlayerCharacter": "",
 "Room": "",
+"TargetCursor": "",
 "Tileset": ""
 }
 

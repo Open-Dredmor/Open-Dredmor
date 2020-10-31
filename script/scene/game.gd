@@ -17,24 +17,30 @@ func _build_ui():
 	
 	var centered_container = Panel.new()
 	centered_container.set_size(Settings.display_size())
+	centered_container.name = "CenteredContainer"
 	container.add_child(centered_container)
 	var hbox = HBoxContainer.new()
 	hbox.anchor_left = .3
 	hbox.anchor_top = .2
 	hbox.alignment = BoxContainer.ALIGN_CENTER
+	hbox.name = "HBox"
 	centered_container.add_child(hbox)
 	var vbox = VBoxContainer.new()
 	vbox.alignment = BoxContainer.ALIGN_CENTER
+	vbox.name = "VBox"
 	hbox.add_child(vbox)
 	
 	moveable_container = Node2D.new()
+	moveable_container.name = "MoveableContainer"
 	vbox.add_child(moveable_container)
 	
 	var dungeon = Dungeon.new()
 	dungeon.init()
+	dungeon.name = "Dungeon"
 	moveable_container.add_child(dungeon)
 	
 	var gui = Control.new()
+	gui.name = "GUI"
 	moveable_container.add_child(gui)
 	
 	Audio.play(assets.music.default)

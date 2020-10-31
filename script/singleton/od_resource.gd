@@ -134,6 +134,11 @@ var paths = {
 			}
 		}
 	},
+	input = {
+		cursor = "ui/cursor.spr",
+		tile_target = "ui/tile_overlay2.png",		
+		tile_selected = "ui/goto_b.spr"		
+	},
 	shared = {
 		button = {
 			back = _button_paths("ui/skillselect_back"),
