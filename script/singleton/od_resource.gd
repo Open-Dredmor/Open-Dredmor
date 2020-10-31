@@ -127,6 +127,13 @@ var paths = {
 			basic = "tilesets/basic.png",
 			liquids = "tilesets/liquids.png"
 	},
+	player = {
+		hero = {
+			idle = {
+				down = "sprites/hero/hero_idle_d.spr"
+			}
+		}
+	},
 	shared = {
 		button = {
 			back = _button_paths("ui/skillselect_back"),

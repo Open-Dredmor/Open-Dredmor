@@ -14,7 +14,9 @@ func reset():
 		no_time_to_grind = false,
 		permadeath = false,
 		hero = 'hero',
-		name = "Name"
+		name = "Name",
+		player_start_x = 4,
+		player_start_y = 3
 	}
 
 func set_difficulty(difficulty):

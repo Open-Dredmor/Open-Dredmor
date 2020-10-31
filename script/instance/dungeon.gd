@@ -27,5 +27,9 @@ func _input(ev):
 func _build_ui():
 	var strategy = FLOOR_STRATEGY.DEBUG_ROOMS
 	_entity_grid = load("res://script/instance/room_placement/" + strategy + "_strategy.gd").generate(_branch_name, _floor_level)
+	var player = PlayerCharacter.new()
+	var settings = DungeonSettings.get_settings()
+	player.init()
+	_entity_grid.add_entity(settings.player_start_x, settings.player_start_y, player)
 	add_child(_entity_grid)
 		

@@ -92,6 +92,11 @@ func get_layer(name):
 	else:
 		return layers.lookup[name]
 
+func add_entity(grid_x, grid_y, entity):
+	var layer = get_layer(entity.entity_kind)
+	entity.position = get_pixel_position(grid_x, grid_y)
+	layer.add_child(entity)
+
 func add_animation(x, y, name, animation):
 	var layer = get_layer(name)
 	animation.position = Vector2(x, y)	

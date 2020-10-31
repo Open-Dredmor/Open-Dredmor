@@ -39,7 +39,7 @@ func get_debug_button():
 
 func debug_info():
 	print("Clicked room id " + name_details.database_id + " with name " + name_details.name)
-	print(str(collision_rect.x1)+' x1, '+str(collision_rect.x2)+" x2 , "+str(collision_rect.y1)+" y1 , "+str(collision_rect.y2)+" y2")
+	print("Bounded by (" + str(collision_rect.x1) + ', ' + str(collision_rect.y1) + ") -> (" + str(collision_rect.x2)+", " + str(collision_rect.y2) + ")")
 	z_index += 100
 
 func init(room_database_name):	

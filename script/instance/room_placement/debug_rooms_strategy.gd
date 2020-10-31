@@ -35,6 +35,7 @@ static func generate(_branch_name, _floor_level):
 		var room = Room.new()
 		room.init(room_name)
 		room.position = Vector2(room_x * buffer_width, room_y * buffer_height)
+		room.collision_rect.init(room_x, room_y, room.grid_width, room.grid_height)
 		entity_grid.insert(room.entity_grid, room.position)
 		var debug_button = room.get_debug_button()
 		debug_button.rect_position = entity_grid.get_pixel_position(room.position.x, room.position.y) + entity_grid.position - Vector2(32,32)
