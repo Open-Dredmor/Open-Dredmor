@@ -66,12 +66,8 @@ func resize(grid_width, grid_height):
 		for jj in range(grid_height):
 			_grid_lookup[ii][jj] = {}
 	_grid_center = Vector2(grid_width / 2, grid_height / 2)
+	OD.Math.set_grid_center(_grid_center.x, _grid_center.y)
 	position = Vector2(-_grid_center.x * Assets.CELL_PIXEL_WIDTH, -_grid_center.y * Assets.CELL_PIXEL_HEIGHT)
-
-func get_pixel_position(grid_x, grid_y):
-	var x = (grid_x + _grid_center.x) * Assets.CELL_PIXEL_WIDTH
-	var y = (grid_y + _grid_center.y) * Assets.CELL_PIXEL_HEIGHT
-	return Vector2(x, y)
 
 func insert(source_grid, offset_position):
 	for layer_key in source_grid.layers.lookup.keys():
@@ -79,7 +75,7 @@ func insert(source_grid, offset_position):
 		var target_layer = layers.lookup[layer_key]
 		for child in source_layer.get_children():
 			child.get_parent().remove_child(child)
-			child.position = get_pixel_position(child.position.x + offset_position.x, child.position.y + offset_position.y)
+			child.position = OD.Math.grid_to_pixel(child.position.x + offset_position.x, child.position.y + offset_position.y)
 			# Compensate for sprites greater than 1 tile height not being properly anchored.
 			# Might be another root cause, but this fixes the graphical problem of 2+ tile high sprites being drawn slightly too low
 			if child.has_method('is_tall'):				
@@ -95,7 +91,8 @@ func get_layer(name):
 
 func add_entity(grid_x, grid_y, entity):
 	var layer = get_layer(entity.entity_kind)
-	entity.position = get_pixel_position(grid_x, grid_y)
+	entity.position = OD.Math.grid_to_pixel(grid_x, grid_y)
+	entity.move_to(grid_x, grid_y)
 	layer.add_child(entity)
 
 func add_animation(x, y, name, animation):
@@ -117,4 +114,4 @@ func add_tile(x, y, name, sprite_path = null):
 	layer.add_child(tile)
 	
 func move(target_x, target_y, entity):
-	entity.position = get_pixel_position(target_x, target_y)
+	entity.position = OD.Math.grid_to_pixel(target_x, target_y)

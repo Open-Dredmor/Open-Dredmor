@@ -1,7 +1,7 @@
 extends Node
 
 static func generate(_branch_name, _floor_level):
-	ODMath.fixed_chances(true)
+	OD.Math.fixed_chances(true)
 	var entity_grid = EntityGrid.new()
 	entity_grid.init()
 	entity_grid.resize(1,1)	
@@ -38,7 +38,7 @@ static func generate(_branch_name, _floor_level):
 		room.collision_rect.init(room_x, room_y, room.grid_width, room.grid_height)
 		entity_grid.insert(room.entity_grid, room.position)
 		var debug_button = room.get_debug_button()
-		debug_button.rect_position = entity_grid.get_pixel_position(room.position.x, room.position.y) + entity_grid.position - Vector2(32,32)
+		debug_button.rect_position = OD.Math.grid_to_pixel(room.position.x, room.position.y) + entity_grid.position - Vector2(32,32)
 		#print("x: "+str(debug_button.rect_position.x) + ", y:" + str(debug_button.rect_position.y))
 		entity_grid.add_child(debug_button)
 		definition_index += 1

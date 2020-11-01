@@ -74,7 +74,10 @@ func _input(ev):
 			drag_enabled = ev.pressed
 			if ev.pressed:
 				old_position = get_global_mouse_position()
-		
+
+func _process(_delta):
+	OD.ActionQueue.update()
+
 func _physics_process(_delta):
 	if old_position != null and drag_enabled:
 		var new_position = get_global_mouse_position()

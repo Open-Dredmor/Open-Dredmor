@@ -1,4 +1,4 @@
-extends Node2D
+extends "res://script/instance/entity/entity.gd"
 
 class_name TargetCursor
 
@@ -25,10 +25,11 @@ func _on_selection_complete(animation_id):
 		_target.play()
 
 func select(_grid_x, _grid_y):
-	_is_selecting = true
-	add_child(_selection)
-	_selection.play()
-	remove_child(_target)
+	if not _is_selecting:
+		_is_selecting = true
+		add_child(_selection)
+		_selection.play()
+		remove_child(_target)
 	
 func is_selecting():
 	return _is_selecting

@@ -222,7 +222,7 @@ func add_tile_if_match(x, y, tile_character, layer_name):
 		item = layer[tile_character]
 	if item != null:
 		entity_grid.add_tile(x, y, "floor")
-		if item.has('percent') and ! ODMath.chance(item.percent):
+		if item.has('percent') and ! OD.Math.chance(item.percent):
 			return true
 		call(layer_name + "_tile_handler", item, x, y)
 		return true

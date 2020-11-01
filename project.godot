@@ -9,6 +9,16 @@
 config_version=4
 
 _global_script_classes=[ {
+"base": "Node",
+"class": "ActionQueue",
+"language": "GDScript",
+"path": "res://script/singleton/action_queue.gd"
+}, {
+"base": "Node",
+"class": "Actions",
+"language": "GDScript",
+"path": "res://script/instance/action/actions.gd"
+}, {
 "base": "Node2D",
 "class": "Dungeon",
 "language": "GDScript",
@@ -18,6 +28,16 @@ _global_script_classes=[ {
 "class": "EntityGrid",
 "language": "GDScript",
 "path": "res://script/instance/entity_grid.gd"
+}, {
+"base": "Node",
+"class": "Math",
+"language": "GDScript",
+"path": "res://script/singleton/od_math.gd"
+}, {
+"base": "Node",
+"class": "MoveToLocationAction",
+"language": "GDScript",
+"path": "res://script/instance/action/move_to_location_action.gd"
 }, {
 "base": "Node2D",
 "class": "ODAnimation",
@@ -60,8 +80,12 @@ _global_script_classes=[ {
 "path": "res://script/instance/tileset.gd"
 } ]
 _global_script_class_icons={
+"ActionQueue": "",
+"Actions": "",
 "Dungeon": "",
 "EntityGrid": "",
+"Math": "",
+"MoveToLocationAction": "",
 "ODAnimation": "",
 "ODRect": "",
 "ODSpriteFrames": "",
@@ -90,10 +114,10 @@ Audio="*res://script/singleton/audio.gd"
 DungeonSettings="*res://script/singleton/dungeon_settings.gd"
 Database="*res://script/singleton/database.gd"
 DataStructure="*res://script/singleton/data_structure.gd"
-ODMath="*res://script/singleton/od_math.gd"
 Log="*res://script/singleton/log.gd"
 ODResource="*res://script/singleton/od_resource.gd"
 GameDataKind="*res://script/singleton/game_data_kind.gd"
+OD="*res://script/singleton/od.gd"
 
 [display]
 

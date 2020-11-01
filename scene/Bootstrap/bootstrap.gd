@@ -9,8 +9,9 @@ var directory_picker = null
 func _ready():
 	call_deferred("_init_global_state")		
 
-func _init_global_state():
+func _init_global_state():	
 	print("Reading config from "+OS.get_user_data_dir())	
+	OD.reset()
 	Settings.load()
 	randomize()	
 	var install_dir = Settings.dredmor_install_dir()

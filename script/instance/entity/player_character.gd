@@ -1,4 +1,4 @@
-extends Node2D
+extends "res://script/instance/entity/entity.gd"
 
 class_name PlayerCharacter
 

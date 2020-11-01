@@ -1,7 +1,7 @@
 extends Node
 
 static func generate(_branch_name, _floor_level):
-	ODMath.fixed_chances(true)
+	OD.Math.fixed_chances(true)
 	
 	var entity_grid = EntityGrid.new()
 	entity_grid.init()
