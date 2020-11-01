@@ -17,7 +17,7 @@ func reset():
 		name = "Name",
 		player_start_x = 4,
 		player_start_y = 3,
-		actions_per_second = 1
+		seconds_per_action = .5
 	}
 
 func set_difficulty(difficulty):

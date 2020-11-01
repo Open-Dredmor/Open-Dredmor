@@ -27,6 +27,9 @@ func _singleton(file):
 	return node
 
 func reset():
+	DungeonSettings = _singleton('dungeon_settings')
+	DungeonSettings.reset()
+	Settings = _singleton('settings')
 	ActionQueue = _singleton('action_queue')
 	Actions = load('res://script/instance/action/actions.gd').new()
 	Actions.name = 'actions'
@@ -36,8 +39,7 @@ func reset():
 	Audio = _singleton('audio')
 	Chrome = _singleton('chrome')
 	Database = _singleton('database')
-	DataStructure = _singleton('data_structure')
-	DungeonSettings = _singleton('dungeon_settings')
+	DataStructure = _singleton('data_structure')	
 	EventLog = _singleton('event_log')
 	GameDataKind = _singleton('game_data_kind')
 	Load = _singleton('load')
@@ -45,5 +47,4 @@ func reset():
 	Math = _singleton('math')
 	Rect = load('res://script/instance/rect.gd')
 	Resource = _singleton('resource')
-	Scenes = _singleton('scenes')
-	Settings = _singleton('settings')
+	Scenes = _singleton('scenes')	
