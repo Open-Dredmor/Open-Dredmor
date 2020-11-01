@@ -41,5 +41,5 @@ func audio_enabled():
 	return result
 	
 func display_size():
-	# ProjectSettings.get_setting("display/window/size/width"))
+	# ProjectOD.Settings.get_setting("display/window/size/width"))
 	return get_viewport().size

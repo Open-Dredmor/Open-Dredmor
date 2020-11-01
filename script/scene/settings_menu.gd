@@ -10,7 +10,7 @@ func _ready():
 	
 func _build_gui():
 	var settings_menu = get_node("/root/Container")
-	settings_menu.set_size(Settings.display_size())
+	settings_menu.set_size(OD.Settings.display_size())
 
 	var container = VBoxContainer.new()
 	container.anchor_top = .25
@@ -25,7 +25,7 @@ func _build_gui():
 	audio_enabled_container.add_child(audio_enabled_label)
 	
 	audio_enabled_checkbox = CheckBox.new()
-	audio_enabled_checkbox.pressed = Settings.audio_enabled()
+	audio_enabled_checkbox.pressed = OD.Settings.audio_enabled()
 	audio_enabled_container.add_child(audio_enabled_checkbox)
 
 	var choose_container = HBoxContainer.new()
@@ -54,18 +54,18 @@ func _build_gui():
 
 func _persist_settings():
 	var audio_enabled = audio_enabled_checkbox.is_pressed()
-	Settings.change("game", "audio_enabled", audio_enabled)
+	OD.Settings.change("game", "audio_enabled", audio_enabled)
 	if ! audio_enabled:
-		Audio.stop()
+		OD.Audio.stop()
 
 func _on_SaveButton_pressed():
 	_persist_settings()
-	Scenes.goto(Scenes.MAIN_MENU)
+	OD.Scenes.goto(OD.Scenes.MAIN_MENU)
 
 func _on_CancelButton_pressed():
-	Scenes.goto(Scenes.MAIN_MENU)
+	OD.Scenes.goto(OD.Scenes.MAIN_MENU)
 
 func _on_ForgetInstallationDirButton_pressed():
-	Settings.change("open_dredmor","dredmor_install_directory","")
-	Load.clear_cache()
-	Scenes.goto(Scenes.BOOTSTRAP)
+	OD.Settings.change("open_dredmor","dredmor_install_directory","")
+	OD.Load.clear_cache()
+	OD.Scenes.goto(OD.Scenes.BOOTSTRAP)

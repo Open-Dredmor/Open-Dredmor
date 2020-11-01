@@ -12,7 +12,7 @@ enum States {
 
 func setup(root):	
 	_root = root
-	if Settings.audio_enabled():
+	if OD.Settings.audio_enabled():
 		if _audio_player != null:
 			_audio_player.stop()
 		if _audio_player != null:
@@ -29,7 +29,7 @@ func stop():
 func play(audio_stream):
 	if _audio_player == null:
 		setup(_root)
-	if Settings.audio_enabled():
+	if OD.Settings.audio_enabled():
 		if audio_stream != _current_stream:
 			_current_stream = audio_stream
 			_audio_player.stream = audio_stream

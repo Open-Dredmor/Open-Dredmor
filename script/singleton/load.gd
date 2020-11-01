@@ -14,7 +14,7 @@ func exists(relative_path, internal=false):
 func resolve(relative_path, internal = false):
 	if internal:
 		return "res://asset/" + relative_path
-	return Settings.dredmor_install_dir() + relative_path
+	return OD.Settings.dredmor_install_dir() + relative_path
 
 func image(relative_path, internal=false):
 	if cache.has(relative_path):
@@ -84,7 +84,7 @@ func xml(relative_path):
 	manual_close_nodes = manual_close_nodes.keys()
 	
 	xml_parser.seek(0)
-	var depth_queue = DataStructure.NewQueue()	
+	var depth_queue = OD.DataStructure.NewQueue()	
 	reading = true
 	err = null
 	while reading:		
@@ -148,7 +148,7 @@ func read_int(file, byte_count):
 
 func png_sprite(relative_path, start, end, delay_milliseconds):
 	if not '.png' in relative_path and not '.spr' in relative_path:
-		var animation = ODAnimation.new()
+		var animation = OD.Animation.new()
 		animation.init()
 		var ii = start
 		while ii < end:
@@ -158,7 +158,7 @@ func png_sprite(relative_path, start, end, delay_milliseconds):
 	return null
 
 func split_animation(relative_paths):
-	var animation = ODAnimation.new()
+	var animation = OD.Animation.new()
 	animation.init()
 	for path in relative_paths:
 		animation.add_texture_frame(image(path), DEFAULT_ANIMATION_FRAME_RATE_MILLISECONDS)
@@ -173,13 +173,13 @@ func animation(relative_path):
 		"xml":
 			return _xml_sprites(relative_path)
 		"png":
-			var animation = ODAnimation.new()
+			var animation = OD.Animation.new()
 			animation.init()
 			animation.add_texture_frame(image(relative_path), 0)
 			return animation
 		_:
 			print("No handler for animation " + relative_path)
-			Scenes.quit()
+			OD.Scenes.quit()
 
 # Pro Motion SPR spec
 # https://www.cosmigo.com/promotion/docs/onlinehelp/TechnicalInfos.htm
@@ -220,7 +220,7 @@ func _pro_motion_sprites(relative_path):
 			_trans_chunk = file.get_buffer(width*height)
 			#print("trans_chunk size: "+str(trans_chunk.size()))
 		
-	var animation = ODAnimation.new()
+	var animation = OD.Animation.new()
 	animation.init()
 	for frame in frames:
 		var image_texture = ImageTexture.new()
@@ -240,7 +240,7 @@ func _pro_motion_sprites(relative_path):
 
 func _xml_sprites(relative_path):
 	var document = xml(relative_path)
-	var animation = ODAnimation.new()
+	var animation = OD.Animation.new()
 	animation.init()
 	var image_count = document.data_nodes.size()
 	var path_parts = relative_path.split('/')
@@ -258,4 +258,4 @@ func _xml_sprites(relative_path):
 func _handle_err(resource_path, err):
 	if err != OK:
 		print("An error occurred while loading [" + resource_path + "]. Error code "+str(err))
-		Scenes.quit()
+		OD.Scenes.quit()

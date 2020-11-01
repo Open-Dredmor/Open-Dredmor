@@ -6,20 +6,20 @@ var CELL_PIXEL_WIDTH = 32
 func _button_textures(lookup,internal=false):
 	var images = {}
 	for key in lookup.keys():
-		if Load.exists(lookup[key],internal):
-			images[key] = Load.image(lookup[key], internal)
+		if OD.Load.exists(lookup[key],internal):
+			images[key] = OD.Load.image(lookup[key], internal)
 	return images
 
 func main_menu():	
-	var paths = ODResource.paths.main_menu
+	var paths = OD.Resource.paths.main_menu
 	var background_images = []
 	for file in paths.backgrounds:
-		background_images.append(Load.image(file))
+		background_images.append(OD.Load.image(file))
 	
 	var textures = {		
 		backgrounds = background_images,
-		title = Load.image(paths.title),
-		chrome = Load.image(paths.chrome),
+		title = OD.Load.image(paths.title),
+		chrome = OD.Load.image(paths.chrome),
 		new_game_button = _button_textures(paths.button.new_game),
 		load_game_button = _button_textures(paths.button.load_game),
 		high_scores_button = _button_textures(paths.button.high_scores),
@@ -29,7 +29,7 @@ func main_menu():
 	}	
 	
 	var music = {
-		title = Load.audio(paths.music)
+		title = OD.Load.audio(paths.music)
 	}
 	return {
 		textures = textures,
@@ -37,36 +37,36 @@ func main_menu():
 	}
 	
 func difficulty_menu():
-	var paths = ODResource.paths.difficulty_menu
+	var paths = OD.Resource.paths.difficulty_menu
 	var textures = {
-		options_form = Load.image(paths.options_form),
-		checkmark_large = Load.image(paths.checkmark_large),
-		checkmark_small = Load.image(paths.checkmark_small),
-		done_button = _button_textures(ODResource.paths.shared.button.done),
-		back_button = _button_textures(ODResource.paths.shared.button.back),
-		choose_header = Load.image(paths.choose_header),
-		header_background = Load.image(ODResource.paths.shared.header_background)
+		options_form = OD.Load.image(paths.options_form),
+		checkmark_large = OD.Load.image(paths.checkmark_large),
+		checkmark_small = OD.Load.image(paths.checkmark_small),
+		done_button = _button_textures(OD.Resource.paths.shared.button.done),
+		back_button = _button_textures(OD.Resource.paths.shared.button.back),
+		choose_header = OD.Load.image(paths.choose_header),
+		header_background = OD.Load.image(OD.Resource.paths.shared.header_background)
 	}
 	return {
 		textures = textures
 	}
 
 func skills_menu():
-	var paths = ODResource.paths.skills_menu
+	var paths = OD.Resource.paths.skills_menu
 	var textures = {
-		done_button = _button_textures(ODResource.paths.shared.button.done),
-		back_button = _button_textures(ODResource.paths.shared.button.back),
-		header_background = Load.image(ODResource.paths.shared.header_background),
-		skills_header = Load.image(paths.skills_header),
-		skill_button_border = Load.image(paths.skill_button_border),
-		selected_skills_background = Load.image(paths.selected_skills_background),
-		selected_skill_info_background = Load.image(paths.selected_skill_info_background),
+		done_button = _button_textures(OD.Resource.paths.shared.button.done),
+		back_button = _button_textures(OD.Resource.paths.shared.button.back),
+		header_background = OD.Load.image(OD.Resource.paths.shared.header_background),
+		skills_header = OD.Load.image(paths.skills_header),
+		skill_button_border = OD.Load.image(paths.skill_button_border),
+		selected_skills_background = OD.Load.image(paths.selected_skills_background),
+		selected_skill_info_background = OD.Load.image(paths.selected_skill_info_background),
 		last_selection_button = _button_textures(paths.last_selection),
 		random_selection_button = _button_textures(paths.random_selection)
 	}
 	var fonts = {
-		info_header = Load.font(ODResource.paths.shared.font.default, 25),
-		info_details = Load.font(ODResource.paths.shared.font.default, 20),
+		info_header = OD.Load.font(OD.Resource.paths.shared.font.default, 25),
+		info_details = OD.Load.font(OD.Resource.paths.shared.font.default, 20),
 	}
 	return {
 		textures = textures,
@@ -74,20 +74,20 @@ func skills_menu():
 	}
 
 func character_menu():
-	var paths = ODResource.paths.character_menu
+	var paths = OD.Resource.paths.character_menu
 	var textures = {
-		done_button = _button_textures(ODResource.paths.shared.button.done),
-		back_button = _button_textures(ODResource.paths.shared.button.back),
-		header_background = Load.image(ODResource.paths.shared.header_background),
-		character_header = Load.image(paths.character_header),
-		choose_name_background = Load.image(paths.choose_name_background),
-		choose_hero_background = Load.image(paths.choose_hero_background),
-		hero_portrait = Load.image(paths.hero_portrait),
-		heroine_portrait = Load.image(paths.heroine_portrait)
+		done_button = _button_textures(OD.Resource.paths.shared.button.done),
+		back_button = _button_textures(OD.Resource.paths.shared.button.back),
+		header_background = OD.Load.image(OD.Resource.paths.shared.header_background),
+		character_header = OD.Load.image(paths.character_header),
+		choose_name_background = OD.Load.image(paths.choose_name_background),
+		choose_hero_background = OD.Load.image(paths.choose_hero_background),
+		hero_portrait = OD.Load.image(paths.hero_portrait),
+		heroine_portrait = OD.Load.image(paths.heroine_portrait)
 	}
 	
 	var fonts = {
-		name_edit = Load.font(ODResource.paths.shared.font.default, 25)
+		name_edit = OD.Load.font(OD.Resource.paths.shared.font.default, 25)
 	}
 	
 	return {
@@ -96,44 +96,44 @@ func character_menu():
 	}
 	
 func intro():
-	var paths = ODResource.paths.intro
+	var paths = OD.Resource.paths.intro
 	return {
 		textures = {
-			primary = Load.image(paths.primary),
-			secondary_hero = Load.image(paths.secondary_hero),
-			secondary_heroine = Load.image(paths.secondary_heroine)
+			primary = OD.Load.image(paths.primary),
+			secondary_hero = OD.Load.image(paths.secondary_hero),
+			secondary_heroine = OD.Load.image(paths.secondary_heroine)
 		}
 	}
 
 func game():
-	var paths = ODResource.paths.game
+	var paths = OD.Resource.paths.game
 	return {
 		music = {
-			default = Load.audio(paths.music)
+			default = OD.Load.audio(paths.music)
 		}
 	}
 
 func elements():
 	var result = {
-		anvil = Load.animation(ODResource.paths.element.anvil),
-		bookshelf = Load.animation(ODResource.paths.element.bookshelf),
-		dredmor_statue = Load.animation(ODResource.paths.element.dredmor_statue),
-		lever = Load.animation(ODResource.paths.element.lever),
-		lutefisk_statue = Load.animation(ODResource.paths.element.lutefisk_statue),
+		anvil = OD.Load.animation(OD.Resource.paths.element.anvil),
+		bookshelf = OD.Load.animation(OD.Resource.paths.element.bookshelf),
+		dredmor_statue = OD.Load.animation(OD.Resource.paths.element.dredmor_statue),
+		lever = OD.Load.animation(OD.Resource.paths.element.lever),
+		lutefisk_statue = OD.Load.animation(OD.Resource.paths.element.lutefisk_statue),
 		statues = [],
 		vendor = {
-			bolt = Load.split_animation(ODResource.paths.element.vendor.bolt),
-			craft = Load.split_animation(ODResource.paths.element.vendor.craft),
-			drink = Load.split_animation(ODResource.paths.element.vendor.drink),
-			food = Load.split_animation(ODResource.paths.element.vendor.food),
-			thrown = Load.split_animation(ODResource.paths.element.vendor.thrown)		
+			bolt = OD.Load.split_animation(OD.Resource.paths.element.vendor.bolt),
+			craft = OD.Load.split_animation(OD.Resource.paths.element.vendor.craft),
+			drink = OD.Load.split_animation(OD.Resource.paths.element.vendor.drink),
+			food = OD.Load.split_animation(OD.Resource.paths.element.vendor.food),
+			thrown = OD.Load.split_animation(OD.Resource.paths.element.vendor.thrown)		
 		},
 		
 	}
 	result.lever.set_step_only(true)
 	result.bookshelf.set_step_only(true)
-	for statue in ODResource.paths.element.statues:
-		result.statues.append(Load.animation(statue))
+	for statue in OD.Resource.paths.element.statues:
+		result.statues.append(OD.Load.animation(statue))
 	return result
 
 var _tilesets = null
@@ -141,15 +141,15 @@ var _tilesets = null
 func tilesets():
 	if _tilesets != null:
 		return _tilesets
-	var paths = ODResource.paths.tileset
+	var paths = OD.Resource.paths.tileset
 	_tilesets = {
 		basic = Tileset.new(),
 		liquids = Tileset.new()
 	}
-	_tilesets.basic.set_texture(Load.image(paths.basic))
+	_tilesets.basic.set_texture(OD.Load.image(paths.basic))
 	_tilesets.basic.set_branch(0)
 	
-	_tilesets.liquids.set_texture(Load.image(paths.liquids))
+	_tilesets.liquids.set_texture(OD.Load.image(paths.liquids))
 	# This should be pulled from branchDB instead of hard coded
 	_tilesets.liquids.set_animation("water", 0, 2, 3, 250)
 	_tilesets.liquids.set_animation("lava", 0, 1, 6, 280)

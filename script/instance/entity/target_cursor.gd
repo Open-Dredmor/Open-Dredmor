@@ -9,9 +9,9 @@ var _selection
 var _is_selecting = false
 
 func init():
-	_target = Load.animation(ODResource.paths.input.tile_target)
+	_target = OD.Load.animation(OD.Resource.paths.input.tile_target)
 	add_child(_target)
-	_selection = Load.animation(ODResource.paths.input.tile_selected)
+	_selection = OD.Load.animation(OD.Resource.paths.input.tile_selected)
 	_selection.set_animation_id("player_target_cursor")
 	_selection.stop()
 	_selection.connect("animation_complete", self, "_on_selection_complete")

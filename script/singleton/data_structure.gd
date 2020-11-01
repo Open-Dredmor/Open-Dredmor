@@ -11,7 +11,7 @@ func choose(array, amount = 1):
 		var pick_index = randi() % array.size()
 		if not pick_lookup.has(pick_index):
 			pick_lookup[pick_index] = true
-			picks = array[pick_index]
+			picks.append(array[pick_index])
 	return picks
 	
 func merge(dict_a, dict_b):

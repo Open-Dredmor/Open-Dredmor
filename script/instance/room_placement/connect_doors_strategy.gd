@@ -31,11 +31,11 @@ static func generate(_branch_name, floor_level):
 		if source_door == null:
 			source_door = source_room.get_door('right')
 			target_door_kind = 'left'
-		var room_name = Database.random_room_id(floor_level)
+		var room_name = OD.Database.random_room_id(floor_level)
 		var room = Room.new()
 		room.init(room_name)
 		if not room.has_available_doors():
-			Log.warn("Could not find a path to room " + room_name)
+			OD.Log.warn("Could not find a path to room " + room_name)
 			continue
 		var target_door = room.get_door(target_door_kind)
 		if target_door != null:
@@ -63,7 +63,7 @@ static func generate(_branch_name, floor_level):
 			var collision = false
 			for existing_room in rooms:
 				if room.collision_rect.is_colliding(existing_room.collision_rect):
-					Log.warn("Overlapping rooms")
+					OD.Log.warn("Overlapping rooms")
 					collision = true
 					break
 			if not collision:

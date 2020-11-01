@@ -1,4 +1,4 @@
 extends Node
 
-func notify(message):
+func notify(_message):
 	pass

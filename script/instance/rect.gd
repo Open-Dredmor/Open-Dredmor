@@ -1,7 +1,5 @@
 extends Node
 
-class_name ODRect
-
 var x1
 var x2
 var y1

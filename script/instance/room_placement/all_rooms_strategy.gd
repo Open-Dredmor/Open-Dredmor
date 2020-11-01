@@ -7,7 +7,7 @@ static func generate(_branch_name, _floor_level):
 	entity_grid.init()
 	entity_grid.resize(1,1)
 	
-	var room_definitions = Database.get_all_rooms()
+	var room_definitions = OD.Database.get_all_rooms()
 	var column_count = int(ceil(sqrt(room_definitions.size())))
 	var row_count = column_count
 	var definition_index = 0

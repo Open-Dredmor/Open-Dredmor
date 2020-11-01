@@ -18,8 +18,8 @@ var FLOOR_STRATEGY = {
 }
 
 func global_coordinates_to_grid(x, y):
-	var grid_x = floor((x - get_global_transform_with_canvas().origin.x + (Assets.CELL_PIXEL_WIDTH / 2)) / Assets.CELL_PIXEL_WIDTH)
-	var grid_y = floor((y - get_global_transform_with_canvas().origin.y + (Assets.CELL_PIXEL_HEIGHT / 2)) / Assets.CELL_PIXEL_HEIGHT)
+	var grid_x = floor((x - get_global_transform_with_canvas().origin.x + (OD.Assets.CELL_PIXEL_WIDTH / 2)) / OD.Assets.CELL_PIXEL_WIDTH)
+	var grid_y = floor((y - get_global_transform_with_canvas().origin.y + (OD.Assets.CELL_PIXEL_HEIGHT / 2)) / OD.Assets.CELL_PIXEL_HEIGHT)
 	return Vector2(grid_x, grid_y)
 func init():	
 	call_deferred("_build_ui")
@@ -27,7 +27,7 @@ func init():
 func _input(ev):
 	if ev is InputEventKey and ev.is_pressed():
 		if ev.scancode == KEY_SPACE and not ev.echo:
-			Scenes.goto(Scenes.GAME)
+			OD.Scenes.goto(OD.Scenes.GAME)
 	if ev is InputEventMouseMotion:
 		if _target_cursor != null and _entity_grid != null and ! _target_cursor.is_selecting():
 			var grid_coords = global_coordinates_to_grid(ev.position.x, ev.position.y)
@@ -43,7 +43,7 @@ func _build_ui():
 	var strategy = FLOOR_STRATEGY.DEBUG_ROOMS	
 	_player = PlayerCharacter.new()	
 	_player.init()
-	var settings = DungeonSettings.get_settings()
+	var settings = OD.DungeonSettings.get_settings()
 	_entity_grid = load("res://script/instance/room_placement/" + strategy + "_strategy.gd").generate(_branch_name, _floor_level)
 	_entity_grid.name = "EntityGrid-"+strategy+"_strategy"
 	_entity_grid.add_entity(settings.player_start_x, settings.player_start_y, _player)

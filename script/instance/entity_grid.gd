@@ -48,7 +48,7 @@ var _grid_lookup = null
 var _grid_center = null
 
 func init():
-	_tilesets = Assets.tilesets()	
+	_tilesets = OD.Assets.tilesets()	
 	var layer_order = 0
 	for layer_name in layer_names:
 		layer_order += 1
@@ -67,7 +67,7 @@ func resize(grid_width, grid_height):
 			_grid_lookup[ii][jj] = {}
 	_grid_center = Vector2(grid_width / 2, grid_height / 2)
 	OD.Math.set_grid_center(_grid_center.x, _grid_center.y)
-	position = Vector2(-_grid_center.x * Assets.CELL_PIXEL_WIDTH, -_grid_center.y * Assets.CELL_PIXEL_HEIGHT)
+	position = Vector2(-_grid_center.x * OD.Assets.CELL_PIXEL_WIDTH, -_grid_center.y * OD.Assets.CELL_PIXEL_HEIGHT)
 
 func insert(source_grid, offset_position):
 	for layer_key in source_grid.layers.lookup.keys():
@@ -80,7 +80,7 @@ func insert(source_grid, offset_position):
 			# Might be another root cause, but this fixes the graphical problem of 2+ tile high sprites being drawn slightly too low
 			if child.has_method('is_tall'):				
 				if child.is_tall():
-					child.position.y -= Assets.CELL_PIXEL_HEIGHT / 2
+					child.position.y -= OD.Assets.CELL_PIXEL_HEIGHT / 2
 			target_layer.add_child(child)
 				
 func get_layer(name):
@@ -109,7 +109,7 @@ func add_tile(x, y, name, sprite_path = null):
 		"ice","lava","goo","water":
 			tile = _tilesets.liquids.get_animation(name)			
 		_:
-			tile = Load.animation(sprite_path)
+			tile = OD.Load.animation(sprite_path)
 	tile.position = Vector2(x, y)
 	layer.add_child(tile)
 	

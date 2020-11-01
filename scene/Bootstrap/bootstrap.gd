@@ -1,8 +1,5 @@
 extends Control
 
-var first_scene = Scenes.GAME
-#var first_scene = Scenes.PRELOAD_ASSETS
-
 var selected_dir = null
 var directory_picker = null
 
@@ -10,21 +7,21 @@ func _ready():
 	call_deferred("_init_global_state")		
 
 func _init_global_state():	
-	print("Reading config from "+OS.get_user_data_dir())	
+	print("Reading config from "+OS.get_user_data_dir())		
 	OD.reset()
-	Settings.load()
+	OD.Settings.load()
 	randomize()	
-	var install_dir = Settings.dredmor_install_dir()
+	var install_dir = OD.Settings.dredmor_install_dir()
 	if install_dir != null and install_dir != "":
 		print("Installation dir set to [" + install_dir + "], load the game.")
-		Scenes.goto(first_scene)
+		OD.Scenes.goto(OD.Scenes.FIRST_SCENE)
 	else:
 		print("Installation dir not configured, prompt selection.")
 		call_deferred("_build_gui")
 
 func _build_gui():
 		var bootstrap = get_node("/root/Container")
-		bootstrap.set_size(Settings.display_size())
+		bootstrap.set_size(OD.Settings.display_size())
 		
 		var container = VBoxContainer.new()
 		container.alignment = BoxContainer.ALIGN_CENTER
@@ -57,6 +54,6 @@ func _on_ChooseButton_pressed():
 
 func _on_DirectoryPicker_dir_selected(dir):
 	# TODO Some validation around whether or not the chosen dir is actually a Dredmor installation
-	Settings.change("open_dredmor","dredmor_install_directory",dir)
-	Scenes.goto(first_scene)
+	OD.Settings.change("open_dredmor","dredmor_install_directory",dir)
+	OD.Scenes.goto(OD.Scenes.FIRST_SCENE)
 	pass

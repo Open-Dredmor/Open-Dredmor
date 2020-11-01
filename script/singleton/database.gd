@@ -11,25 +11,25 @@ func ingest():
 		# monDB.xml explains that branches are a feature scrapped during development
 		# However, the expansions have them...so what could they be?
 		# They seem like tilemap definitions.
-		cache.branches = Load.xml("game/branchDB.xml").branchDB.branch
-		cache.crafts = Load.xml("game/craftDB.xml").craftDB.craft
-		cache.items = Load.xml("game/itemDB.xml").itemDB.item
-		cache.magic_box_rooms_db = Load.xml("game/magicBoxRooms.xml")
+		cache.branches = OD.Load.xml("game/branchDB.xml").branchDB.branch
+		cache.crafts = OD.Load.xml("game/craftDB.xml").craftDB.craft
+		cache.items = OD.Load.xml("game/itemDB.xml").itemDB.item
+		cache.magic_box_rooms_db = OD.Load.xml("game/magicBoxRooms.xml")
 		## manual.xml was next to empty, consider it a placeholder
-		cache.monsters = Load.xml("game/monDB.xml").monDB.monster		
-		cache.quest_item_db = Load.xml("game/quests.xml")
+		cache.monsters = OD.Load.xml("game/monDB.xml").monDB.monster		
+		cache.quest_item_db = OD.Load.xml("game/quests.xml")
 #		## rooms.dat might not be used. Not sure.
-		cache.rooms = Load.xml("game/rooms.xml").roomdb.room
+		cache.rooms = OD.Load.xml("game/rooms.xml").roomdb.room
 		#precompute_room_info()
 #		# scrolls.xml didn't seem to be used
-		cache.sound_db = Load.xml("game/soundfx.xml")
-		cache.speech_db = Load.xml("game/speech.xml")
-		cache.skills = Load.xml("game/skillDB.xml").skillDB.skill
-		cache.spell_db = Load.xml("game/spellDB.xml")
-		cache.template_db = Load.xml("game/manTemplateDB.xml")
-		cache.text = Load.xml("game/text.xml").text
-		cache.tutorial_db = Load.xml("game/tutorial.xml")
-		cache.tweak_db = Load.xml("game/tweakDB.xml")
+		cache.sound_db = OD.Load.xml("game/soundfx.xml")
+		cache.speech_db = OD.Load.xml("game/speech.xml")
+		cache.skills = OD.Load.xml("game/skillDB.xml").skillDB.skill
+		cache.spell_db = OD.Load.xml("game/spellDB.xml")
+		cache.template_db = OD.Load.xml("game/manTemplateDB.xml")
+		cache.text = OD.Load.xml("game/text.xml").text
+		cache.tutorial_db = OD.Load.xml("game/tutorial.xml")
+		cache.tweak_db = OD.Load.xml("game/tweakDB.xml")
 		
 		_build_loot_info()
 		_build_craft_info()
@@ -50,7 +50,7 @@ func character_creation_skill_list():
 			result.append({
 				name = skill.name,
 				description = skill.description,
-				icon = Load.image(skill.art.icon),
+				icon = OD.Load.image(skill.art.icon),
 				id = skill.id,				
 				index = skill_index
 			})
@@ -62,7 +62,7 @@ func random_room_id(floor_level):
 	var short_circuit = 100
 	while true:
 		short_circuit -= 1
-		var room = DataStructure.choose(cache.rooms, 1)
+		var room = OD.DataStructure.choose(cache.rooms, 1)
 		if not room.has('flags') or not room.flags.has('minLevel'):
 			return room.name
 		if int(room.flags.minLevel) <= floor_level and int(room.flags.maxLevel) >= floor_level:
@@ -97,7 +97,7 @@ func get_room_within(floor_level, max_width, max_height):
 		if room.width <= max_width and room.height <= max_height:
 			if (not room.has('flags') or not room.flags.has('minLevel')) or (int(room.flags.minLevel) <= floor_level and int(room.flags.maxLevel) >= floor_level):
 				rooms.append(room)
-	return DataStructure.choose(rooms, 1).name
+	return OD.DataStructure.choose(rooms, 1).name
 
 func get_room(room_name):	
 	for room in cache.rooms:
@@ -109,9 +109,9 @@ func create_room_name():
 #	for noun in lookup.noun:
 #		if noun.text == "Cake":
 #			noun = noun
-	var noun = DataStructure.choose(cache.text.noun, 1)
-	var adjective = DataStructure.choose(cache.text.adjective, 1)
-	var architecture = DataStructure.choose(cache.text.architecture, 1)
+	var noun = OD.DataStructure.choose(cache.text.noun, 1)
+	var adjective = OD.DataStructure.choose(cache.text.adjective, 1)
+	var architecture = OD.DataStructure.choose(cache.text.architecture, 1)
 	
 	return {
 		name = adjective.text + " " + architecture.text + " of " + noun.text,
@@ -134,13 +134,13 @@ func _build_monster_info():
 	for monster in cache.monsters:
 		monsters[monster.name] = monster
 		if monster.has('monster'):
-			var children = DataStructure.arrayify(monster.monster)
+			var children = OD.DataStructure.arrayify(monster.monster)
 			for child in children:
-				monsters[child.name] = DataStructure.merge(monster, child)			
+				monsters[child.name] = OD.DataStructure.merge(monster, child)			
 	cache_result("monster_info", monsters)
 
 func get_random_monster():
-	return DataStructure.choose(result_cache["monster_info"])
+	return OD.DataStructure.choose(result_cache["monster_info"])
 
 func get_monster(name):		
 	if not result_cache["monster_info"].has(name):
@@ -174,7 +174,7 @@ func _build_loot_info():
 		loot._find_by_name[item.name] = item
 		for prop in prop_driven_loot:
 			if item.has(prop):
-				if prop == 'weapon' and int(item.type) == GameDataKind.WEAPON.BOLT:
+				if prop == 'weapon' and int(item.type) == OD.GameDataKind.WEAPON.BOLT:
 					loot.bolts.append(item)
 				else:
 					loot[prop].append(item)
@@ -191,12 +191,12 @@ func get_loot(loot_kind, loot_sub_kind = null):
 			return lookup._find_by_name[loot_sub_kind]
 		return null
 	if loot_kind == 'component':
-		return lookup._find_by_name[DataStructure.choose(result_cache.component_list)]
+		return lookup._find_by_name[OD.DataStructure.choose(result_cache.component_list)]
 	if loot_kind == 'reagent':
-		return lookup._find_by_name[DataStructure.choose(result_cache.reagent_list)]
+		return lookup._find_by_name[OD.DataStructure.choose(result_cache.reagent_list)]
 	if not lookup.has(loot_kind):
 		return null
-	return DataStructure.choose(lookup[loot_kind], 1)
+	return OD.DataStructure.choose(lookup[loot_kind], 1)
 	
 func _build_craft_info():
 	var reagents = {
@@ -210,7 +210,7 @@ func _build_craft_info():
 	for craft in cache.crafts:
 		# TODO I don't know if this is correct or not, but it will do for a best guess at the moment
 		var kind = 'reagent' if craft.tool.tag == 'still' or craft.tool.tag == 'alchemy' else 'component'		
-		var inputs = DataStructure.arrayify(craft.input)
+		var inputs = OD.DataStructure.arrayify(craft.input)
 		for input in inputs:
 			var ledger = components if kind == 'component' else reagents
 			if not ledger.lookup.has(input.name):

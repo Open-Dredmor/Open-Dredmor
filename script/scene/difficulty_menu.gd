@@ -15,18 +15,18 @@ func _ready():
 	call_deferred("_build_gui")
 	
 func _build_gui():
-	DungeonSettings.reset()
-	var assets = Assets.difficulty_menu()
+	OD.DungeonSettings.reset()
+	var assets = OD.Assets.difficulty_menu()
 	var difficulty_menu = get_node("/root/Container")
-	difficulty_menu.set_size(Settings.display_size())
+	difficulty_menu.set_size(OD.Settings.display_size())
 
 	var header_background = TextureRect.new()
 	header_background.texture = assets.textures.header_background
 	header_background.stretch_mode = TextureRect.STRETCH_TILE
-	header_background.rect_size = Vector2(Settings.display_size().x, header_background.texture.get_height())
+	header_background.rect_size = Vector2(OD.Settings.display_size().x, header_background.texture.get_height())
 	difficulty_menu.add_child(header_background)
 	
-	var back_button = Chrome.button(assets.textures.back_button)
+	var back_button = OD.Chrome.button(assets.textures.back_button)
 	back_button.anchor_left = 0
 	back_button.anchor_top = 0
 	back_button.margin_left = 0
@@ -40,7 +40,7 @@ func _build_gui():
 	header_text.margin_left = - (header_text.texture.get_width()/2)
 	difficulty_menu.add_child(header_text)	
 	
-	var done_button = Chrome.button(assets.textures.done_button)
+	var done_button = OD.Chrome.button(assets.textures.done_button)
 	done_button.anchor_left = 1
 	done_button.anchor_top = 0
 	done_button.margin_left = -done_button.texture_normal.get_width()
@@ -65,7 +65,7 @@ func _build_gui():
 	_easy_checkmark.margin_top = -(_easy_checkmark.texture.get_height()/2)
 	options_form.add_child(_easy_checkmark)
 		
-	var easy_button = Chrome.invisible_button()
+	var easy_button = OD.Chrome.invisible_button()
 	easy_button.connect("pressed",self,"_on_EasyDifficultyButton_pressed")	
 	easy_button.set_size(Vector2(options_form.texture.get_width() * .7,50))
 	easy_button.anchor_top = .12
@@ -80,7 +80,7 @@ func _build_gui():
 	_medium_checkmark.margin_top = -(_medium_checkmark.texture.get_height()/2)
 	options_form.add_child(_medium_checkmark)
 	
-	var medium_button = Chrome.invisible_button()	
+	var medium_button = OD.Chrome.invisible_button()	
 	medium_button.connect("pressed",self,"_on_MediumDifficultyButton_pressed")	
 	medium_button.set_size(Vector2(options_form.texture.get_width() * .7,60))
 	medium_button.anchor_top = .22
@@ -95,7 +95,7 @@ func _build_gui():
 	_hard_checkmark.margin_top = -(_hard_checkmark.texture.get_height()/2)
 	options_form.add_child(_hard_checkmark)
 	
-	var hard_button = Chrome.invisible_button()
+	var hard_button = OD.Chrome.invisible_button()
 	hard_button.connect("pressed",self,"_on_HardDifficultyButton_pressed")	
 	hard_button.set_size(Vector2(options_form.texture.get_width() * .7,70))
 	hard_button.anchor_top = .34
@@ -110,7 +110,7 @@ func _build_gui():
 	_permadeath_checkmark.margin_top = -(_permadeath_checkmark.texture.get_height()/2)
 	options_form.add_child(_permadeath_checkmark)
 	
-	var permadeath_button = Chrome.invisible_button()
+	var permadeath_button = OD.Chrome.invisible_button()
 	permadeath_button.connect("pressed",self,"_on_PermadeathButton_pressed")	
 	permadeath_button.set_size(Vector2(options_form.texture.get_width() * .7,60))
 	permadeath_button.anchor_top = .50
@@ -125,45 +125,45 @@ func _build_gui():
 	_no_time_to_grind_checkmark.margin_top = -(_no_time_to_grind_checkmark.texture.get_height()/2)
 	options_form.add_child(_no_time_to_grind_checkmark)
 	
-	var no_time_to_grind_button = Chrome.invisible_button()
+	var no_time_to_grind_button = OD.Chrome.invisible_button()
 	no_time_to_grind_button.connect("pressed",self,"_on_NoTimeToGrindButton_pressed")	
 	no_time_to_grind_button.set_size(Vector2(options_form.texture.get_width() * .7,60))
 	no_time_to_grind_button.anchor_top = .65
 	no_time_to_grind_button.anchor_left = .15
 	options_form.add_child(no_time_to_grind_button)	
 	
-	_select_difficulty(DungeonSettings.get_settings().difficulty)
+	_select_difficulty(OD.DungeonSettings.get_settings().difficulty)
 	_permadeath_checkmark.visible = _permadeath_enabled
 	_no_time_to_grind_checkmark.visible = _no_time_to_grind_enabled
 
 func _on_DoneButton_pressed():
-	Scenes.goto(Scenes.SKILLS_MENU)
+	OD.Scenes.goto(OD.Scenes.SKILLS_MENU)
 	pass
 
 func _on_BackButton_pressed():
-	Scenes.goto(Scenes.MAIN_MENU)
+	OD.Scenes.goto(OD.Scenes.MAIN_MENU)
 
 func _select_difficulty(mode):
-	_easy_checkmark.visible = mode == DungeonSettings.Difficulty.Easy
-	_medium_checkmark.visible = mode == DungeonSettings.Difficulty.Medium
-	_hard_checkmark.visible = mode == DungeonSettings.Difficulty.Hard
-	DungeonSettings.set_difficulty(mode)
+	_easy_checkmark.visible = mode == OD.DungeonSettings.Difficulty.Easy
+	_medium_checkmark.visible = mode == OD.DungeonSettings.Difficulty.Medium
+	_hard_checkmark.visible = mode == OD.DungeonSettings.Difficulty.Hard
+	OD.DungeonSettings.set_difficulty(mode)
 
 func _on_EasyDifficultyButton_pressed():
-	_select_difficulty(DungeonSettings.Difficulty.Easy)
+	_select_difficulty(OD.DungeonSettings.Difficulty.Easy)
 	
 func _on_MediumDifficultyButton_pressed():
-	_select_difficulty(DungeonSettings.Difficulty.Medium)
+	_select_difficulty(OD.DungeonSettings.Difficulty.Medium)
 	
 func _on_HardDifficultyButton_pressed():
-	_select_difficulty(DungeonSettings.Difficulty.Hard)
+	_select_difficulty(OD.DungeonSettings.Difficulty.Hard)
 
 func _on_PermadeathButton_pressed():
 	_permadeath_enabled = !_permadeath_enabled
 	_permadeath_checkmark.visible = _permadeath_enabled
-	DungeonSettings.set_permadeath(_permadeath_enabled)
+	OD.DungeonSettings.set_permadeath(_permadeath_enabled)
 	
 func _on_NoTimeToGrindButton_pressed():
 	_no_time_to_grind_enabled = !_no_time_to_grind_enabled
 	_no_time_to_grind_checkmark.visible = _no_time_to_grind_enabled
-	DungeonSettings.set_no_time_to_grind(_no_time_to_grind_enabled)
+	OD.DungeonSettings.set_no_time_to_grind(_no_time_to_grind_enabled)

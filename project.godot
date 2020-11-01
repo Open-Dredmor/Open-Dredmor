@@ -10,11 +10,6 @@ config_version=4
 
 _global_script_classes=[ {
 "base": "Node",
-"class": "ActionQueue",
-"language": "GDScript",
-"path": "res://script/singleton/action_queue.gd"
-}, {
-"base": "Node",
 "class": "Actions",
 "language": "GDScript",
 "path": "res://script/instance/action/actions.gd"
@@ -30,24 +25,9 @@ _global_script_classes=[ {
 "path": "res://script/instance/entity_grid.gd"
 }, {
 "base": "Node",
-"class": "Math",
-"language": "GDScript",
-"path": "res://script/singleton/od_math.gd"
-}, {
-"base": "Node",
 "class": "MoveToLocationAction",
 "language": "GDScript",
 "path": "res://script/instance/action/move_to_location_action.gd"
-}, {
-"base": "Node2D",
-"class": "ODAnimation",
-"language": "GDScript",
-"path": "res://script/instance/animation/od_animation.gd"
-}, {
-"base": "Node",
-"class": "ODRect",
-"language": "GDScript",
-"path": "res://script/instance/od_rect.gd"
 }, {
 "base": "Node2D",
 "class": "ODSpriteFrames",
@@ -80,14 +60,10 @@ _global_script_classes=[ {
 "path": "res://script/instance/tileset.gd"
 } ]
 _global_script_class_icons={
-"ActionQueue": "",
 "Actions": "",
 "Dungeon": "",
 "EntityGrid": "",
-"Math": "",
 "MoveToLocationAction": "",
-"ODAnimation": "",
-"ODRect": "",
 "ODSpriteFrames": "",
 "ODTextureFrames": "",
 "PlayerCharacter": "",
@@ -105,18 +81,6 @@ config/icon="res://icon.png"
 
 [autoload]
 
-Scenes="*res://script/singleton/scenes.gd"
-Assets="*res://script/singleton/assets.gd"
-Settings="*res://script/singleton/settings.gd"
-Load="*res://script/singleton/load.gd"
-Chrome="*res://script/singleton/chrome.gd"
-Audio="*res://script/singleton/audio.gd"
-DungeonSettings="*res://script/singleton/dungeon_settings.gd"
-Database="*res://script/singleton/database.gd"
-DataStructure="*res://script/singleton/data_structure.gd"
-Log="*res://script/singleton/log.gd"
-ODResource="*res://script/singleton/od_resource.gd"
-GameDataKind="*res://script/singleton/game_data_kind.gd"
 OD="*res://script/singleton/od.gd"
 
 [display]

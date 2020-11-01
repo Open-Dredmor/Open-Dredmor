@@ -21,26 +21,26 @@ func _process(_delta):
 	if _highlighted_panel_buttons != null:
 		for key in _highlighted_panel_buttons.keys():
 			var button = _highlighted_panel_buttons[key]
-			Chrome.highlight(button)
+			OD.Chrome.highlight(button)
 	if _selected_skills != null:
 		_done_button.visible = _selected_skills.keys().size() == MAX_SKILL_SELECTION
 	
 func _build_gui():
-	DungeonSettings.reset()
-	var assets = Assets.skills_menu()
+	OD.DungeonSettings.reset()
+	var assets = OD.Assets.skills_menu()
 	_container = get_node("/root/Container")
-	_container.set_size(Settings.display_size())
-	_skills = Database.character_creation_skill_list()	
+	_container.set_size(OD.Settings.display_size())
+	_skills = OD.Database.character_creation_skill_list()	
 	_selected_skills = {}
 	_highlighted_panel_buttons = {}
 
 	var header_background = TextureRect.new()
 	header_background.texture = assets.textures.header_background
 	header_background.stretch_mode = TextureRect.STRETCH_TILE
-	header_background.rect_size = Vector2(Settings.display_size().x, header_background.texture.get_height())
+	header_background.rect_size = Vector2(OD.Settings.display_size().x, header_background.texture.get_height())
 	_container.add_child(header_background)
 	
-	var back_button = Chrome.button(assets.textures.back_button)
+	var back_button = OD.Chrome.button(assets.textures.back_button)
 	back_button.anchor_left = 0
 	back_button.anchor_top = 0
 	back_button.margin_left = 0
@@ -54,7 +54,7 @@ func _build_gui():
 	header_text.margin_left = - (header_text.texture.get_width()/2)
 	_container.add_child(header_text)	
 	
-	_done_button = Chrome.button(assets.textures.done_button)
+	_done_button = OD.Chrome.button(assets.textures.done_button)
 	_done_button.anchor_left = 1
 	_done_button.anchor_top = 0
 	_done_button.margin_left = -_done_button.texture_normal.get_width()
@@ -79,7 +79,7 @@ func _build_gui():
 		skill_border.name = "PickSkillBorder#" + skill.id
 		skills_selector.add_child(skill_border)
 		
-		var pick_skill_button = Chrome.highlight_on_hover_button(skill.icon)
+		var pick_skill_button = OD.Chrome.highlight_on_hover_button(skill.icon)
 		pick_skill_button.connect("pressed", self, "_select_skill",[skill])
 		pick_skill_button.connect("mouse_entered", self, "_describe_skill", [skill])	
 		pick_skill_button.connect("mouse_exited", self, "_describe_skill", [null])	
@@ -100,7 +100,7 @@ func _build_gui():
 	selected_skills_container.set("custom_constants/separation", 24)
 	selected_skills_background.add_child(selected_skills_container)	
 	
-	var random_selection_button = Chrome.button(assets.textures.random_selection_button)
+	var random_selection_button = OD.Chrome.button(assets.textures.random_selection_button)
 	random_selection_button.anchor_left = 0.838
 	random_selection_button.anchor_top = 0.55
 	random_selection_button.connect("pressed", self, "_on_RandomSelectionButton_pressed")
@@ -176,15 +176,16 @@ func _describe_skill(skill):
 		_info_details.text = skill.description
 
 func _select_skill(skill):
+	print(skill)
 	_remove_selected_skill_buttons()
 	var skill_panel_button = _get_skill_panel_button(skill.id)	
 	if _selected_skills.has(skill.id):		
-		Chrome.darken(skill_panel_button)		
+		OD.Chrome.darken(skill_panel_button)		
 		_selected_skills.erase(skill.id)		
 		_highlighted_panel_buttons.erase(skill.id)
 	else:
 		if _selected_skills.keys().size() < MAX_SKILL_SELECTION:
-			Chrome.highlight(skill_panel_button)
+			OD.Chrome.highlight(skill_panel_button)
 			_highlighted_panel_buttons[skill.id] = skill_panel_button
 			_selected_skills[skill.id] = skill						
 	if _selected_skills.keys().size() > 0:
@@ -200,20 +201,20 @@ func _select_skill(skill):
 			selected_skills_container.add_child(selected_skill_button)
 
 func _on_DoneButton_pressed():
-	Scenes.goto(Scenes.CHARACTER_MENU)
-	DungeonSettings.set_starting_skill_ids(_selected_skills.keys())
+	OD.Scenes.goto(OD.Scenes.CHARACTER_MENU)
+	OD.DungeonSettings.set_starting_skill_ids(_selected_skills.keys())
 	pass
 
 func _on_BackButton_pressed():
-	Scenes.goto(Scenes.DIFFICULTY_MENU)
+	OD.Scenes.goto(OD.Scenes.DIFFICULTY_MENU)
 
 func _on_RandomSelectionButton_pressed():
 	for key in _highlighted_panel_buttons.keys():
-		Chrome.darken(_highlighted_panel_buttons[key])
+		OD.Chrome.darken(_highlighted_panel_buttons[key])
 		_highlighted_panel_buttons.erase(key)
 	_remove_selected_skill_buttons()
 	_selected_skills = {}
-	var random_skills = DataStructure.choose(_skills, MAX_SKILL_SELECTION)
+	var random_skills = OD.DataStructure.choose(_skills, MAX_SKILL_SELECTION)
 	for skill in random_skills:
 		_select_skill(skill)
 		

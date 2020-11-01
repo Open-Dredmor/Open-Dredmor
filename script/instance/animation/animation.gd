@@ -5,8 +5,6 @@
 
 extends Node2D
 
-class_name ODAnimation
-
 signal animation_complete(animation_id)
 
 var _frames = null
@@ -34,7 +32,7 @@ func set_animation_id(animation_id):
 func add_sprite_frame(sprite, display_milliseconds):
 	if _frames != null and _frames.kind != "sprite":
 		print("Attempted to add a sprite to an animation that uses texture frames")
-		Scenes.quit()
+		OD.Scenes.quit()
 	if _frames == null:
 		_frames = ODSpriteFrames.new()
 	_frames.add({
@@ -45,10 +43,10 @@ func add_sprite_frame(sprite, display_milliseconds):
 func add_texture_frame(texture, display_milliseconds):
 	if _frames != null and _frames.kind != "texture":
 		print("Attempted to add a texture to an animation that uses sprite frames")
-		Scenes.quit()
+		OD.Scenes.quit()
 	if _frames == null:
 		_frames = ODTextureFrames.new()
-	if texture.get_height() > Assets.CELL_PIXEL_HEIGHT * 1.7: # TODO Why 1.7?
+	if texture.get_height() > OD.Assets.CELL_PIXEL_HEIGHT * 1.7: # TODO Why 1.7?
 		_multi_cell_tall = true
 	_frames.add({
 		texture = texture,
@@ -63,6 +61,9 @@ func stop():
 func play():
 	var current_frame = _frames.load_sprite(_sprite, _frame_index)		
 	if not _step_only and current_frame.display_seconds > 0:
+		# TODO Something is wrong here. Getting the following error on tile click
+		# E 0:00:32.266   connect: Signal 'timeout' is already connected to given method '_on_NextFrameTimer_timeout' in that object.
+		# E 0:00:32.924   start: Timer was not added to the SceneTree. Either add it or set autostart to true.
 		if _next_frame_timer == null:
 			_next_frame_timer = Timer.new()	
 			add_child(_next_frame_timer)	

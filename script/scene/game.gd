@@ -12,11 +12,11 @@ func _build_ui():
 	# TODO Remove unless testing
 	_dev_seed()
 	
-	var assets = Assets.game()	
-	var	container = Scenes.container()
+	var assets = OD.Assets.game()	
+	var	container = OD.Scenes.container()
 	
 	var centered_container = Panel.new()
-	centered_container.set_size(Settings.display_size())
+	centered_container.set_size(OD.Settings.display_size())
 	centered_container.name = "CenteredContainer"
 	container.add_child(centered_container)
 	var hbox = HBoxContainer.new()
@@ -43,18 +43,18 @@ func _build_ui():
 	gui.name = "GUI"
 	moveable_container.add_child(gui)
 	
-	Audio.play(assets.music.default)
+	OD.Audio.play(assets.music.default)
 
 func _dev_seed():
-	Audio.setup(get_tree().get_root())
-	Database.ingest()
-	DungeonSettings.reset()
-	DungeonSettings.set_difficulty(DungeonSettings.Difficulty.Medium)
-	DungeonSettings.set_permadeath(false)
-	DungeonSettings.set_no_time_to_grind(false)
-	DungeonSettings.set_hero("heroine")
-	DungeonSettings.set_name("Eyebrows")
-	DungeonSettings.set_starting_skill_ids([0,1,2,3,4,5,6])
+	OD.Audio.setup(get_tree().get_root())
+	OD.Database.ingest()
+	OD.DungeonSettings.reset()
+	OD.DungeonSettings.set_difficulty(OD.DungeonSettings.Difficulty.Medium)
+	OD.DungeonSettings.set_permadeath(false)
+	OD.DungeonSettings.set_no_time_to_grind(false)
+	OD.DungeonSettings.set_hero("heroine")
+	OD.DungeonSettings.set_name("Eyebrows")
+	OD.DungeonSettings.set_starting_skill_ids([0,1,2,3,4,5,6])
 
 var speed = 200
 var drag_enabled = false

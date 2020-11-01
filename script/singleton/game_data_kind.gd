@@ -58,9 +58,9 @@ func find_by_id(kind, entry_id):
 		for key in STAT.SECONDARY:
 			_reverse_lookup[STAT.SECONDARY[key]] = key
 	if not kind in _reverse_lookup:
-		Log.warn("Unknown game data kind [" + kind + "]")
+		OD.Log.warn("Unknown game data kind [" + kind + "]")
 		return null
 	if not entry_id in _reverse_lookup[kind]:
-		Log.warn("Unknown id [" + entry_id + "] in [" + kind +"] reverse lookup")
+		OD.Log.warn("Unknown id [" + entry_id + "] in [" + kind +"] reverse lookup")
 		return null
 	return _reverse_lookup[kind][entry_id]

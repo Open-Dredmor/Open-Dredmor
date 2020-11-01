@@ -2,7 +2,7 @@ extends Node2D
 
 class_name Room
 
-var collision_rect = ODRect.new()
+var collision_rect = OD.Rect.new()
 var grid_width
 var grid_height
 var layer_lookup = {}
@@ -47,19 +47,19 @@ func init(room_database_name):
 	entity_grid.init()
 	add_child(entity_grid)
 	
-	_definition = Database.get_room(room_database_name)
+	_definition = OD.Database.get_room(room_database_name)
 	# Rough passage 3 in game/rooms.xml has a width/height that doesn't match the data
 	# Count the strings lengths instead of trusting the reported values
 	grid_width = _definition.row[0].text.length()
 	grid_height = _definition.row.size()
-	debug_button = Chrome.invisible_button()
+	debug_button = OD.Chrome.invisible_button()
 	var hover_button_style = StyleBoxFlat.new()
 	hover_button_style.bg_color = Color(.5,.5,0,.3)
 	debug_button.add_stylebox_override("hover",hover_button_style)
-	debug_button.rect_size = Vector2((grid_width + 1) * Assets.CELL_PIXEL_WIDTH, (grid_height + 1) * Assets.CELL_PIXEL_HEIGHT)
+	debug_button.rect_size = Vector2((grid_width + 1) * OD.Assets.CELL_PIXEL_WIDTH, (grid_height + 1) * OD.Assets.CELL_PIXEL_HEIGHT)
 	debug_button.connect("pressed", self, "debug_info")
 
-	name_details = Database.create_room_name()
+	name_details = OD.Database.create_room_name()
 	name_details.database_id = room_database_name
 	#print("Generating room id " + room_database_name + " with name " + name_details.name)
 	for layer_name in layer_names:
@@ -68,10 +68,10 @@ func init(room_database_name):
 		_coordinate = {}
 	}
 	if _definition.has('script'):
-		var scripts = DataStructure.arrayify(_definition.script)
+		var scripts = OD.DataStructure.arrayify(_definition.script)
 		for script in scripts:
 			if script.has('condition'):
-				var conditions = DataStructure.arrayify(script.condition)
+				var conditions = OD.DataStructure.arrayify(script.condition)
 				for condition in conditions:
 					if 'at' in condition:
 						script_location[condition.at] = condition
@@ -80,7 +80,7 @@ func init(room_database_name):
 							script_location._coordinate[int(condition.x)] = {}
 						script_location._coordinate[int(condition.x)][int(condition.y)] = condition
 			if script.has('action'):
-				var actions = DataStructure.arrayify(script.action)
+				var actions = OD.DataStructure.arrayify(script.action)
 				for action in actions:
 					if 'at' in action:
 						script_location[action.at] = action
@@ -181,7 +181,7 @@ func init(room_database_name):
 					pass
 				_:
 					if not added_tile:
-						if Log.warn("Unhandled tile [" + tile_character + "]"):
+						if OD.Log.warn("Unhandled tile [" + tile_character + "]"):
 							print(room_database_name)
 			if has_floor:
 				entity_grid.add_tile(jj, ii, "floor")
@@ -231,23 +231,23 @@ func add_tile_if_match(x, y, tile_character, layer_name):
 func customblocker_tile_handler(item, x, y):
 	var animation = null
 	if item.has('pngSprite'):
-		animation = Load.png_sprite(item.pngSprite, int(item.pngFirst), int(item.pngNum), int(item.pngRate))
+		animation = OD.Load.png_sprite(item.pngSprite, int(item.pngFirst), int(item.pngNum), int(item.pngRate))
 	if item.has('png'):
-		animation = Load.animation(item.png)
+		animation = OD.Load.animation(item.png)
 	if animation != null:
 		entity_grid.add_animation(x, y, "customblocker", animation)
 
 func customengraving_tile_handler(item, x, y):
 	var animation = null
 	if item.has('pngSprite'):
-		animation = Load.png_sprite(item.pngSprite, int(item.pngFirst), int(item.pngNum), int(item.pngRate))
+		animation = OD.Load.png_sprite(item.pngSprite, int(item.pngFirst), int(item.pngNum), int(item.pngRate))
 	if item.has('png'):
-		animation = Load.animation(item.png)
+		animation = OD.Load.animation(item.png)
 	if animation != null:
 		entity_grid.add_animation(x, y, "customengraving", animation)
 
 func element_tile_handler(item, x, y):
-	var assets = Assets.elements()
+	var assets = OD.Assets.elements()
 	var asset = null
 	match item.type:
 		"anvil":
@@ -269,11 +269,11 @@ func element_tile_handler(item, x, y):
 		"lutefiskstatue":
 			asset = assets.lutefisk_statue
 		"statue":
-			asset = DataStructure.choose(assets.statues)
+			asset = OD.DataStructure.choose(assets.statues)
 		"thrownvending":
 			asset = assets.vendor.thrown
 		_:
-			Log.warn("Unhandled element tile type [" + item.type + "]")
+			OD.Log.warn("Unhandled element tile type [" + item.type + "]")
 	if asset != null:
 		entity_grid.add_animation(x, y, "element", asset)
 
@@ -282,15 +282,15 @@ func loot_tile_handler(item, x, y):
 	var sprite = null
 	if item.type == 'zorkmids':
 		# TODO Base the amount and size on the current floor
-		sprite = Load.animation(DataStructure.choose(ODResource.paths.loot.zorkmids))
+		sprite = OD.Load.animation(OD.DataStructure.choose(OD.Resource.paths.loot.zorkmids))
 	elif item.type == 'misc': # misc is always lockpicks
-		sprite = Load.animation(ODResource.paths.loot.lockpick)
+		sprite = OD.Load.animation(OD.Resource.paths.loot.lockpick)
 	else:
-		var loot = Database.get_loot(item.type, item.subtype if item.has('subtype') else null)		
+		var loot = OD.Database.get_loot(item.type, item.subtype if item.has('subtype') else null)		
 		if loot == null:
-			Log.warn("Unhandled loot tile type [" + item.type + "]")
+			OD.Log.warn("Unhandled loot tile type [" + item.type + "]")
 		else:
-			sprite = Load.animation(loot.iconFile)
+			sprite = OD.Load.animation(loot.iconFile)
 	if sprite != null:
 		entity_grid.add_animation(x, y, 'loot', sprite)
 
@@ -299,52 +299,52 @@ func monster_tile_handler(item, x, y):
 		return
 	var monster = null
 	if item.has('name'):
-		monster = Database.get_monster(item.name)
+		monster = OD.Database.get_monster(item.name)
 	else:
-		monster = Database.get_random_monster()
+		monster = OD.Database.get_random_monster()
 	if monster == null:
-		Log.warn("Unhandled monster tile type [" + item.name + "]")
+		OD.Log.warn("Unhandled monster tile type [" + item.name + "]")
 		return
-	var animation = Load.animation(monster.idleSprite.down)
+	var animation = OD.Load.animation(monster.idleSprite.down)
 	entity_grid.add_animation(x, y, 'monster', animation)
 			
 func horde_tile_handler(item, x, y):
 	if not item.has('name'):
 		return
-	var monster = Database.get_monster(item.name)
+	var monster = OD.Database.get_monster(item.name)
 	if monster == null:
-		Log.warn("Unhandled horde tile type [" + item.name + "]")
+		OD.Log.warn("Unhandled horde tile type [" + item.name + "]")
 		return
-	var animation = Load.animation(monster.idleSprite.down)
+	var animation = OD.Load.animation(monster.idleSprite.down)
 	entity_grid.add_animation(x, y, 'horde', animation)
 
 func pedestal_tile_handler(_item, x, y):
-	var animation = Load.animation(ODResource.paths.pedestal)
+	var animation = OD.Load.animation(OD.Resource.paths.pedestal)
 	entity_grid.add_animation(x, y, 'pedestal', animation)
 
 func custombreakable_tile_handler(item, x, y):
-	var animation = Load.animation(item.png)
+	var animation = OD.Load.animation(item.png)
 	entity_grid.add_animation(x, y, 'custom_breakable', animation)
 	
 func trap_tile_handler(item, x, y):
 	# TODO All of these graphics are placeholders
 	var animation = null
 	if not item.has('name'):
-		animation = Load.animation(DataStructure.choose(ODResource.paths.traps))
+		animation = OD.Load.animation(OD.DataStructure.choose(OD.Resource.paths.traps))
 	else:
 		match item.name:
 			"Gargoyle Arrow Trap":
-				animation = Load.animation(ODResource.paths.traps[0])
+				animation = OD.Load.animation(OD.Resource.paths.traps[0])
 			"Gargoyle Acid Bolt Trap":
-				animation = Load.animation(ODResource.paths.traps[1])
+				animation = OD.Load.animation(OD.Resource.paths.traps[1])
 			"Robo Bolt Trigger":
-				animation = Load.animation(ODResource.paths.traps[2])
+				animation = OD.Load.animation(OD.Resource.paths.traps[2])
 			"Scalding Steam Mine":
-				animation = Load.animation(ODResource.paths.traps[3])
+				animation = OD.Load.animation(OD.Resource.paths.traps[3])
 			"Shoddy Dwarven IED":
-				animation = Load.animation(ODResource.paths.traps[4])
+				animation = OD.Load.animation(OD.Resource.paths.traps[4])
 			_:
-				Log.warn("Unhandled trap [" + item.name + "]")
+				OD.Log.warn("Unhandled trap [" + item.name + "]")
 	entity_grid.add_animation(x, y, 'trap', animation)
 	
 func possible_doors():

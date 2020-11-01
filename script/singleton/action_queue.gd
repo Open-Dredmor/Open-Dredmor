@@ -1,7 +1,5 @@
 extends Node
 
-class_name ActionQueue
-
 var _actions = []
 
 func add(action):

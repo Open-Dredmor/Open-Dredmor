@@ -5,4 +5,4 @@ class_name PlayerCharacter
 var entity_kind = 'player'
 
 func init():
-	add_child(Load.animation(ODResource.paths.player.hero.idle.down))
+	add_child(OD.Load.animation(OD.Resource.paths.player.hero.idle.down))

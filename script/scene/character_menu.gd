@@ -19,16 +19,16 @@ func _process(_delta):
 		_done_button.visible = _selected_hero != null and _character_name != null
 	if _selected_hero != null:
 		if _selected_hero == "hero":
-			Chrome.highlight(_select_hero_button)
-			Chrome.darken(_select_heroine_button)
+			OD.Chrome.highlight(_select_hero_button)
+			OD.Chrome.darken(_select_heroine_button)
 		elif _selected_hero == "heroine":
-			Chrome.highlight(_select_heroine_button)
-			Chrome.darken(_select_hero_button)
+			OD.Chrome.highlight(_select_heroine_button)
+			OD.Chrome.darken(_select_hero_button)
 	
 func _build_gui():
-	var assets = Assets.character_menu()
+	var assets = OD.Assets.character_menu()
 	var container = get_node("/root/Container")
-	container.set_size(Settings.display_size())	
+	container.set_size(OD.Settings.display_size())	
 	
 	var horizontal_container = HBoxContainer.new()
 	horizontal_container.anchor_left = 0
@@ -70,13 +70,13 @@ func _build_gui():
 	choose_hero_background.texture = assets.textures.choose_hero_background
 	hero_container.add_child(choose_hero_background)
 	
-	_select_hero_button = Chrome.highlight_on_hover_button(assets.textures.hero_portrait)
+	_select_hero_button = OD.Chrome.highlight_on_hover_button(assets.textures.hero_portrait)
 	_select_hero_button.name = "SelectHeroButton"
 	_select_hero_button.anchor_left = .265
 	_select_hero_button.anchor_top = .4
 	_select_hero_button.connect("pressed", self, "_select_hero", ['hero'])
 	choose_hero_background.add_child(_select_hero_button)
-	_select_heroine_button = Chrome.highlight_on_hover_button(assets.textures.heroine_portrait)	
+	_select_heroine_button = OD.Chrome.highlight_on_hover_button(assets.textures.heroine_portrait)	
 	_select_heroine_button.name = "SelectHeroineButton"
 	_select_heroine_button.anchor_left = .57
 	_select_heroine_button.anchor_top = .4
@@ -86,10 +86,10 @@ func _build_gui():
 	var header_background = TextureRect.new()
 	header_background.texture = assets.textures.header_background
 	header_background.stretch_mode = TextureRect.STRETCH_TILE
-	header_background.rect_size = Vector2(Settings.display_size().x, header_background.texture.get_height())
+	header_background.rect_size = Vector2(OD.Settings.display_size().x, header_background.texture.get_height())
 	container.add_child(header_background)
 	
-	var back_button = Chrome.button(assets.textures.back_button)
+	var back_button = OD.Chrome.button(assets.textures.back_button)
 	back_button.anchor_left = 0
 	back_button.anchor_top = 0
 	back_button.margin_left = 0
@@ -103,7 +103,7 @@ func _build_gui():
 	header_text.margin_left = - (header_text.texture.get_width()/2)
 	container.add_child(header_text)	
 	
-	_done_button = Chrome.button(assets.textures.done_button)
+	_done_button = OD.Chrome.button(assets.textures.done_button)
 	_done_button.anchor_left = 1
 	_done_button.anchor_top = 0
 	_done_button.margin_left = -_done_button.texture_normal.get_width()
@@ -113,16 +113,16 @@ func _build_gui():
 	container.add_child(_done_button)
 
 func _on_DoneButton_pressed():
-	Scenes.goto(Scenes.INTRO_ONE)
+	OD.Scenes.goto(OD.Scenes.INTRO_ONE)
 
 func _on_BackButton_pressed():
-	Scenes.goto(Scenes.SKILLS_MENU)
+	OD.Scenes.goto(OD.Scenes.SKILLS_MENU)
 
 func _on_NameEdit_changed(new_text):
 	_character_name = new_text
-	DungeonSettings.set_name(new_text)
+	OD.DungeonSettings.set_name(new_text)
 
 func _select_hero(selection):
 	_selected_hero = selection
-	DungeonSettings.set_hero(selection)
+	OD.DungeonSettings.set_hero(selection)
 			

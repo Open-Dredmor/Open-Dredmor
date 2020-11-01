@@ -3,7 +3,7 @@ extends Control
 static func init_container():
 	return Control.new()
 	
-var first_scene = Scenes.MAIN_MENU
+var first_scene = OD.Scenes.MAIN_MENU
 
 var _progress_label = null
 var _progress_percent = null
@@ -31,11 +31,11 @@ func _process(_delta):
 		_progress_bar.value = round(float(_stage_index + 1) / float(stages.size()) * 100)
 		_stage_index += 1		
 		if _stage_index == stages.size():
-			Scenes.goto(first_scene)			
+			OD.Scenes.goto(first_scene)			
 
 func _build_gui():
 	var container = get_node("/root/Container")
-	container.set_size(Settings.display_size())
+	container.set_size(OD.Settings.display_size())
 	
 	var columns = HBoxContainer.new()
 	columns.anchor_bottom = 1
@@ -72,26 +72,26 @@ func _preload(stage):
 		null:
 			return "Preparing audio manager"
 		"audio":
-			Audio.setup(get_tree().get_root())
+			OD.Audio.setup(get_tree().get_root())
 			return "Ingesting database files"			
 		"database":
-			Database.ingest()
+			OD.Database.ingest()
 			return "Loading main menu assets"			
 		"main_menu":
-			Assets.main_menu()
+			OD.Assets.main_menu()
 			return "Loading difficulty menu assets"
 		"difficulty_menu":
-			Assets.difficulty_menu()
+			OD.Assets.difficulty_menu()
 			return "Loading skills menu assets"
 		"skills_menu":
-			Assets.skills_menu()
+			OD.Assets.skills_menu()
 			return "Loading character_menu"
 		"character_menu":
-			Assets.character_menu()
+			OD.Assets.character_menu()
 			return "Asset preload complete" 
 		"finalize":
 			return "Asset preload complete"
 		_:
 			print("Unhandled preload stage [" + stage + "]")
-			Scenes.quit()
+			OD.Scenes.quit()
 			return null
