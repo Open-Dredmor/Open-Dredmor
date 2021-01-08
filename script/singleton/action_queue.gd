@@ -13,11 +13,14 @@ func _build_gui():
 	_update_timer.start()
 
 func _on_UpdateTimer_timeout():
-	for ii in _actions.size():
+	var ii = 0
+	while ii < _actions.size():		
 		var action = _actions[ii]
 		action.update()
 		if action.is_complete():
 			_actions.remove(ii)
+		else:
+			ii += 1
 
 func add(action):
 	_actions.append(action)
