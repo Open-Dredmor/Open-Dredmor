@@ -16,7 +16,6 @@ func init():
 	_selection.connect("animation_complete", self, "_on_selection_complete")
 
 func _on_selection_complete():
-	print("Selection animation complete")
 	_is_selecting = false
 	_selection.stop()
 	remove_child(_selection)
@@ -25,7 +24,6 @@ func _on_selection_complete():
 
 func select(_grid_x, _grid_y):
 	if not _is_selecting:
-		print("Selecting "+str(_grid_x)+" X and "+str(_grid_y)+" Y")
 		_is_selecting = true				
 		_target.stop()
 		remove_child(_target)
