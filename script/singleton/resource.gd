@@ -129,7 +129,16 @@ var paths = {
 	},
 	player = {
 		hero = {
+			move = {
+				left = "sprites/hero/hero_walk_l.spr",
+				right = "sprites/hero/hero_walk_r.spr",
+				up = "sprites/hero/hero_walk_u.spr",
+				down = "sprites/hero/hero_walk_d.spr"
+			},
 			idle = {
+				left = "sprites/hero/hero_idle_l.spr",
+				right = "sprites/hero/hero_idle_r.spr",
+				up = "sprites/hero/hero_idle_u.spr",
 				down = "sprites/hero/hero_idle_d.spr"
 			}
 		}
