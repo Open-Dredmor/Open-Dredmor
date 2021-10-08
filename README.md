@@ -4,7 +4,7 @@ A reimplementation of Dungeons of Dredmor.
 
 # Discord
 
-[Come chat about Open Dredmor](https://discord.gg/zTq9CG)
+[Come chat about Open Dredmor](https://discord.gg/6NUSCmU2fb)
 
 ## What else do I need?
 
