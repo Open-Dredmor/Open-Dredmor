@@ -12,4 +12,4 @@ A full installation of Dungeons of Dredmor is required. Open Dredmor is an engin
 
 ## I Want to Know More
 
-Check out the [WIKI](https://gitlab.com/open-dredmor/open-dredmor/-/wikis/home).
+Check out the [WIKI](https://github.com/Open-Dredmor/Open-Dredmor/wiki).
