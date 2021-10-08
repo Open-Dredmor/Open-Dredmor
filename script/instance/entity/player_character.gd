@@ -28,6 +28,20 @@ func update_animation(delta_x, delta_y):
 		last_delta_x = delta_x
 		last_delta_y = delta_y
 
+func idle():
+	remove_child(current_animation)
+	if last_delta_x != 0:
+		if last_delta_x < 0:
+			current_animation = animations.idle.left
+		else:
+			current_animation = animations.idle.right
+	elif last_delta_y !=0:
+		if last_delta_y < 0:
+			current_animation = animations.idle.up
+		else:
+			current_animation = animations.idle.down
+	add_child(current_animation)
+
 func init():
 	animations.move = {
 		left = OD.Load.animation(OD.Resource.paths.player.hero.move.left),

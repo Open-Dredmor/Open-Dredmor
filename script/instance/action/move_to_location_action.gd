@@ -24,6 +24,7 @@ func update():
 		else:
 			_entity.move_delta(0, -1)
 	else:
+		_entity.idle()
 		_action_complete = true
 	
 

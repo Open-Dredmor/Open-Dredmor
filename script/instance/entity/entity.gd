@@ -11,6 +11,9 @@ func update_position():
 func update_animation(delta_x, delta_y):
 	pass
 
+func idle():
+	pass
+
 func move_to(grid_x, grid_y):
 	_grid_position = Vector2(grid_x, grid_y)
 	update_position()
