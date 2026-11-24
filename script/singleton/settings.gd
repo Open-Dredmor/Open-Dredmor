@@ -14,6 +14,8 @@ func load():
 			config.set_value("game", "audio_enabled", true)
 		if not config.has_section_key("game","audio_volume_master_percent"):
 			config.set_value("game", "audio_volume_master_percent", 100)
+		if not config.has_section_key("game","audio_volume_sfx_percent"):
+			config.set_value("game", "audio_volume_sfx_percent", 100)
 		
 		config.save(settings_path)
 	_settings = config
@@ -112,10 +114,28 @@ func get_available_content_packs():
 	return _cached_content_packs
 	
 func audio_enabled():
+	if _settings == null:
+		return true
 	var result = _settings.get_value("game","audio_enabled")
 	if result == null:
 		return true
 	return result
+
+func master_volume_percent():
+	if _settings == null:
+		return 100
+	var result = _settings.get_value("game", "audio_volume_master_percent")
+	if result == null:
+		return 100
+	return clamp(int(result), 0, 100)
+
+func sfx_volume_percent():
+	if _settings == null:
+		return 100
+	var result = _settings.get_value("game", "audio_volume_sfx_percent")
+	if result == null:
+		return 100
+	return clamp(int(result), 0, 100)
 	
 func display_size():
 	# ProjectOD.Settings.get_setting("display/window/size/viewport_width"))

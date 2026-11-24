@@ -51,6 +51,32 @@ func audio(relative_path):
 	stream.loop = true
 	cache[relative_path] = stream
 	return stream
+
+func sfx(relative_path):
+	var cache_key = "sfx:" + relative_path
+	if cache.has(cache_key):
+		return cache[cache_key]
+	var absolute_path = resolve(relative_path)
+	if not FileAccess.file_exists(absolute_path):
+		push_warning("SFX file not found: " + absolute_path)
+		return null
+	var extension = relative_path.get_extension().to_lower()
+	var stream = null
+	match extension:
+		"wav":
+			stream = AudioStreamWAV.load_from_file(absolute_path)
+		"ogg":
+			stream = AudioStreamOggVorbis.load_from_file(absolute_path)
+			if stream != null:
+				stream.loop = false
+		_:
+			push_warning("Unsupported SFX format [" + extension + "] for " + relative_path)
+			return null
+	if stream == null:
+		push_warning("Failed to load SFX: " + absolute_path)
+		return null
+	cache[cache_key] = stream
+	return stream
 	
 func xml(relative_path):	
 	var absolute_path = resolve(relative_path)

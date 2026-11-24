@@ -24,7 +24,7 @@ Foundational work to reliably validate the user's *Dungeons of Dredmor* installa
   - *Current state*: Commented-out stub in [script/scene/sprite_test.gd](../script/scene/sprite_test.gd).
   - *Done when*: `OD.Load` can parse `.pal` files and apply palette swaps to `.spr` sprites (needed for monster/hero variants).
 
-- [ ] **Sound effects (SFX) loader & player**
+- [x] **Sound effects (SFX) loader & player**
   - *Current state*: [script/singleton/audio.gd](../script/singleton/audio.gd) only plays a single looping music `AudioStreamPlayer`; `soundfx.xml` is ingested but unused.
   - *Done when*: `OD.Database` indexes `soundfx.xml` by cue name, `OD.Load` loads WAV/OGG SFX from the install dir, and `OD.Audio` provides a pooled `play_sfx(cue_name)` respecting SFX volume and audio-enabled settings.
 

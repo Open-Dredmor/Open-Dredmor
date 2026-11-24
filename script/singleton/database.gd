@@ -122,6 +122,7 @@ func set_active_packs(pack_ids = []):
 	_build_loot_info()
 	_build_craft_info()
 	_build_monster_info()
+	_build_sound_info()
 
 func get_available_packs():
 	return OD.Settings.get_available_content_packs()
@@ -335,3 +336,29 @@ func _build_craft_info():
 				ledger.list.append(input.name)
 	cache_result('component_list', components.list)
 	cache_result('reagent_list', reagents.list)
+
+func _build_sound_info():
+	var sounds = {}
+	if cache.sound_db.has("sounds"):
+		var sound_blocks = OD.DataStructure.arrayify(cache.sound_db.sounds)
+		for block in sound_blocks:
+			if typeof(block) == TYPE_DICTIONARY and block.has("sound"):
+				var entries = OD.DataStructure.arrayify(block.sound)
+				for entry in entries:
+					if typeof(entry) == TYPE_DICTIONARY and entry.has("name") and entry.has("wave"):
+						sounds[entry.name] = entry.wave
+	cache_result("sound_info", sounds)
+
+func get_sound_path(cue_name):
+	if result_cache == null or not result_cache.has("sound_info"):
+		return null
+	if result_cache["sound_info"].has(cue_name):
+		return result_cache["sound_info"][cue_name]
+	return null
+
+func get_sound_cues():
+	if result_cache == null or not result_cache.has("sound_info"):
+		return []
+	var cues = result_cache["sound_info"].keys()
+	cues.sort()
+	return cues
