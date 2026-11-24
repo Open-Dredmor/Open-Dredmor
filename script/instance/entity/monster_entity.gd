@@ -211,9 +211,22 @@ func apply_buff(buff_def, source_spell = ""):
 		name = buff_name,
 		use_timer = use_timer,
 		remaining_turns = max(1, duration) if use_timer else -1,
+		brittle_remaining = int(buff_def.get("brittle", 0)),
 		raw = buff_def
 	})
 	return true
+
+func on_hit_received():
+	var ii = 0
+	while ii < active_buffs.size():
+		var brit = int(active_buffs[ii].get("brittle_remaining", 0))
+		if brit > 0:
+			brit -= 1
+			active_buffs[ii]["brittle_remaining"] = brit
+			if brit <= 0:
+				active_buffs.remove_at(ii)
+				continue
+		ii += 1
 
 func set_status_flag(flag_name, turns):
 	var key = str(flag_name)

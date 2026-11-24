@@ -10,6 +10,7 @@ signal leveled_up(new_level, skill_points_available)
 signal skills_changed
 signal skill_unlocked(skill_id, level_entry)
 signal zorkmids_changed(amount)
+signal buffs_changed
 
 const PRIMARY_STAT_KEYS = [
 	"burliness",
@@ -626,7 +627,25 @@ func remove_buff_by_name(buff_name):
 			ii += 1
 	if removed:
 		recalculate_stats()
+		buffs_changed.emit()
 	return removed
+
+func dismiss_buff(buff_name):
+	var target_name = str(buff_name)
+	for buff in active_buffs:
+		if str(buff.get("name", "")) == target_name:
+			if bool(buff.get("removable", false)) and not bool(buff.get("bad", false)):
+				return remove_buff_by_name(target_name)
+			return false
+	return false
+
+func _extract_buff_array(buff_def, lower_key, camel_key):
+	var items = []
+	if buff_def.has(lower_key):
+		items.append_array(OD.DataStructure.arrayify(buff_def.get(lower_key)))
+	if buff_def.has(camel_key):
+		items.append_array(OD.DataStructure.arrayify(buff_def.get(camel_key)))
+	return items
 
 func apply_buff(buff_def, source_spell = ""):
 	if buff_def == null or typeof(buff_def) != TYPE_DICTIONARY:
@@ -636,9 +655,11 @@ func apply_buff(buff_def, source_spell = ""):
 	var use_timer = int(buff_def.get("useTimer", buff_def.get("usetimer", 1 if duration > 0 else 0))) == 1
 	var allow_stack = int(buff_def.get("allowstacking", buff_def.get("allowStacking", buff_def.get("stackable", 0)))) == 1
 	var max_stacks = max(1, int(buff_def.get("stacksize", 1)))
+	var brittle_count = int(buff_def.get("brittle", 0))
+	var attacks_count = int(buff_def.get("attacks", 0))
 
 	var primary_b = {}
-	for p_item in OD.DataStructure.arrayify(buff_def.get("primarybuff", [])):
+	for p_item in _extract_buff_array(buff_def, "primarybuff", "primaryBuff"):
 		if typeof(p_item) == TYPE_DICTIONARY and p_item.has("id"):
 			var idx = int(p_item.id)
 			if idx >= 0 and idx < PRIMARY_STAT_KEYS.size():
@@ -646,26 +667,50 @@ func apply_buff(buff_def, source_spell = ""):
 				primary_b[key] = int(primary_b.get(key, 0)) + int(p_item.get("amount", 0))
 
 	var secondary_b = {}
-	for s_item in OD.DataStructure.arrayify(buff_def.get("secondarybuff", [])):
+	for s_item in _extract_buff_array(buff_def, "secondarybuff", "secondaryBuff"):
 		if typeof(s_item) == TYPE_DICTIONARY and s_item.has("id"):
 			var sec_id = int(s_item.id)
 			if SECONDARY_STAT_BY_ID.has(sec_id):
 				var key = SECONDARY_STAT_BY_ID[sec_id]
 				secondary_b[key] = int(secondary_b.get(key, 0)) + int(s_item.get("amount", 0))
 
+	for sight_item in OD.DataStructure.arrayify(buff_def.get("sightbuff", [])):
+		if typeof(sight_item) == TYPE_DICTIONARY and sight_item.has("amount"):
+			secondary_b["visual_sight_radius"] = int(secondary_b.get("visual_sight_radius", 0)) + int(sight_item.amount)
+
 	var resist_b = {}
-	for r_item in OD.DataStructure.arrayify(buff_def.get("resistbuff", [])):
+	for r_item in _extract_buff_array(buff_def, "resistbuff", "resistBuff"):
 		if typeof(r_item) == TYPE_DICTIONARY:
 			for dmg_type in DAMAGE_TYPES:
 				if r_item.has(dmg_type):
 					resist_b[dmg_type] = int(resist_b.get(dmg_type, 0)) + int(r_item[dmg_type])
 
 	var damage_b = {}
-	for d_item in OD.DataStructure.arrayify(buff_def.get("damagebuff", [])):
+	for d_item in _extract_buff_array(buff_def, "damagebuff", "damageBuff"):
 		if typeof(d_item) == TYPE_DICTIONARY:
 			for dmg_type in DAMAGE_TYPES:
 				if d_item.has(dmg_type):
 					damage_b[dmg_type] = int(damage_b.get(dmg_type, 0)) + int(d_item[dmg_type])
+
+	var target_hit_procs = []
+	for th_item in OD.DataStructure.arrayify(buff_def.get("targetHitEffectBuff", [])):
+		if typeof(th_item) == TYPE_DICTIONARY and th_item.has("name"):
+			target_hit_procs.append({
+				name = str(th_item.name),
+				percentage = int(th_item.get("percentage", 100))
+			})
+
+	var player_hit_procs = []
+	for ph_item in OD.DataStructure.arrayify(buff_def.get("playerHitEffectBuff", [])):
+		if typeof(ph_item) == TYPE_DICTIONARY and ph_item.has("name"):
+			player_hit_procs.append({
+				name = str(ph_item.name),
+				percentage = int(ph_item.get("percentage", 100))
+			})
+
+	var desc_text = ""
+	if buff_def.has("description") and typeof(buff_def.description) == TYPE_DICTIONARY and buff_def.description.has("text"):
+		desc_text = str(buff_def.description.text)
 
 	for existing in active_buffs:
 		if str(existing.get("name", "")) == buff_name:
@@ -673,25 +718,101 @@ func apply_buff(buff_def, source_spell = ""):
 				existing["stacks"] = int(existing.get("stacks", 1)) + 1
 			if use_timer:
 				existing["remaining_turns"] = max(1, duration)
+			if brittle_count > 0:
+				existing["brittle_remaining"] = brittle_count
+			if attacks_count > 0:
+				existing["attacks_remaining"] = attacks_count
 			recalculate_stats()
+			buffs_changed.emit()
 			return true
 
 	active_buffs.append({
 		name = buff_name,
+		description = desc_text,
 		icon = str(buff_def.get("smallicon", buff_def.get("icon", ""))),
+		large_icon = str(buff_def.get("icon", "")),
 		bad = int(buff_def.get("bad", 0)) == 1,
+		removable = int(buff_def.get("removable", 0)) == 1,
+		destroy_on_move = int(buff_def.get("destroyonmove", 0)) == 1,
 		use_timer = use_timer,
 		remaining_turns = max(1, duration) if use_timer else -1,
+		brittle_remaining = brittle_count,
+		attacks_remaining = attacks_count,
 		stacks = 1,
 		mana_upkeep = int(buff_def.get("manaUpkeep", buff_def.get("manaupkeep", 0))),
+		zorkmid_upkeep = int(buff_def.get("zorkmidUpkeep", 0)),
 		primary_bonuses = primary_b,
 		secondary_bonuses = secondary_b,
 		resist_bonuses = resist_b,
 		damage_bonuses = damage_b,
+		target_hit_procs = target_hit_procs,
+		player_hit_procs = player_hit_procs,
 		raw = buff_def
 	})
 	recalculate_stats()
+	buffs_changed.emit()
 	return true
+
+func on_attack_performed():
+	var procs = []
+	var changed = false
+	var ii = 0
+	while ii < active_buffs.size():
+		var buff = active_buffs[ii]
+		for proc in buff.get("target_hit_procs", []):
+			var pct = clamp(int(proc.get("percentage", 100)), 0, 100)
+			if pct >= 100 or (randi() % 100) < pct:
+				procs.append(str(proc.name))
+		var atk_rem = int(buff.get("attacks_remaining", 0))
+		if atk_rem > 0:
+			atk_rem -= 1
+			buff["attacks_remaining"] = atk_rem
+			changed = true
+			if atk_rem <= 0:
+				active_buffs.remove_at(ii)
+				continue
+		ii += 1
+	if changed:
+		recalculate_stats()
+		buffs_changed.emit()
+	return procs
+
+func on_hit_received():
+	var procs = []
+	var changed = false
+	var ii = 0
+	while ii < active_buffs.size():
+		var buff = active_buffs[ii]
+		for proc in buff.get("player_hit_procs", []):
+			var pct = clamp(int(proc.get("percentage", 100)), 0, 100)
+			if pct >= 100 or (randi() % 100) < pct:
+				procs.append(str(proc.name))
+		var brit_rem = int(buff.get("brittle_remaining", 0))
+		if brit_rem > 0:
+			brit_rem -= 1
+			buff["brittle_remaining"] = brit_rem
+			changed = true
+			if brit_rem <= 0:
+				active_buffs.remove_at(ii)
+				continue
+		ii += 1
+	if changed:
+		recalculate_stats()
+		buffs_changed.emit()
+	return procs
+
+func on_moved():
+	var changed = false
+	var ii = 0
+	while ii < active_buffs.size():
+		if bool(active_buffs[ii].get("destroy_on_move", false)):
+			active_buffs.remove_at(ii)
+			changed = true
+		else:
+			ii += 1
+	if changed:
+		recalculate_stats()
+		buffs_changed.emit()
 
 func set_status_flag(flag_name, turns):
 	var key = str(flag_name)
@@ -700,14 +821,22 @@ func set_status_flag(flag_name, turns):
 		status_flags.erase(key)
 	else:
 		status_flags[key] = max(int(status_flags.get(key, 0)), count)
+	buffs_changed.emit()
 
 func has_status_flag(flag_name):
 	return int(status_flags.get(str(flag_name), 0)) > 0
+
+func get_status_flags():
+	return status_flags.duplicate()
+
+func get_active_dots():
+	return active_dots.duplicate(true)
 
 func apply_dot(dot_def):
 	if dot_def == null or typeof(dot_def) != TYPE_DICTIONARY:
 		return
 	active_dots.append(dot_def.duplicate(true))
+	buffs_changed.emit()
 
 func tick_status_effects():
 	var ticked = 0
@@ -720,6 +849,14 @@ func tick_status_effects():
 		if upkeep > 0:
 			if mp >= upkeep:
 				modify_mp(-upkeep)
+			else:
+				active_buffs.remove_at(ii)
+				buff_changed = true
+				continue
+		var z_upkeep = int(buff.get("zorkmid_upkeep", 0))
+		if z_upkeep > 0:
+			if get_zorkmids() >= z_upkeep:
+				add_zorkmids(-z_upkeep)
 			else:
 				active_buffs.remove_at(ii)
 				buff_changed = true
@@ -751,4 +888,6 @@ func tick_status_effects():
 			active_dots.remove_at(jj)
 		else:
 			jj += 1
+	if ticked > 0 or buff_changed:
+		buffs_changed.emit()
 	return ticked

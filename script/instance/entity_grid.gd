@@ -855,6 +855,10 @@ func _get_player_sight_radius():
 	return 8
 
 func on_player_step(player_pos):
+	if layers.lookup.has("actors"):
+		for actor in layers.lookup["actors"].get_children():
+			if actor.get("entity_kind") == "player" and actor.has_method("on_moved"):
+				actor.on_moved()
 	evaluate_scripts(player_pos)
 	update_trap_visibility(player_pos)
 	update_fov(player_pos, _get_player_sight_radius())

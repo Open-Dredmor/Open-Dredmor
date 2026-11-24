@@ -1,6 +1,7 @@
 extends Node2D
 
 const SpellHotbarScript = preload("res://script/instance/ui/spell_hotbar.gd")
+const BuffBarScript = preload("res://script/instance/ui/buff_bar.gd")
 
 static func init_container():
 	return Node2D.new()
@@ -10,6 +11,7 @@ var _dungeon = null
 var _floor_label = null
 var _turn_label = null
 var _spell_hotbar = null
+var _buff_bar = null
 
 func _ready():
 	call_deferred("_build_ui")
@@ -73,6 +75,8 @@ func _build_ui():
 	hud_layer.add_child(_turn_label)
 	_spell_hotbar = SpellHotbarScript.new().init(_dungeon)
 	hud_layer.add_child(_spell_hotbar)
+	_buff_bar = BuffBarScript.new().init(_dungeon.get_player())
+	hud_layer.add_child(_buff_bar)
 	_dungeon.floor_changed.connect(_on_floor_changed)
 	_dungeon.get_turn_scheduler().turn_started.connect(_on_turn_started)
 	_dungeon.get_turn_scheduler().turn_completed.connect(_on_turn_completed)

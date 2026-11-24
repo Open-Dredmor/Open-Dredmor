@@ -161,6 +161,15 @@ func _resolve_player_attack(target, target_cell, options = {}):
 	if res.blocked:
 		tag_suffix += " (Blocked)"
 	_spawn_floating_text(target_cell, "-" + str(res.total_damage) + tag_suffix, Color(1.0, 0.85, 0.25))
+	if target.has_method("on_hit_received"):
+		target.on_hit_received()
+	if _player.has_method("on_attack_performed"):
+		for proc_spell in _player.on_attack_performed():
+			SpellEngineScript.execute_spell(proc_spell, _player, target_cell, {
+				entity_grid = _entity_grid,
+				dungeon = self,
+				free_cast = true
+			})
 	if res.ammo_recovered and _entity_grid != null and attack_opts.has("ammo_item"):
 		_entity_grid.add_loot_item(target_cell.x, target_cell.y, attack_opts.ammo_item)
 	if target.hp <= 0:
@@ -172,6 +181,7 @@ func _resolve_player_attack(target, target_cell, options = {}):
 			_player.modify_hp(-counter_res.total_damage)
 			var p_cell = Vector2i(int(player_pos.x), int(player_pos.y))
 			_spawn_floating_text(p_cell, "Counter! -" + str(counter_res.total_damage), Color(1.0, 0.3, 0.3))
+			_trigger_player_hit_procs(target_cell)
 	return true
 
 func execute_ranged_attack(target_cell, options = {}):
@@ -693,9 +703,20 @@ func _seed_player_bag():
 func _on_shop_alert(message, grid_pos, color):
 	_spawn_floating_text(grid_pos, message, color)
 
+func _trigger_player_hit_procs(attacker_cell):
+	if _player == null or not _player.has_method("on_hit_received"):
+		return
+	for proc_spell in _player.on_hit_received():
+		SpellEngineScript.execute_spell(proc_spell, _player, attacker_cell, {
+			entity_grid = _entity_grid,
+			dungeon = self,
+			free_cast = true
+		})
+
 func _on_hostile_attack(attacker_name, damage, grid_pos):
 	_turn_scheduler.cancel_auto_actions()
 	_spawn_floating_text(grid_pos, attacker_name + " hits -" + str(damage), Color(1.0, 0.2, 0.2))
+	_trigger_player_hit_procs(grid_pos)
 
 func _handle_shopkeeper_interaction(keeper, pos):
 	if keeper.is_hostile:

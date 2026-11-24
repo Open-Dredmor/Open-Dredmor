@@ -20,7 +20,7 @@ Player stats, skill tree progression, melee/ranged combat, `spellDB` effects, st
   - *Current state*: None.
   - *Done when*: Spells can be cast from hotbar/menu with mana cost and cooldowns; targeting supports self, single target, beam, cone, template/AOE, missile, and mine; core `spellDB` effects (damage, heal, buff, DoT, summon, knockback, dig, teleport, polymorph, etc.) execute accurately.
 
-- [ ] **Buffs, Debuffs & Status Effects**
+- [x] **Buffs, Debuffs & Status Effects**
   - *Current state*: None.
   - *Done when*: Timed buffs/debuffs, brittle/on-hit procs, and DoTs tick per turn, modify stats dynamically, and display active icons/durations.
 
