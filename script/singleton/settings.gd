@@ -32,6 +32,8 @@ func load():
 			config.set_value("game", "audio_volume_sfx_percent", 100)
 		if not config.has_section_key("game", "audio_volume_dialogue_percent"):
 			config.set_value("game", "audio_volume_dialogue_percent", 100)
+		if not config.has_section_key("game", "game_speed"):
+			config.set_value("game", "game_speed", 1.0)
 		if not config.has_section_key("display", "fullscreen"):
 			config.set_value("display", "fullscreen", false)
 		for action_name in DEFAULT_KEYBINDS.keys():
@@ -47,6 +49,17 @@ func change(section, key, value):
 	_settings.save(settings_path)
 	cached_install_dir = null
 	_cached_content_packs = null
+
+func get_game_speed():
+	if _settings == null:
+		return 1.0
+	return clamp(float(_settings.get_value("game", "game_speed", 1.0)), 0.25, 20.0)
+
+func set_game_speed(speed_multiplier):
+	var clamped = clamp(float(speed_multiplier), 0.25, 20.0)
+	if _settings != null:
+		change("game", "game_speed", clamped)
+	return clamped
 
 var cached_install_dir = null
 var _cached_content_packs = null

@@ -81,7 +81,7 @@ func execute(context):
 		var action = OD.Actions.MoveToLocation.new()
 		action.init(target_actor, destination, entity_grid)
 		OD.ActionQueue.add(action)
-		return { executed = true, consumes_turn = true, message = "" }
+		return { executed = true, consumes_turn = false, starts_action_queue = true, message = "" }
 	return { executed = false, consumes_turn = false, message = "" }
 
 func to_dict():

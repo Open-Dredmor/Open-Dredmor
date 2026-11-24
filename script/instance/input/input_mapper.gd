@@ -46,12 +46,12 @@ func translate_camera_input(ev):
 	if ev is InputEventMouseButton:
 		if ev.button_index == MOUSE_BUTTON_LEFT:
 			return { kind = "drag", pressed = ev.pressed, position = ev.position }
-		if ev.pressed and ev.button_index == MOUSE_BUTTON_WHEEL_UP:
-			return { kind = "zoom", factor = 1.15 }
-		if ev.pressed and ev.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			return { kind = "zoom", factor = 1.0 / 1.15 }
-		if ev.pressed and ev.button_index == MOUSE_BUTTON_MIDDLE:
-			return { kind = "reset_zoom" }
+		if ev.button_index == MOUSE_BUTTON_WHEEL_UP:
+			return { kind = "zoom", factor = 1.15 } if ev.pressed else { kind = "ignore" }
+		if ev.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			return { kind = "zoom", factor = 1.0 / 1.15 } if ev.pressed else { kind = "ignore" }
+		if ev.button_index == MOUSE_BUTTON_MIDDLE:
+			return { kind = "reset_zoom" } if ev.pressed else { kind = "ignore" }
 	if ev is InputEventMouseMotion:
 		return { kind = "drag_motion", position = ev.position }
 	return null

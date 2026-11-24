@@ -10,6 +10,7 @@ var trigger_mode = "once"
 var is_discovered = false
 var is_disarmed = false
 var is_triggered = false
+var cooldown_turns = 0
 
 var _animation = null
 
@@ -53,11 +54,23 @@ func step_on():
 	OD.Audio.play_sfx("click")
 	if trigger_mode == "once":
 		is_disarmed = true
+	else:
+		cooldown_turns = 1
 	return {
 		trap_name = trap_name,
 		casts_spell = casts_spell,
 		trigger_mode = trigger_mode
 	}
+
+func tick_turn():
+	if is_disarmed:
+		return false
+	if cooldown_turns > 0:
+		cooldown_turns -= 1
+		if cooldown_turns <= 0 and trigger_mode != "once":
+			is_triggered = false
+		return true
+	return false
 
 func attempt_disarm(trap_affinity = 1):
 	if is_disarmed:

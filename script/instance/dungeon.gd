@@ -7,6 +7,7 @@ const ShopDialogScript = preload("res://script/instance/ui/shop_dialog.gd")
 const PocketDimensionScript = preload("res://script/instance/room_placement/pocket_dimension.gd")
 const CommandProcessorScript = preload("res://script/instance/command/command_processor.gd")
 const InputMapperScript = preload("res://script/instance/input/input_mapper.gd")
+const TurnSchedulerScript = preload("res://script/instance/turn/turn_scheduler.gd")
 
 signal floor_changed(floor_level, branch_name)
 
@@ -37,12 +38,16 @@ var _pocket_dimensions = {}
 var _saved_main_return_cell = null
 var _command_processor = CommandProcessorScript.new()
 var _input_mapper = InputMapperScript.new()
+var _turn_scheduler = TurnSchedulerScript.new()
 
 func get_command_processor():
 	return _command_processor
 
 func get_input_mapper():
 	return _input_mapper
+
+func get_turn_scheduler():
+	return _turn_scheduler
 
 func clear_pending_interaction():
 	_pending_interaction = null
@@ -61,7 +66,7 @@ func _build_command_context():
 	}
 
 func submit_command(command):
-	return _command_processor.submit(command, _build_command_context())
+	return _turn_scheduler.submit_command(command, _build_command_context())
 
 func execute_interact_command(command):
 	var kind = command.interaction_kind
@@ -128,6 +133,11 @@ func handle_dungeon_input(ev):
 			var grid_coords = global_coordinates_to_grid(ev.position.x, ev.position.y)
 			_entity_grid.move(grid_coords.x, grid_coords.y, _target_cursor)
 		return
+	if _turn_scheduler.is_auto_stepping() and ((ev is InputEventKey and ev.is_pressed() and not ev.echo) or (ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and not ev.pressed)):
+		_turn_scheduler.cancel_auto_actions()
+		return
+	if _turn_scheduler.is_busy():
+		return
 	var command = _input_mapper.translate_dungeon_input(ev, _build_command_context())
 	if command != null:
 		submit_command(command)
@@ -159,22 +169,24 @@ func _interact_or_approach(interaction):
 		return
 	_pending_interaction = interaction
 	_target_cursor.select(interaction.target_pos.x, interaction.target_pos.y)
-	OD.ActionQueue.clear()
+	_turn_scheduler.cancel_auto_actions()
 	var action = OD.Actions.MoveToLocation.new()
 	action.init(_player, dest_cell, _entity_grid)
 	action.completed.connect(_on_approach_completed)
 	OD.ActionQueue.add(action)
+	_turn_scheduler.start_queued_actions(_build_command_context())
 
 func _move_to_stairs(stairs_cell, direction):
 	if not _entity_grid.is_walkable(stairs_cell.x, stairs_cell.y):
 		return
 	_pending_interaction = { kind = "stairs", target_pos = stairs_cell, direction = direction }
 	_target_cursor.select(stairs_cell.x, stairs_cell.y)
-	OD.ActionQueue.clear()
+	_turn_scheduler.cancel_auto_actions()
 	var action = OD.Actions.MoveToLocation.new()
 	action.init(_player, stairs_cell, _entity_grid)
 	action.completed.connect(_on_approach_completed)
 	OD.ActionQueue.add(action)
+	_turn_scheduler.start_queued_actions(_build_command_context())
 
 func _on_approach_completed(reached):
 	if not reached or _pending_interaction == null:
@@ -245,7 +257,7 @@ func _change_floor(direction):
 		_spawn_floating_text(pos, "The exit is blocked.", Color(0.9, 0.7, 0.5))
 		return
 	_pending_interaction = null
-	OD.ActionQueue.clear()
+	_turn_scheduler.cancel_auto_actions()
 	_close_element_dialog()
 	if _player.get_parent() != null:
 		_player.get_parent().remove_child(_player)
@@ -282,6 +294,9 @@ func get_player_global_position():
 	return null
 
 func _build_ui():
+	_turn_scheduler.init(_command_processor, OD.DungeonSettings.get_settings().get("base_turn_seconds", 0.24))
+	if _turn_scheduler.get_parent() == null:
+		add_child(_turn_scheduler)
 	_player = PlayerCharacter.new()
 	_player.init()
 	_target_cursor = TargetCursor.new()
@@ -298,6 +313,7 @@ func _build_ui():
 	floor_changed.emit(_floor_level, _branch_name)
 
 func _on_trap_triggered(trap_result, grid_pos):
+	_turn_scheduler.cancel_auto_actions()
 	_spawn_spell_vfx(trap_result.casts_spell, grid_pos)
 	_spawn_floating_text(grid_pos, trap_result.trap_name + "!", Color(1.0, 0.35, 0.25))
 
@@ -306,7 +322,7 @@ func _on_teleporter_stepped(teleporter_info, _grid_pos):
 		return
 	var dest = teleporter_info.target_cell
 	_pending_interaction = null
-	OD.ActionQueue.clear()
+	_turn_scheduler.cancel_auto_actions()
 	_player.move_to(dest.x, dest.y)
 	_player.idle()
 	_target_cursor.select(dest.x, dest.y)
@@ -316,7 +332,7 @@ func _on_teleporter_stepped(teleporter_info, _grid_pos):
 
 func _toggle_pocket_dimension(_portal_pos):
 	_pending_interaction = null
-	OD.ActionQueue.clear()
+	_turn_scheduler.cancel_auto_actions()
 	_close_element_dialog()
 	if _player.get_parent() != null:
 		_player.get_parent().remove_child(_player)
@@ -467,6 +483,7 @@ func _on_shop_alert(message, grid_pos, color):
 	_spawn_floating_text(grid_pos, message, color)
 
 func _on_hostile_attack(attacker_name, damage, grid_pos):
+	_turn_scheduler.cancel_auto_actions()
 	_spawn_floating_text(grid_pos, attacker_name + " hits -" + str(damage), Color(1.0, 0.2, 0.2))
 
 func _handle_shopkeeper_interaction(keeper, pos):

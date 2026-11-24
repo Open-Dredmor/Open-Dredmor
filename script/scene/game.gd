@@ -6,6 +6,7 @@ static func init_container():
 var moveable_container
 var _dungeon = null
 var _floor_label = null
+var _turn_label = null
 
 func _ready():
 	call_deferred("_build_ui")
@@ -58,7 +59,17 @@ func _build_ui():
 	_floor_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	_floor_label.text = "Floor " + str(_dungeon.get_floor_level()) + " - " + _dungeon.get_branch_name()
 	hud_layer.add_child(_floor_label)
+	_turn_label = Label.new()
+	_turn_label.position = Vector2(16, 38)
+	_turn_label.add_theme_font_override("font", OD.Assets.dialog().font)
+	_turn_label.add_theme_font_size_override("font_size", 16)
+	_turn_label.add_theme_color_override("font_color", Color(0.85, 0.85, 0.9))
+	_turn_label.add_theme_constant_override("outline_size", 2)
+	_turn_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	_turn_label.text = "Turn 0"
+	hud_layer.add_child(_turn_label)
 	_dungeon.floor_changed.connect(_on_floor_changed)
+	_dungeon.get_turn_scheduler().turn_completed.connect(_on_turn_completed)
 	call_deferred("_center_on_player")
 	
 	OD.Audio.play(assets.music.default)
@@ -76,6 +87,10 @@ func _on_floor_changed(floor_level, branch_name):
 	if is_instance_valid(_floor_label):
 		_floor_label.text = "Floor " + str(floor_level) + " - " + branch_name
 	call_deferred("_center_on_player")
+
+func _on_turn_completed(turn_number, _summary):
+	if is_instance_valid(_turn_label):
+		_turn_label.text = "Turn " + str(turn_number)
 
 func _dev_seed():
 	OD.Audio.setup(get_tree().get_root())
@@ -141,6 +156,8 @@ func _input(ev):
 				return
 			"reset_zoom":
 				_reset_zoom()
+				return
+			"ignore":
 				return
 	_dungeon.handle_dungeon_input(ev)
 

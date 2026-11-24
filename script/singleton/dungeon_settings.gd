@@ -25,6 +25,8 @@ func reset():
 		player_start_x = 4,
 		player_start_y = 6,
 		seconds_per_action = .5,
+		base_turn_seconds = 0.5,
+		turn_pacing_seconds = 0.12,
 		active_packs = default_packs,
 		debug_teleport = false
 	}

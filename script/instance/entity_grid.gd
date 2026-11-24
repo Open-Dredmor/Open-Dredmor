@@ -587,10 +587,22 @@ func on_player_step(player_pos):
 	trigger_trap_at(player_pos)
 	if shop_manager != null:
 		shop_manager.on_player_moved(player_pos, self)
-		shop_manager.step_hostile_actors(self, player_pos)
 	var teleporter = get_teleporter_at(player_pos.x, player_pos.y)
 	if teleporter != null:
 		teleporter_stepped.emit(teleporter, Vector2i(int(player_pos.x), int(player_pos.y)))
+
+func step_monsters(player_pos):
+	if shop_manager != null:
+		shop_manager.step_hostile_actors(self, player_pos)
+		return 1
+	return 0
+
+func tick_traps():
+	var ticked = 0
+	for trap in _traps_by_cell.values():
+		if is_instance_valid(trap) and trap.tick_turn():
+			ticked += 1
+	return ticked
 
 func get_trap_at(grid_x, grid_y):
 	var cell_key = Vector2i(int(grid_x), int(grid_y))

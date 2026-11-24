@@ -8,7 +8,7 @@ Command decoupling, roguelike turn scheduling, grid collision/pathfinding, camer
   - *Current state*: [script/instance/dungeon.gd](../script/instance/dungeon.gd) (`_input`) and [script/scene/game.gd](../script/scene/game.gd) (`_input`) directly mutate positions or instantiate `MoveToLocationAction` inside input handlers.
   - *Done when*: Player actions are represented as discrete Command objects/interfaces (e.g., `MoveCommand`, `AttackCommand`, `InteractCommand`, `CastSpellCommand`, `UseItemCommand`, `WaitCommand`), and an InputMapper translates keyboard/mouse/UI events into commands—allowing rebindable keys, click-to-act, and non-input sources (AI/macros/tests) to drive the same command pipeline.
 
-- [ ] **True roguelike turn scheduler**
+- [x] **True roguelike turn scheduler**
   - *Current state*: [script/singleton/action_queue.gd](../script/singleton/action_queue.gd) runs a real-time 0.5s `Timer` that ticks queued actions continuously.
   - *Done when*: Gameplay is strictly turn-based: a resolved player command advances 1 turn, then all active monsters, traps, cooldowns, regen, and status effects advance by 1 turn, with smooth animation pacing before accepting the next player turn.
 
