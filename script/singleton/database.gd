@@ -182,6 +182,7 @@ func character_creation_skill_list():
 			result.append({
 				name = skill.name,
 				description = skill.description,
+				type = skill.type if skill.has("type") else "",
 				icon = OD.Load.image(skill.art.icon),
 				id = skill.id,				
 				index = skill_index

@@ -136,6 +136,17 @@ func sfx_volume_percent():
 	if result == null:
 		return 100
 	return clamp(int(result), 0, 100)
+
+func last_selected_skill_ids():
+	if _settings == null:
+		return []
+	var result = _settings.get_value("game", "last_selected_skill_ids", [])
+	if typeof(result) != TYPE_ARRAY:
+		return []
+	return result
+
+func set_last_selected_skill_ids(skill_ids):
+	change("game", "last_selected_skill_ids", skill_ids.duplicate())
 	
 func display_size():
 	# ProjectOD.Settings.get_setting("display/window/size/viewport_width"))

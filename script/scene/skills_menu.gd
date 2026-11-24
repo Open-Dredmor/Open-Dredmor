@@ -105,7 +105,16 @@ func _build_gui():
 	random_selection_button.pressed.connect(_on_RandomSelectionButton_pressed)
 	random_selection_button.mouse_entered.connect(_describe_skill.bind("_random"))
 	random_selection_button.mouse_exited.connect(_describe_skill.bind(null))
-	selected_skills_background.add_child(random_selection_button)				
+	selected_skills_background.add_child(random_selection_button)
+
+	var last_selection_button = OD.Chrome.button(assets.textures.last_selection_button)
+	last_selection_button.anchor_left = 0.935
+	last_selection_button.anchor_top = 0.55
+	last_selection_button.pressed.connect(_on_LastSelectionButton_pressed)
+	last_selection_button.mouse_entered.connect(_describe_skill.bind("_last"))
+	last_selection_button.mouse_exited.connect(_describe_skill.bind(null))
+	last_selection_button.disabled = OD.Settings.last_selected_skill_ids().is_empty()
+	selected_skills_background.add_child(last_selection_button)
 	
 	var selected_skill_info_background = TextureRect.new()
 	selected_skill_info_background.texture = assets.textures.selected_skill_info_background
@@ -178,8 +187,12 @@ func _describe_skill(skill):
 	elif typeof(skill) == TYPE_STRING and skill == "_random":
 		_info_header.text = "Random Skills"
 		_info_details.text = "You start the game with seven skills chosen, excitingly, at random."
+	elif typeof(skill) == TYPE_STRING and skill == "_last":
+		_info_header.text = "Last Selection"
+		_info_details.text = "Select the same seven skills you used in your previous game."
 	else:
-		_info_header.text = skill.name
+		var archetype = skill.type.capitalize() + " Skill" if skill.has("type") and skill.type != "" else ""
+		_info_header.text = skill.name + ("\n[" + archetype + "]" if archetype != "" else "")
 		_info_details.text = skill.description
 
 func _select_skill(skill):
@@ -207,22 +220,36 @@ func _select_skill(skill):
 			selected_skills_container.add_child(selected_skill_button)
 
 func _on_DoneButton_pressed():
-	OD.DungeonSettings.set_starting_skill_ids(_selected_skills.keys())
+	var selected_ids = _selected_skills.keys()
+	OD.DungeonSettings.set_starting_skill_ids(selected_ids)
+	OD.Settings.set_last_selected_skill_ids(selected_ids)
 	OD.Scenes.goto(OD.Scenes.CHARACTER_MENU)
 
 func _on_BackButton_pressed():
 	OD.DungeonSettings.set_starting_skill_ids(_selected_skills.keys())
 	OD.Scenes.goto(OD.Scenes.DIFFICULTY_MENU)
 
-func _on_RandomSelectionButton_pressed():
+func _clear_selected_skills():
 	for key in _highlighted_panel_buttons.keys():
 		OD.Chrome.darken(_highlighted_panel_buttons[key])
 		_highlighted_panel_buttons.erase(key)
 	_remove_selected_skill_buttons()
 	_selected_skills = {}
+
+func _on_RandomSelectionButton_pressed():
+	_clear_selected_skills()
 	var random_skills = OD.DataStructure.choose(_skills, MAX_SKILL_SELECTION)
 	for skill in random_skills:
 		_select_skill(skill)
+
+func _on_LastSelectionButton_pressed():
+	var last_ids = OD.Settings.last_selected_skill_ids()
+	if last_ids.is_empty():
+		return
+	_clear_selected_skills()
+	for skill in _skills:
+		if last_ids.has(skill.id):
+			_select_skill(skill)
 		
 
 
