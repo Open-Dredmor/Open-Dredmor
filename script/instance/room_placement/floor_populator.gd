@@ -34,6 +34,128 @@ const CARDINAL_DIRS = [
 	Vector2i(0, -1)
 ]
 
+const EIGHT_DIRS = [
+	Vector2i(1, 0),
+	Vector2i(-1, 0),
+	Vector2i(0, 1),
+	Vector2i(0, -1),
+	Vector2i(1, 1),
+	Vector2i(1, -1),
+	Vector2i(-1, 1),
+	Vector2i(-1, -1)
+]
+
+static func _liquid_type_for_branch(branch_info):
+	var tileset_name = str(branch_info.get("tileset", "")).to_lower()
+	var branch_name = str(branch_info.get("name", "")).to_lower()
+	if "lava" in tileset_name or "diggle_hell" in tileset_name or "lava" in branch_name:
+		return "lava"
+	if "frozen" in tileset_name or "ice" in branch_name:
+		return "ice"
+	if "fungus" in tileset_name or "moonbase" in tileset_name or "clockwork" in tileset_name or "ossuary" in tileset_name:
+		return "goo"
+	return "water"
+
+static func _can_carve_lake_cell(entity_grid, cell, used_cells):
+	if not _is_cell_eligible(entity_grid, cell, used_cells):
+		return false
+	if entity_grid.has_liquid(cell.x, cell.y):
+		return false
+	for dir in EIGHT_DIRS:
+		var neighbor = cell + dir
+		if not entity_grid.has_floor(neighbor.x, neighbor.y) and not entity_grid.has_liquid(neighbor.x, neighbor.y):
+			return false
+		if entity_grid.get_door_at(neighbor.x, neighbor.y) != null or entity_grid.get_stairs_at(neighbor.x, neighbor.y) != null:
+			return false
+		if entity_grid.get_element_at(neighbor.x, neighbor.y) != null or entity_grid.get_trap_at(neighbor.x, neighbor.y) != null:
+			return false
+		if entity_grid.player_spawn_cell != null and neighbor == entity_grid.player_spawn_cell:
+			return false
+	return true
+
+static func _populate_lakes(entity_grid, placements, used_cells, no_grind):
+	var branch_info = OD.Database.get_branch_info(entity_grid.branch_id)
+	if branch_info == null:
+		return
+	var leveldata = branch_info.get("leveldata", {})
+	if typeof(leveldata) != TYPE_DICTIONARY or int(leveldata.get("genLakes", 0)) != 1:
+		return
+	var liquid_type = _liquid_type_for_branch(branch_info)
+	var seed_candidates = []
+	for placement in placements:
+		var layout = placement.layout
+		if layout.shop or layout.zoo or layout.name == "Starting Room":
+			continue
+		for local_cell in layout.floor_cells:
+			var world_cell = Vector2i(placement.x + local_cell.x, placement.y + local_cell.y)
+			if _can_carve_lake_cell(entity_grid, world_cell, used_cells):
+				seed_candidates.append(world_cell)
+	if seed_candidates.is_empty():
+		return
+	seed_candidates.shuffle()
+	var target_lakes = randi_range(1, 2) if no_grind else randi_range(2, 4)
+	var lakes_carved = 0
+	for seed_cell in seed_candidates:
+		if lakes_carved >= target_lakes:
+			break
+		if not _can_carve_lake_cell(entity_grid, seed_cell, used_cells):
+			continue
+		var target_size = randi_range(4, 10)
+		var frontier = [seed_cell]
+		var carved_cells = []
+		while not frontier.is_empty() and carved_cells.size() < target_size:
+			var idx = randi() % frontier.size()
+			var current = frontier[idx]
+			frontier.remove_at(idx)
+			if not _can_carve_lake_cell(entity_grid, current, used_cells):
+				continue
+			used_cells[current] = true
+			entity_grid.carve_liquid_cell(current.x, current.y, liquid_type)
+			carved_cells.append(current)
+			for dir in CARDINAL_DIRS:
+				var next_cell = current + dir
+				if _can_carve_lake_cell(entity_grid, next_cell, used_cells):
+					frontier.append(next_cell)
+		if not carved_cells.is_empty():
+			lakes_carved += 1
+
+static func _populate_floor_decals(entity_grid, placements, no_grind):
+	var valid_decals = []
+	for decal_path in OD.Resources.paths.decals:
+		if OD.Load.exists(decal_path):
+			valid_decals.append(decal_path)
+	if valid_decals.is_empty():
+		return
+	var candidate_cells = []
+	for placement in placements:
+		var layout = placement.layout
+		if layout.shop:
+			continue
+		for local_cell in layout.floor_cells:
+			var world_cell = Vector2i(placement.x + local_cell.x, placement.y + local_cell.y)
+			if not entity_grid.is_walkable(world_cell.x, world_cell.y):
+				continue
+			if entity_grid.has_liquid(world_cell.x, world_cell.y):
+				continue
+			if entity_grid.get_stairs_at(world_cell.x, world_cell.y) != null:
+				continue
+			if entity_grid.get_door_at(world_cell.x, world_cell.y) != null:
+				continue
+			if entity_grid.get_teleporter_at(world_cell.x, world_cell.y) != null:
+				continue
+			if entity_grid.get_trap_at(world_cell.x, world_cell.y) != null:
+				continue
+			candidate_cells.append(world_cell)
+	if candidate_cells.is_empty():
+		return
+	candidate_cells.shuffle()
+	var max_decals = 25 if no_grind else 50
+	var target_decals = clamp(candidate_cells.size() / 45, 8, max_decals)
+	for ii in range(min(target_decals, candidate_cells.size())):
+		var cell = candidate_cells[ii]
+		var chosen_decal = valid_decals[randi() % valid_decals.size()]
+		entity_grid.add_floor_decal(cell.x, cell.y, chosen_decal)
+
 static func _is_adjacent_to_door(entity_grid, cell):
 	for dir in CARDINAL_DIRS:
 		var neighbor = cell + dir
@@ -138,6 +260,7 @@ static func _populate_wizard_portal(entity_grid, all_eligible_cells, used_cells)
 
 static func populate(entity_grid, placements, _floor_level, no_grind = false):
 	var used_cells = {}
+	_populate_lakes(entity_grid, placements, used_cells, no_grind)
 	var eligible_rooms = []
 	var all_eligible_cells = []
 
@@ -201,3 +324,4 @@ static func populate(entity_grid, placements, _floor_level, no_grind = false):
 
 	_populate_teleporters(entity_grid, all_eligible_cells, used_cells)
 	_populate_wizard_portal(entity_grid, all_eligible_cells, used_cells)
+	_populate_floor_decals(entity_grid, placements, no_grind)

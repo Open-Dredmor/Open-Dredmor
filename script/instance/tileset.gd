@@ -10,7 +10,24 @@ var _tile_lookup = {}
 var _animation_lookup = {}
 
 func set_texture(texture):
-	_texture = texture
+	if texture == null:
+		_texture = null
+		return
+	var img = texture.get_image()
+	if img == null:
+		_texture = texture
+		return
+	var converted = img.duplicate()
+	if converted.get_format() != Image.FORMAT_RGBA8:
+		converted.convert(Image.FORMAT_RGBA8)
+	var width = converted.get_width()
+	var height = converted.get_height()
+	for py in range(height):
+		for px in range(width):
+			var col = converted.get_pixel(px, py)
+			if col.r8 == 0 and col.g8 == 255 and col.b8 == 0:
+				converted.set_pixel(px, py, Color(0, 0, 0, 0))
+	_texture = ImageTexture.create_from_image(converted)
 
 func set_branch(branch_id):
 	_branch = OD.Database.get_branch(branch_id)
@@ -61,6 +78,61 @@ func get_wall_tile(has_north, has_south, has_west, has_east):
 	var tile_name = get_wall_tile_name(has_north, has_south, has_west, has_east)
 	if not has_tile(tile_name):
 		tile_name = "wall"
+	return get_tile(tile_name)
+
+func get_liquid_edge_tile_name(has_n, has_s, has_w, has_e, has_nw, has_ne, has_sw, has_se):
+	if not has_n and not has_s and not has_w and not has_e:
+		return "water_vert_cap_t" if has_tile("water_vert_cap_t") else "water_u"
+	if not has_n and not has_s:
+		if not has_w:
+			return "water_horiz_cap_l"
+		if not has_e:
+			return "water_horiz_cap_r"
+		return "water_horiz"
+	if not has_w and not has_e:
+		if not has_n:
+			return "water_vert_cap_t"
+		if not has_s:
+			return "water_vert_cap_b"
+		return "water_vert"
+	if not has_n and not has_w:
+		return "water_ul"
+	if not has_n and not has_e:
+		return "water_ur"
+	if not has_s and not has_w:
+		return "water_dl"
+	if not has_s and not has_e:
+		return "water_dr"
+	if not has_n:
+		return "water_u"
+	if not has_s:
+		return "water_d"
+	if not has_w:
+		return "water_l"
+	if not has_e:
+		return "water_r"
+	if not has_nw and not has_ne:
+		return "water_corner_ul_ur"
+	if not has_sw and not has_se:
+		return "water_corner_dl_dr"
+	if not has_nw and not has_sw:
+		return "water_corner_ul_dl"
+	if not has_ne and not has_se:
+		return "water_corner_ur_dr"
+	if not has_nw:
+		return "water_corner_ul"
+	if not has_ne:
+		return "water_corner_ur"
+	if not has_sw:
+		return "water_corner_dl"
+	if not has_se:
+		return "water_corner_dr"
+	return "water"
+
+func get_liquid_edge_tile(has_n, has_s, has_w, has_e, has_nw, has_ne, has_sw, has_se):
+	var tile_name = get_liquid_edge_tile_name(has_n, has_s, has_w, has_e, has_nw, has_ne, has_sw, has_se)
+	if tile_name == "water" or not has_tile(tile_name):
+		return null
 	return get_tile(tile_name)
 
 func get_tile(tile_name):

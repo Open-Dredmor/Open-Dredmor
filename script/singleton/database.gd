@@ -758,9 +758,11 @@ func _parse_room_layout(room):
 					doors.down.append({ x = col_idx, y = row_idx, kind = "down" })
 	var flags = room.flags if room.has("flags") and typeof(room.flags) == TYPE_DICTIONARY else {}
 	return {
+		id = -1,
 		name = room.name,
 		width = grid_width,
 		height = grid_height,
+		raw = room,
 		min_level = int(flags.minLevel) if flags.has("minLevel") else 0,
 		max_level = int(flags.maxLevel) if flags.has("maxLevel") else 99,
 		special = flags.has("special") and int(flags.special) == 1,
@@ -782,6 +784,7 @@ func _build_room_layouts():
 		var layout = _parse_room_layout(room)
 		if layout == null:
 			continue
+		layout.id = layouts.size()
 		by_name[layout.name] = layout
 		layouts.append(layout)
 	var wizard_layouts = []

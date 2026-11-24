@@ -26,7 +26,9 @@ const OPPOSITE_DOOR = {
 static func _build_tile_cache(eligible_layouts):
 	var cache = {}
 	for layout in eligible_layouts:
-		var room_def = OD.Database.get_room(layout.name)
+		var room_def = layout.get("raw", null)
+		if room_def == null:
+			room_def = OD.Database.get_room(layout.name)
 		if room_def == null or not room_def.has("row"):
 			continue
 		var rows = OD.DataStructure.arrayify(room_def.row)
@@ -45,7 +47,7 @@ static func _build_tile_cache(eligible_layouts):
 					var kind = "left" if col_idx < layout.width / 2 else "right"
 					door_list.append({ x = col_idx, y = row_idx, kind = kind })
 			grid_rows.append(row_chars)
-		cache[layout.name] = {
+		cache[layout.id] = {
 			rows = grid_rows,
 			doors = door_list
 		}
@@ -218,7 +220,7 @@ static func generate(_branch_name, floor_level):
 	var normal_layouts = []
 	var all_floor_layouts = []
 	for layout in eligible_layouts:
-		if not tile_cache.has(layout.name):
+		if not tile_cache.has(layout.id):
 			continue
 		if layout.name == "Starting Room":
 			continue
@@ -229,10 +231,20 @@ static func generate(_branch_name, floor_level):
 		normal_layouts = all_floor_layouts
 
 	var start_layout = OD.Database.get_room_layout("Starting Room") if floor_level == 1 else null
-	if start_layout != null and not tile_cache.has(start_layout.name):
+	if start_layout != null and not tile_cache.has(start_layout.id):
 		var start_cache = _build_tile_cache([start_layout])
 		for key in start_cache.keys():
 			tile_cache[key] = start_cache[key]
+
+	var branch_id = max(0, floor_level - 1)
+	var branch_info = OD.Database.get_branch_info(branch_id)
+	if branch_info == null:
+		branch_id = 0
+		branch_info = OD.Database.get_branch_info(0)
+	var branch_length = int(branch_info.length) if branch_info != null and branch_info.has("length") else 10
+	var branch_leveldata = branch_info.get("leveldata", {}) if branch_info != null else {}
+	var gen_shops = int(branch_leveldata.get("genShops", 1)) == 1 if typeof(branch_leveldata) == TYPE_DICTIONARY else true
+	var gen_zoo = int(branch_leveldata.get("genZoo", 1)) == 1 if typeof(branch_leveldata) == TYPE_DICTIONARY else true
 
 	var best_grid = null
 	var best_placements = []
@@ -257,13 +269,15 @@ static func generate(_branch_name, floor_level):
 
 		var start_x = randi_range(GRID_BORDER, max(GRID_BORDER, grid_size - first_layout.width - GRID_BORDER))
 		var start_y = randi_range(GRID_BORDER, max(GRID_BORDER, grid_size - first_layout.height - GRID_BORDER))
-		floor_count += _place_room(tile_grid, first_layout, tile_cache[first_layout.name], start_x, start_y, open_doors, placements, 0)
+		floor_count += _place_room(tile_grid, first_layout, tile_cache[first_layout.id], start_x, start_y, open_doors, placements, 0)
 		if floor_level == 1:
 			player_spawn = Vector2i(start_x + 4, start_y + 4)
 		elif not first_layout.floor_cells.is_empty():
 			player_spawn = Vector2i(start_x + first_layout.floor_cells[0].x, start_y + first_layout.floor_cells[0].y)
 
-		var max_shops = max(0, int(OD.Database.get_tweak("max shops", DEFAULT_MAX_SHOPS)))
+		var max_shops = max(0, int(OD.Database.get_tweak("max shops", DEFAULT_MAX_SHOPS))) if gen_shops else 0
+		if floor_level == 1 or no_grind:
+			max_shops = min(1, max_shops)
 		while not open_doors.is_empty():
 			var source_door = open_doors.pop_front()
 			var target_kind = OPPOSITE_DOOR[source_door.kind]
@@ -271,13 +285,16 @@ static func generate(_branch_name, floor_level):
 				if all_floor_layouts.is_empty():
 					break
 				var cand_layout = all_floor_layouts[randi() % all_floor_layouts.size()]
-				if cand_layout.shop and shops_placed >= max_shops:
-					continue
-				if cand_layout.zoo and zoos_placed >= 1:
+				if cand_layout.shop:
+					if shops_placed >= max_shops:
+						continue
+					if shops_placed >= 1 and randi() % 6 != 0:
+						continue
+				if cand_layout.zoo and (not gen_zoo or zoos_placed >= 1):
 					continue
 				if (cand_layout.shop or cand_layout.zoo or cand_layout.special) and placed_unique.has(cand_layout.name):
 					continue
-				var cand_data = tile_cache[cand_layout.name]
+				var cand_data = tile_cache[cand_layout.id]
 				var matching_doors = cand_layout.doors[target_kind]
 				if matching_doors.is_empty():
 					continue
@@ -313,13 +330,6 @@ static func generate(_branch_name, floor_level):
 		if placements.size() > min_rooms and floor_count >= min_floor:
 			break
 
-	var branch_id = max(0, floor_level - 1)
-	var branch_info = OD.Database.get_branch_info(branch_id)
-	if branch_info == null:
-		branch_id = 0
-		branch_info = OD.Database.get_branch_info(0)
-	var branch_length = int(branch_info.length) if branch_info != null and branch_info.has("length") else 10
-
 	var entity_grid = EntityGrid.new()
 	entity_grid.init(branch_id)
 	entity_grid.floor_level = floor_level
@@ -331,7 +341,7 @@ static func generate(_branch_name, floor_level):
 	for idx in range(best_placements.size()):
 		var placement = best_placements[idx]
 		var room = Room.new()
-		room.init(placement.layout.name)
+		room.init(placement.layout.raw if placement.layout.has("raw") and placement.layout.raw != null else placement.layout.name)
 		room.position = Vector2(placement.x, placement.y)
 		for door in placement.claimed_doors:
 			room.claim_door(door.x, door.y, door.kind)
@@ -361,4 +371,6 @@ static func generate(_branch_name, floor_level):
 
 	FloorPopulator.populate(entity_grid, best_placements, floor_level, no_grind)
 	entity_grid.auto_tile_walls()
+	entity_grid.auto_tile_liquids()
+	entity_grid.decorate_walls()
 	return entity_grid

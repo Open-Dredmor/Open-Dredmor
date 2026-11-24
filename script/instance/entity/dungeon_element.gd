@@ -18,7 +18,7 @@ func init(elem_type, animation, initial_data = {}):
 		if _animation.is_tall():
 			_animation.position.y -= OD.Assets.CELL_PIXEL_HEIGHT / 2.0
 		add_child(_animation)
-		if element_type == "lever" or element_type == "bookshelf":
+		if element_type in ["lever", "bookshelf", "uberchest", "freezer"]:
 			_animation.set_step_only(true)
 			_animation.set_frame(0)
 	_init_element_state()
@@ -256,6 +256,8 @@ func _interact_chest(title_text, loot_category):
 	if used:
 		return { kind = "info", title = title_text, message = "The chest has already been looted." }
 	used = true
+	if _animation != null and element_type == "uberchest":
+		_animation.set_frame(2)
 	OD.Audio.play_sfx("metal_get")
 	var loot = OD.Database.get_loot(loot_category)
 	if loot != null:
@@ -276,6 +278,8 @@ func _interact_supply_box(title_text, category_name, fallback_msg):
 	if used:
 		return { kind = "info", title = title_text, message = "It is empty." }
 	used = true
+	if _animation != null and element_type == "freezer":
+		_animation.set_frame(1)
 	OD.Audio.play_sfx("food")
 	var pool = OD.Database.get_items_by_category(category_name)
 	if not pool.is_empty():

@@ -63,6 +63,10 @@ var _grid_lookup = null
 var _grid_center = null
 var _wall_cells = {}
 var _floor_cells = {}
+var _liquid_cells = {}
+var _floor_tile_nodes = {}
+var _liquid_edge_nodes = []
+var _wall_decor_nodes = []
 var _destructible_cells = {}
 var _blocker_cells = {}
 var _doors_by_cell = {}
@@ -110,6 +114,8 @@ func insert(source_grid, offset_position):
 		_wall_cells[wall_cell + offset_cell] = true
 	for floor_cell in source_grid._floor_cells.keys():
 		_floor_cells[floor_cell + offset_cell] = true
+	for liquid_cell in source_grid._liquid_cells.keys():
+		_liquid_cells[liquid_cell + offset_cell] = source_grid._liquid_cells[liquid_cell]
 	for destructible_cell in source_grid._destructible_cells.keys():
 		_destructible_cells[destructible_cell + offset_cell] = true
 	for blocker_cell in source_grid._blocker_cells.keys():
@@ -153,7 +159,10 @@ func insert(source_grid, offset_position):
 				var new_grid_pos = child.get_grid_position() + offset_position
 				child.move_to(new_grid_pos.x, new_grid_pos.y)
 			else:
+				var source_cell = Vector2i(int(round(child.position.x)), int(round(child.position.y)))
 				child.position = OD.Math.grid_to_pixel(child.position.x + offset_position.x, child.position.y + offset_position.y)
+				if layer_key == "floor":
+					_floor_tile_nodes[source_cell + offset_cell] = child
 			target_layer.add_child(child)
 	for ped_cell in source_grid.shop_manager._pedestals_by_cell.keys():
 		var shifted_ped_cell = ped_cell + offset_cell
@@ -186,11 +195,13 @@ func add_tile(x, y, name, sprite_path = null):
 		"floor":
 			_floor_cells[cell_key] = true
 			tile = _tilesets.basic.get_tile(name)
+			_floor_tile_nodes[cell_key] = tile
 		"wall":
 			_wall_cells[cell_key] = true
 			tile = _tilesets.basic.get_tile(name)
 		"ice","lava","goo","water":
-			tile = _tilesets.liquids.get_animation(name)			
+			_liquid_cells[cell_key] = name
+			tile = _tilesets.liquids.get_animation(name)
 		_:
 			tile = OD.Load.animation(sprite_path)
 	tile.position = Vector2(x, y)
@@ -395,6 +406,7 @@ func add_floor_tile_at_grid(grid_x, grid_y):
 	_floor_cells[cell_key] = true
 	var tile = _tilesets.basic.get_tile("floor")
 	tile.position = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
+	_floor_tile_nodes[cell_key] = tile
 	get_layer("floor").add_child(tile)
 
 func has_floor(grid_x, grid_y):
@@ -402,6 +414,44 @@ func has_floor(grid_x, grid_y):
 
 func has_wall(grid_x, grid_y):
 	return _wall_cells.has(Vector2i(int(grid_x), int(grid_y)))
+
+func has_liquid(grid_x, grid_y):
+	return _liquid_cells.has(Vector2i(int(grid_x), int(grid_y)))
+
+func carve_liquid_cell(grid_x, grid_y, liquid_type):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	if _floor_tile_nodes.has(cell_key):
+		var floor_node = _floor_tile_nodes[cell_key]
+		if is_instance_valid(floor_node):
+			if floor_node.get_parent() != null:
+				floor_node.get_parent().remove_child(floor_node)
+			floor_node.queue_free()
+		_floor_tile_nodes.erase(cell_key)
+	if liquid_type == "water" or liquid_type == "lava":
+		_floor_cells.erase(cell_key)
+		mark_blocker(cell_key.x, cell_key.y)
+	_liquid_cells[cell_key] = liquid_type
+	var anim = _tilesets.liquids.get_animation(liquid_type)
+	var pixel_pos = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
+	add_animation(pixel_pos.x, pixel_pos.y, "liquid", anim)
+
+func add_floor_decal(grid_x, grid_y, decal_path):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	var decal_node = null
+	if decal_path.ends_with(".spr"):
+		decal_node = OD.Load.animation(decal_path)
+	else:
+		var tex = OD.Load.image(decal_path)
+		if tex != null:
+			var sprite = Sprite2D.new()
+			sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			sprite.texture = tex
+			decal_node = sprite
+	if decal_node != null:
+		var pixel_pos = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
+		decal_node.position = pixel_pos
+		get_layer("floor_decoration").add_child(decal_node)
+	return decal_node
 
 func get_door_at(grid_x, grid_y):
 	var cell_key = Vector2i(int(grid_x), int(grid_y))
@@ -536,6 +586,63 @@ func auto_tile_walls():
 		var tile = _tilesets.basic.get_wall_tile(has_north, has_south, has_west, has_east)
 		tile.position = OD.Math.grid_to_pixel(cell.x, cell.y)
 		wall_layer.add_child(tile)
+
+func auto_tile_liquids():
+	var floor_layer = layers.lookup["floor"]
+	for node in _liquid_edge_nodes:
+		if is_instance_valid(node):
+			if node.get_parent() != null:
+				node.get_parent().remove_child(node)
+			node.queue_free()
+	_liquid_edge_nodes.clear()
+	for cell in _liquid_cells.keys():
+		var has_n = _liquid_cells.has(cell + Vector2i(0, -1))
+		var has_s = _liquid_cells.has(cell + Vector2i(0, 1))
+		var has_w = _liquid_cells.has(cell + Vector2i(-1, 0))
+		var has_e = _liquid_cells.has(cell + Vector2i(1, 0))
+		var has_nw = _liquid_cells.has(cell + Vector2i(-1, -1))
+		var has_ne = _liquid_cells.has(cell + Vector2i(1, -1))
+		var has_sw = _liquid_cells.has(cell + Vector2i(-1, 1))
+		var has_se = _liquid_cells.has(cell + Vector2i(1, 1))
+		var edge_tile = _tilesets.basic.get_liquid_edge_tile(has_n, has_s, has_w, has_e, has_nw, has_ne, has_sw, has_se)
+		if edge_tile != null:
+			edge_tile.position = OD.Math.grid_to_pixel(cell.x, cell.y)
+			floor_layer.add_child(edge_tile)
+			_liquid_edge_nodes.append(edge_tile)
+
+func decorate_walls():
+	if not _tilesets.basic.has_tile("wallDecor"):
+		return
+	var decor_layer = layers.lookup["wall_decoration"]
+	for node in _wall_decor_nodes:
+		if is_instance_valid(node):
+			if node.get_parent() != null:
+				node.get_parent().remove_child(node)
+			node.queue_free()
+	_wall_decor_nodes.clear()
+	var placed_decor = {}
+	for cell in _wall_cells.keys():
+		if _destructible_cells.has(cell):
+			continue
+		var north = cell + Vector2i(0, -1)
+		var south = cell + Vector2i(0, 1)
+		if not _wall_cells.has(north):
+			continue
+		if _wall_cells.has(south):
+			continue
+		if not _floor_cells.has(south) and not _liquid_cells.has(south):
+			continue
+		if _stairs_by_cell.has(south) or _doors_by_cell.has(south):
+			continue
+		if placed_decor.has(cell + Vector2i(-1, 0)) or placed_decor.has(cell + Vector2i(1, 0)):
+			continue
+		if randi() % 7 != 0:
+			continue
+		var decor_tile = _tilesets.basic.get_tile("wallDecor")
+		decor_tile.position = OD.Math.grid_to_pixel(cell.x, cell.y)
+		decor_layer.add_child(decor_tile)
+		_wall_decor_nodes.append(decor_tile)
+		placed_decor[cell] = true
 	
 func move(target_x, target_y, entity):
 	entity.position = OD.Math.grid_to_pixel(target_x, target_y)

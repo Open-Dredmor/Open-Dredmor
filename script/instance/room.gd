@@ -47,7 +47,8 @@ func init(room_database_name):
 	entity_grid.init()
 	add_child(entity_grid)
 	
-	_definition = OD.Database.get_room(room_database_name)
+	_definition = room_database_name if typeof(room_database_name) == TYPE_DICTIONARY else OD.Database.get_room(room_database_name)
+	var room_name_str = _definition.name if _definition != null and _definition.has("name") else str(room_database_name)
 	# Rough passage 3 in game/rooms.xml has a width/height that doesn't match the data
 	# Count the strings lengths instead of trusting the reported values
 	grid_width = _definition.row[0].text.length()
@@ -60,7 +61,7 @@ func init(room_database_name):
 	debug_button.pressed.connect(debug_info)
 
 	name_details = OD.Database.create_room_name()
-	name_details.database_id = room_database_name
+	name_details.database_id = room_name_str
 	#print("Generating room id " + room_database_name + " with name " + name_details.name)
 	for layer_name in layer_names:
 		layer_lookup[layer_name] = prep_tile_data(layer_name)
@@ -338,7 +339,8 @@ func monster_tile_handler(item, x, y):
 		return
 	var palette_path = monster.palette.name if monster.has('palette') and monster.palette.has('name') else null
 	var animation = OD.Load.animation(monster.idleSprite.down, palette_path)
-	entity_grid.add_animation(x, y, 'monster', animation)
+	if animation != null:
+		entity_grid.add_animation(x, y, 'monster', animation)
 			
 func horde_tile_handler(item, x, y):
 	if not item.has('name'):
@@ -349,7 +351,8 @@ func horde_tile_handler(item, x, y):
 		return
 	var palette_path = monster.palette.name if monster.has('palette') and monster.palette.has('name') else null
 	var animation = OD.Load.animation(monster.idleSprite.down, palette_path)
-	entity_grid.add_animation(x, y, 'horde', animation)
+	if animation != null:
+		entity_grid.add_animation(x, y, 'horde', animation)
 
 func pedestal_tile_handler(_item, x, y):
 	var animation = OD.Load.animation(OD.Resources.paths.pedestal)

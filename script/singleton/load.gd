@@ -3,24 +3,80 @@ extends Node
 var DEFAULT_ANIMATION_FRAME_RATE_MILLISECONDS = 400
 
 var cache = {}
+var _resolve_cache = {}
+var _dir_entries_cache = {}
 
 func clear_cache():
 	cache = {}
+	_resolve_cache = {}
+	_dir_entries_cache = {}
 
 func exists(relative_path, internal=false):
 	return FileAccess.file_exists(resolve(relative_path, internal))
 
+func _get_dir_entries_lower(dir_path):
+	if _dir_entries_cache.has(dir_path):
+		return _dir_entries_cache[dir_path]
+	var entries = {}
+	var dir = DirAccess.open(dir_path)
+	if dir != null:
+		dir.list_dir_begin()
+		var item_name = dir.get_next()
+		while item_name != "":
+			if item_name != "." and item_name != "..":
+				entries[item_name.to_lower()] = item_name
+			item_name = dir.get_next()
+		dir.list_dir_end()
+	_dir_entries_cache[dir_path] = entries
+	return entries
+
+func _resolve_case_insensitive(base_dir, relative_path):
+	var parts = relative_path.split("/", false)
+	var current = base_dir
+	for idx in range(parts.size()):
+		var part = parts[idx]
+		var is_last = idx == parts.size() - 1
+		var candidate = current + part
+		if is_last:
+			if FileAccess.file_exists(candidate):
+				current = candidate
+				continue
+		else:
+			if DirAccess.dir_exists_absolute(candidate):
+				current = candidate + "/"
+				continue
+		var entries = _get_dir_entries_lower(current)
+		var lower_part = part.to_lower()
+		if not entries.has(lower_part):
+			return null
+		var matched = entries[lower_part]
+		current = current + matched + ("" if is_last else "/")
+	return current if FileAccess.file_exists(current) else null
+
 func resolve(relative_path, internal = false):
 	if internal:
 		return "res://asset/" + relative_path
+	if _resolve_cache.has(relative_path):
+		return _resolve_cache[relative_path]
 	var install_dir = OD.Settings.dredmor_install_dir()
 	var direct_path = install_dir + relative_path
 	if FileAccess.file_exists(direct_path):
+		_resolve_cache[relative_path] = direct_path
 		return direct_path
 	for pack_prefix in OD.Database.get_active_pack_prefixes():
 		var pack_path = install_dir + pack_prefix + relative_path
 		if FileAccess.file_exists(pack_path):
+			_resolve_cache[relative_path] = pack_path
 			return pack_path
+	var ci_direct = _resolve_case_insensitive(install_dir, relative_path)
+	if ci_direct != null:
+		_resolve_cache[relative_path] = ci_direct
+		return ci_direct
+	for pack_prefix in OD.Database.get_active_pack_prefixes():
+		var ci_pack = _resolve_case_insensitive(install_dir + pack_prefix, relative_path)
+		if ci_pack != null:
+			_resolve_cache[relative_path] = ci_pack
+			return ci_pack
 	return direct_path
 
 func image(relative_path, internal=false):
@@ -223,7 +279,9 @@ func sprite_palette(relative_path):
 func _pro_motion_sprites(relative_path, palette_path = null):
 	var absolute_path = resolve(relative_path)
 	var file = FileAccess.open(absolute_path, FileAccess.READ)
-	_handle_err(absolute_path, FileAccess.get_open_error() if file == null else OK)	
+	if file == null:
+		_handle_err(absolute_path, FileAccess.get_open_error())
+		return null
 	var _header = file.get_buffer(3).get_string_from_ascii()
 	var frame_count = read_int(file, 2)
 	var width = read_int(file, 2)
