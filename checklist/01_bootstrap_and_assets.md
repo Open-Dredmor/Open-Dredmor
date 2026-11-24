@@ -28,6 +28,6 @@ Foundational work to reliably validate the user's *Dungeons of Dredmor* installa
   - *Current state*: [script/singleton/audio.gd](../script/singleton/audio.gd) only plays a single looping music `AudioStreamPlayer`; `soundfx.xml` is ingested but unused.
   - *Done when*: `OD.Database` indexes `soundfx.xml` by cue name, `OD.Load` loads WAV/OGG SFX from the install dir, and `OD.Audio` provides a pooled `play_sfx(cue_name)` respecting SFX volume and audio-enabled settings.
 
-- [ ] **Structured database indexing & getters**
+- [x] **Structured database indexing & getters**
   - *Current state*: [script/singleton/database.gd](../script/singleton/database.gd) only has helpers for `character_creation_skill_list`, `rooms`, `branches`, `monsters`, and partial `loot_info` (missing `component` vs `reagent` distinction, items, skills, spells, crafts, tweaks, quests, speech).
   - *Done when*: `OD.Database` provides typed/indexed lookup helpers for skills (including level progression & granted spells/stats), spells, items (with slot/type/effects), crafting recipes, `tweakDB` constants, and `branchDB` floor definitions.

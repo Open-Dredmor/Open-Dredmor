@@ -3,6 +3,7 @@ extends Node
 var AUDIO_TEST = "audio_test"
 var BOOTSTRAP = "Bootstrap"
 var CHARACTER_MENU = "character_menu"
+var DATABASE_TEST = "database_test"
 var DIFFICULTY_MENU = "difficulty_menu"
 var GAME = "game"
 var INTRO_ONE = "intro_one"
@@ -14,7 +15,7 @@ var SKILLS_MENU = "skills_menu"
 var SPRITE_TEST = "sprite_test"
 
 # For debugging specific levels or gameplay features
-var FIRST_SCENE = GAME
+var FIRST_SCENE = DATABASE_TEST
 
 # For experiencing the game as a player would see it
 #var FIRST_SCENE = PRELOAD_ASSETS
