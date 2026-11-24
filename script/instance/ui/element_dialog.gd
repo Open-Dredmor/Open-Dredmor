@@ -79,9 +79,14 @@ func _create_base_overlay(bg_texture, custom_size = null):
 
 func _add_close_button(panel, dialog_assets):
 	var close_btn = OD.Chrome.button(dialog_assets.textures.close)
+	var scaled_size = close_btn.texture_normal.get_size() * 2.0
+	close_btn.ignore_texture_size = true
+	close_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	close_btn.custom_minimum_size = scaled_size
+	close_btn.size = scaled_size
 	close_btn.anchor_left = 1.0
 	close_btn.anchor_top = 0.0
-	close_btn.offset_left = -close_btn.texture_normal.get_width() - 8
+	close_btn.offset_left = -scaled_size.x - 8
 	close_btn.offset_top = 8
 	close_btn.pressed.connect(_dismiss)
 	panel.add_child(close_btn)

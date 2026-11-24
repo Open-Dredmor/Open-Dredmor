@@ -90,6 +90,9 @@ func init(room_database_name):
 						script_location._coordinate[int(action.x)][int(action.y)] = action				
 			
 	var at_positions = {}
+	var brax_home = Vector2i(-1, -1)
+	var brax_shop = Vector2i(-1, -1)
+	var shop_pedestal_cells = []
 	for ii in range(grid_height):
 		var row = _definition.row[ii].text
 		for jj in range(grid_width):
@@ -174,17 +177,14 @@ func init(room_database_name):
 						entity_grid.mark_blocker(jj, ii)
 				"S":
 					has_floor = true
-					entity_name = "monster"
-					# TODO Use the Brax monster instead of a sprite
-					sprite_path = "sprites/monster/brax/brax_run_d.spr"
-					entity_grid.mark_blocker(jj, ii)
-				"s": # Brax teleport location while shopping
+					brax_home = Vector2i(jj, ii)
+				"s":
 					has_floor = true
-				"i": # sales pedestal
+					brax_shop = Vector2i(jj, ii)
+				"i":
 					has_floor = true
-					entity_name = "customblocker"
-					sprite_path = "dungeon/store_pedestal.png"
-					entity_grid.mark_blocker(jj, ii)
+					entity_grid.add_shop_pedestal(jj, ii)
+					shop_pedestal_cells.append(Vector2i(jj, ii))
 				"X": # Invisible blocker
 					has_floor = true
 					entity_grid.mark_blocker(jj, ii)
@@ -200,6 +200,14 @@ func init(room_database_name):
 				entity_grid.add_tile(jj, ii, "wall")
 			if entity_name != null:
 				entity_grid.add_tile(jj, ii, entity_name, sprite_path)
+
+	if brax_home != Vector2i(-1, -1) or brax_shop != Vector2i(-1, -1) or not shop_pedestal_cells.is_empty():
+		entity_grid.pending_shop_def = {
+			bounds = Rect2i(0, 0, grid_width, grid_height),
+			brax_home = brax_home,
+			brax_shop = brax_shop,
+			pedestal_cells = shop_pedestal_cells
+		}
 
 	if _definition.has("script"):
 		var room_scripts = OD.DataStructure.arrayify(_definition.script)

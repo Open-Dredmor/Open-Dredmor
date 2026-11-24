@@ -38,7 +38,7 @@ Fast floor layout generation, branch tilesets, interactive room elements, traps,
   - *Current state*: [script/instance/room.gd](../script/instance/room.gd) (`trap_tile_handler`) uses placeholder sprites and no trap logic.
   - *Done when*: Traps use proper definitions, respect player `TRAP_SENSE` / `TRAP_SIGHT` for visibility, trigger their spell/damage effect when stepped on, and can be disarmed or picked up (based on Trap Affinity / Tinkering).
 
-- [ ] **Brax & Shops**
+- [x] **Brax & Shops**
   - *Current state*: [script/instance/room.gd](../script/instance/room.gd) places a static Brax sprite on `S`, ignores `s`, and places a static pedestal on `i`.
   - *Done when*: Shops spawn priced items on pedestals, allow buying/selling with Brax, teleport Brax to `s` when shopping, and turn Brax + Collector/demonic guards hostile if the player attempts to steal or leaves without paying.
 

@@ -11,3 +11,10 @@ export_presets.cfg
 data_*/
 .godot/
 airef/
+asset/ui/generated/
+tools/.venv/
+tools/__pycache__/
+asset/ui/generated/
+.venv/
+__pycache__/
+*.pyc

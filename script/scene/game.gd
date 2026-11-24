@@ -4,6 +4,7 @@ static func init_container():
 	return Node2D.new()
 
 var moveable_container
+var _dungeon = null
 
 func _ready():
 	call_deferred("_build_ui")
@@ -35,10 +36,10 @@ func _build_ui():
 	moveable_container.name = "MoveableContainer"
 	vbox.add_child(moveable_container)
 	
-	var dungeon = Dungeon.new()
-	dungeon.init()
-	dungeon.name = "Dungeon"
-	moveable_container.add_child(dungeon)
+	_dungeon = Dungeon.new()
+	_dungeon.init()
+	_dungeon.name = "Dungeon"
+	moveable_container.add_child(_dungeon)
 	
 	var gui = Control.new()
 	gui.name = "GUI"
@@ -61,6 +62,9 @@ var speed = 200
 var drag_enabled = false
 var old_position
 func _input(ev):
+	if _dungeon != null and is_instance_valid(_dungeon) and _dungeon.is_dialog_open():
+		drag_enabled = false
+		return
 	if ev is InputEventKey and ev.is_pressed():
 		if ev.keycode == KEY_LEFT:
 			moveable_container.position.x += speed

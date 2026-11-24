@@ -1,0 +1,18 @@
+[project]
+name = "tools"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "XBigTK13X", email = "xbigtk13x@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "pillow>=13.0.0",
+]
+
+[project.scripts]
+tools = "tools:main"
+
+[build-system]
+requires = ["uv_build>=0.12.3,<0.13.0"]
+build-backend = "uv_build"

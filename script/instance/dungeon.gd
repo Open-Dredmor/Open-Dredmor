@@ -3,6 +3,7 @@ extends Node2D
 class_name Dungeon
 
 const ElementDialogScript = preload("res://script/instance/ui/element_dialog.gd")
+const ShopDialogScript = preload("res://script/instance/ui/shop_dialog.gd")
 
 var floors = []
 # TODO Use ID instead of name
@@ -22,6 +23,7 @@ var FLOOR_STRATEGY = {
 var _active_strategy = FLOOR_STRATEGY.DEBUG_ROOMS
 var _zorkmids_ref = { value = 150 }
 var _lutefisk_ref = { value = 10 }
+var _player_bag = []
 var _interaction_dialog = null
 var _pending_interaction = null
 
@@ -57,11 +59,19 @@ func _input(ev):
 			_player.move_to(grid_coords.x, grid_coords.y)
 			_player.idle()
 			if _entity_grid != null:
-				_entity_grid.evaluate_scripts(_player.get_grid_position())
+				_entity_grid.on_player_step(_player.get_grid_position())
 			return
 		if ev.button_index != MOUSE_BUTTON_LEFT:
 			return
 		_pending_interaction = null
+		var shopkeeper = _entity_grid.shop_manager.get_shopkeeper_at(grid_coords.x, grid_coords.y) if _entity_grid != null else null
+		if shopkeeper != null:
+			_interact_or_approach({ kind = "shopkeeper", target_pos = Vector2i(int(grid_coords.x), int(grid_coords.y)) })
+			return
+		var shop_pedestal = _entity_grid.shop_manager.get_pedestal_at(grid_coords.x, grid_coords.y) if _entity_grid != null else null
+		if shop_pedestal != null:
+			_interact_or_approach({ kind = "shop_pedestal", target_pos = Vector2i(int(grid_coords.x), int(grid_coords.y)) })
+			return
 		var door = _entity_grid.get_door_at(grid_coords.x, grid_coords.y) if _entity_grid != null else null
 		if door != null and not door.can_pass():
 			_interact_or_approach({ kind = "door", target_pos = Vector2i(int(grid_coords.x), int(grid_coords.y)) })
@@ -139,6 +149,14 @@ func _execute_interaction(interaction):
 			var trap = _entity_grid.get_trap_at(pos.x, pos.y)
 			if trap != null and trap.is_discovered and not trap.is_disarmed:
 				_handle_trap_disarm(trap)
+		"shopkeeper":
+			var keeper = _entity_grid.shop_manager.get_shopkeeper_at(pos.x, pos.y)
+			if keeper != null:
+				_handle_shopkeeper_interaction(keeper, pos)
+		"shop_pedestal":
+			var pedestal = _entity_grid.shop_manager.get_pedestal_at(pos.x, pos.y)
+			if pedestal != null:
+				_handle_shop_pedestal_interaction(pedestal, pos)
 
 func _build_ui():
 	var strategy = _active_strategy
@@ -154,6 +172,9 @@ func _build_ui():
 	_entity_grid.add_entity(0, 0, _target_cursor)
 	_entity_grid.update_trap_visibility(_player.get_grid_position())
 	_entity_grid.trap_triggered.connect(_on_trap_triggered)
+	_entity_grid.shop_manager.shop_alert.connect(_on_shop_alert)
+	_entity_grid.shop_manager.hostile_attack.connect(_on_hostile_attack)
+	_seed_player_bag()
 
 func _on_trap_triggered(trap_result, grid_pos):
 	_spawn_spell_vfx(trap_result.casts_spell, grid_pos)
@@ -215,6 +236,9 @@ func _spawn_floating_text(grid_pos, text, color):
 			label.queue_free()
 	)
 
+func is_dialog_open():
+	return is_instance_valid(_interaction_dialog)
+
 func _close_element_dialog():
 	if is_instance_valid(_interaction_dialog):
 		_interaction_dialog.queue_free()
@@ -230,5 +254,74 @@ func _handle_element_interaction(element, grid_coords):
 		_lutefisk_ref,
 		func(): _interaction_dialog = null,
 		func(): _entity_grid.unblock_cell(grid_coords.x, grid_coords.y)
+	)
+
+func _seed_player_bag():
+	if not _player_bag.is_empty():
+		return
+	var sell_scaler = float(OD.Database.get_tweak("store sell price scaler", 0.63))
+	for item_entry in OD.Database.get_all_items():
+		if item_entry.price > 0 and item_entry.icon != "":
+			_player_bag.append({
+				name = item_entry.name,
+				icon = item_entry.icon,
+				sell_price = max(1, int(round(float(item_entry.price) * sell_scaler))),
+				description = item_entry.description
+			})
+			if _player_bag.size() >= 3:
+				break
+
+func _on_shop_alert(message, grid_pos, color):
+	_spawn_floating_text(grid_pos, message, color)
+
+func _on_hostile_attack(attacker_name, damage, grid_pos):
+	_spawn_floating_text(grid_pos, attacker_name + " hits -" + str(damage), Color(1.0, 0.2, 0.2))
+
+func _handle_shopkeeper_interaction(keeper, pos):
+	if keeper.is_hostile:
+		keeper.hp -= 25
+		OD.Audio.play_sfx("large_damage")
+		_spawn_floating_text(pos, "-25 HP", Color(1.0, 0.85, 0.25))
+		if keeper.hp <= 0:
+			OD.Audio.play_sfx("large_die")
+			_spawn_floating_text(pos, keeper.monster_name + " defeated!", Color(0.45, 0.95, 0.45))
+			keeper.queue_free()
+		return
+	var shop = _entity_grid.shop_manager.get_shop_by_id(keeper.shop_id)
+	if shop == null:
+		return
+	var player_pos = _player.get_grid_position()
+	var player_cell = Vector2i(int(player_pos.x), int(player_pos.y))
+	_entity_grid.shop_manager.teleport_brax_to_shop(shop, player_cell)
+	_close_element_dialog()
+	_interaction_dialog = ShopDialogScript.new()
+	add_child(_interaction_dialog)
+	_interaction_dialog.show_brax_dialog(
+		shop,
+		_zorkmids_ref,
+		_player_bag,
+		func(): _interaction_dialog = null,
+		func(): _entity_grid.shop_manager.make_shop_hostile(shop, _entity_grid, player_cell)
+	)
+
+func _handle_shop_pedestal_interaction(pedestal, pos):
+	if not pedestal.has_item():
+		_spawn_floating_text(pos, "Empty pedestal", Color(0.85, 0.85, 0.85))
+		return
+	var shop = _entity_grid.shop_manager.get_shop_by_id(pedestal.shop_id)
+	var player_pos = _player.get_grid_position()
+	var player_cell = Vector2i(int(player_pos.x), int(player_pos.y))
+	if shop != null and not shop.is_hostile:
+		_entity_grid.shop_manager.teleport_brax_to_shop(shop, player_cell)
+	_close_element_dialog()
+	_interaction_dialog = ShopDialogScript.new()
+	add_child(_interaction_dialog)
+	_interaction_dialog.show_pedestal_dialog(
+		pedestal,
+		shop,
+		_zorkmids_ref,
+		_player_bag,
+		func(): _interaction_dialog = null,
+		func(): _entity_grid.shop_manager.make_shop_hostile(shop, _entity_grid, player_cell)
 	)
 		

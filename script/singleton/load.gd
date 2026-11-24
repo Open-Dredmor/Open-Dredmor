@@ -28,11 +28,19 @@ func image(relative_path, internal=false):
 		return cache[relative_path]	
 	if internal:
 		var absolute_path = resolve(relative_path, true)
-		var stream_texture = load(absolute_path)
-		var img = stream_texture.get_image()
-		var image_texture = ImageTexture.create_from_image(img)
-		cache[relative_path] = image_texture
-		return image_texture
+		if ResourceLoader.exists(absolute_path):
+			var stream_texture = load(absolute_path)
+			if stream_texture != null:
+				var img = stream_texture.get_image()
+				var image_texture = ImageTexture.create_from_image(img)
+				cache[relative_path] = image_texture
+				return image_texture
+		var raw_img = Image.new()
+		if raw_img.load(ProjectSettings.globalize_path(absolute_path)) == OK:
+			var raw_texture = ImageTexture.create_from_image(raw_img)
+			cache[relative_path] = raw_texture
+			return raw_texture
+		return null
 	else:
 		var img = Image.new()	
 		var absolute_path = resolve(relative_path)

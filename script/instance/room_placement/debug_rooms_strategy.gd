@@ -14,6 +14,7 @@ static func generate(_branch_name, _floor_level):
 	# Useful development rooms
 	var debug_room_names = [					
 		"Starting Room", # First place every run begins		
+		"9x10 shop (S)", # Brax shop with pedestals and s teleport
 		"Batty Cave", # Water		
 		"20x20 Large Treasury", # Lava, zorkmids, artifact, hordes		
 		"Indulgent Tomb 1", # Custom blockers have a vertical gap (like the starting room iron bars)		

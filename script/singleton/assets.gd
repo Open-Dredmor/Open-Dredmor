@@ -7,7 +7,9 @@ func _button_textures(lookup,internal=false):
 	var images = {}
 	for key in lookup.keys():
 		if OD.Load.exists(lookup[key],internal):
-			images[key] = OD.Load.image(lookup[key], internal)
+			var loaded_tex = OD.Load.image(lookup[key], internal)
+			if loaded_tex != null:
+				images[key] = loaded_tex
 	return images
 
 func main_menu():	
@@ -272,6 +274,10 @@ func dialog():
 			close = _button_textures(paths.close),
 			ok = _button_textures(paths.ok),
 			buy = _button_textures(paths.buy),
+			dont_buy = _button_textures(paths.dont_buy),
+			sell = _button_textures(paths.sell),
+			dont_sell = _button_textures(paths.dont_sell),
+			blank = _button_textures(paths.blank, true),
 			awesome = _button_textures(paths.awesome),
 			shucks = _button_textures(paths.shucks)
 		},

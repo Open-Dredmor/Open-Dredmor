@@ -5,6 +5,8 @@ class_name EntityGrid
 const DoorScript = preload("res://script/instance/entity/door.gd")
 const ElementScript = preload("res://script/instance/entity/dungeon_element.gd")
 const TrapScript = preload("res://script/instance/entity/trap.gd")
+const ShopPedestalScript = preload("res://script/instance/entity/shop_pedestal.gd")
+const ShopManagerScript = preload("res://script/instance/shop_manager.gd")
 
 signal script_ticker(message)
 signal script_spell_cast(spell_name, grid_pos)
@@ -29,10 +31,8 @@ var layer_names = [
 	"custom_engraving",
 	"element",	
 	"loot",
-	"horde",
-	"monster",
 	"cursor",
-	"player",
+	"actors",
 ]
 
 var xml_name_to_layer_name = {
@@ -41,7 +41,10 @@ var xml_name_to_layer_name = {
 	"lava": "liquid",
 	"ice": "liquid",
 	"goo": "liquid",
-	"water": "liquid" 
+	"water": "liquid",
+	"horde": "actors",
+	"monster": "actors",
+	"player": "actors"
 }
 
 var animated_tile_lookup = {
@@ -63,6 +66,8 @@ var _elements_by_cell = {}
 var _traps_by_cell = {}
 var _named_entities = {}
 var _room_scripts = []
+var shop_manager = ShopManagerScript.new()
+var pending_shop_def = null
 
 func init(branch_id = 0):
 	_tilesets = OD.Assets.tileset_for_branch(branch_id)
@@ -72,6 +77,8 @@ func init(branch_id = 0):
 		var layer = Node2D.new()
 		layer.name = layer_name
 		layer.z_index = layer_order
+		if layer_name == "actors":
+			layer.y_sort_enabled = true
 		layers.lookup[layer.name] = layer
 		layers.list.append(layer)
 		add_child(layer)
@@ -142,6 +149,11 @@ func insert(source_grid, offset_position):
 				if child.is_tall():
 					child.position.y -= OD.Assets.CELL_PIXEL_HEIGHT / 2
 			target_layer.add_child(child)
+	for ped_cell in source_grid.shop_manager._pedestals_by_cell.keys():
+		var shifted_ped_cell = ped_cell + offset_cell
+		shop_manager.register_pedestal(source_grid.shop_manager._pedestals_by_cell[ped_cell], shifted_ped_cell.x, shifted_ped_cell.y)
+	if source_grid.pending_shop_def != null:
+		shop_manager.register_shop(source_grid.pending_shop_def, offset_cell, self)
 				
 func get_layer(name):
 	if xml_name_to_layer_name.has(name):
@@ -195,6 +207,8 @@ func is_blocked(grid_x, grid_y):
 		var door = _doors_by_cell[cell_key]
 		if is_instance_valid(door) and not door.can_pass():
 			return true
+	if shop_manager != null and shop_manager.has_actor_at(cell_key):
+		return true
 	return false
 
 func is_walkable(grid_x, grid_y):
@@ -384,6 +398,23 @@ func add_trap(grid_x, grid_y, trap_def):
 	add_entity(grid_x, grid_y, trap)
 	_traps_by_cell[cell_key] = trap
 	return trap
+
+func add_shop_pedestal(grid_x, grid_y, floor_level = 1):
+	var pedestal = ShopPedestalScript.new()
+	var rolled = shop_manager.roll_shop_item(floor_level)
+	pedestal.init("", rolled)
+	add_entity(grid_x, grid_y, pedestal)
+	shop_manager.register_pedestal(pedestal, grid_x, grid_y)
+	mark_blocker(grid_x, grid_y)
+	return pedestal
+
+func on_player_step(player_pos):
+	evaluate_scripts(player_pos)
+	update_trap_visibility(player_pos)
+	trigger_trap_at(player_pos)
+	if shop_manager != null:
+		shop_manager.on_player_moved(player_pos, self)
+		shop_manager.step_hostile_actors(self, player_pos)
 
 func get_trap_at(grid_x, grid_y):
 	var cell_key = Vector2i(int(grid_x), int(grid_y))

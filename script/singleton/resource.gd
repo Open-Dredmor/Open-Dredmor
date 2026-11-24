@@ -73,6 +73,7 @@ var paths = {
 		],
 	},
 	pedestal = "dungeon/pedestal_empty.spr",
+	shop_pedestal = "dungeon/store_pedestal.png",
 	traps = [
 		'dungeon/trap_pressure_plate0.png',
 		'dungeon/trap_mine.png',
@@ -165,6 +166,10 @@ var paths = {
 			close = _button_paths("ui/gameplay/xclose_copper"),
 			ok = _button_paths("ui/dialog_but_ok"),
 			buy = _button_paths("ui/dialog_but_buy"),
+			dont_buy = _button_paths("ui/dialog_but_dontbuy"),
+			sell = _button_paths("ui/dialog_but_sell"),
+			dont_sell = _button_paths("ui/dialog_but_dontsell"),
+			blank = _button_paths("ui/generated/dialog_but_blank"),
 			awesome = _button_paths("ui/dialog_but_awesome"),
 			shucks = _button_paths("ui/dialog_but_shucks")
 		}

@@ -41,3 +41,50 @@ func invisible_button():
 	node.add_theme_stylebox_override("disabled",hidden_button_style)
 	node.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	return node
+
+func parchment_button(text_value, font, text_color, textures = null, font_size = 20):
+	var btn = Button.new()
+	btn.text = text_value
+	btn.custom_minimum_size = Vector2(152, 40)
+	btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	btn.add_theme_font_override("font", font)
+	btn.add_theme_font_size_override("font_size", font_size)
+	btn.add_theme_color_override("font_color", text_color)
+	btn.add_theme_color_override("font_hover_color", text_color)
+	btn.add_theme_color_override("font_pressed_color", text_color)
+	btn.add_theme_color_override("font_focus_color", text_color)
+	if textures != null and textures.get("normal", null) != null:
+		for state in ["normal", "hover", "pressed"]:
+			var state_tex = textures.get(state, textures.normal)
+			var tex_box = StyleBoxTexture.new()
+			tex_box.texture = state_tex
+			tex_box.texture_margin_left = 18
+			tex_box.texture_margin_right = 18
+			tex_box.texture_margin_top = 10
+			tex_box.texture_margin_bottom = 10
+			tex_box.content_margin_left = 22
+			tex_box.content_margin_right = 22
+			tex_box.content_margin_top = 6
+			tex_box.content_margin_bottom = 6
+			btn.add_theme_stylebox_override(state, tex_box)
+			if state == "normal":
+				btn.add_theme_stylebox_override("focus", tex_box)
+	else:
+		var normal_box = StyleBoxFlat.new()
+		normal_box.bg_color = Color(0.84, 0.76, 0.63, 1.0)
+		normal_box.border_color = Color(0.45, 0.34, 0.24, 1.0)
+		normal_box.set_border_width_all(2)
+		normal_box.content_margin_left = 22
+		normal_box.content_margin_right = 22
+		normal_box.content_margin_top = 6
+		normal_box.content_margin_bottom = 6
+		var hover_box = normal_box.duplicate()
+		hover_box.bg_color = Color(0.91, 0.84, 0.71, 1.0)
+		var pressed_box = normal_box.duplicate()
+		pressed_box.bg_color = Color(0.75, 0.66, 0.53, 1.0)
+		btn.add_theme_stylebox_override("normal", normal_box)
+		btn.add_theme_stylebox_override("hover", hover_box)
+		btn.add_theme_stylebox_override("pressed", pressed_box)
+		btn.add_theme_stylebox_override("focus", normal_box)
+	return btn
