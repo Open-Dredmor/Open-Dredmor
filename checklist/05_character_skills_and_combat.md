@@ -12,7 +12,7 @@ Player stats, skill tree progression, melee/ranged combat, `spellDB` effects, st
   - *Current state*: Chosen skill IDs are stored in `DungeonSettings.starting_skill_ids` and never used in `game.gd`.
   - *Done when*: Starting skills grant level-1 abilities/stats; XP from kills/quests/disarms levels up the character, awards skill points, and lets the player unlock higher tiers in their 7 chosen skill trees (`skillDB.xml`).
 
-- [ ] **Combat resolution (Melee, Ranged, Thrown, Bolts)**
+- [x] **Combat resolution (Melee, Ranged, Thrown, Bolts)**
   - *Current state*: None.
   - *Done when*: Bumping an enemy or firing a crossbow/thrown weapon resolves hit vs. dodge, block, counter, critical, haywire, armor absorption, and elemental damage/resistances using `tweakDB.xml` formulas, spawns attack animations/SFX, and handles monster death & loot/XP drops.
 

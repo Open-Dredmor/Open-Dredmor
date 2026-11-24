@@ -1,5 +1,8 @@
 extends Control
 
+const CombatResolverScript = preload("res://script/instance/combat/combat_resolver.gd")
+const MonsterEntityScript = preload("res://script/instance/entity/monster_entity.gd")
+
 static func init_container():
 	return Control.new()
 
@@ -127,6 +130,30 @@ func _build_ui():
 				_active_player.unlock_next_skill_tier(sid)
 				break
 	)
+	_add_action_btn(action_grid, "Simulate Combat Round", func():
+		var diggle_def = OD.Database.get_monster("Diggle")
+		var monster = MonsterEntityScript.new()
+		monster.init(diggle_def, 1)
+		var melee_res = CombatResolverScript.resolve_attack(_active_player, monster, {
+			kind = "melee",
+			weapon = { slashing = 4, conflagratory = 2 },
+			force_hit = true
+		})
+		var bolt_res = CombatResolverScript.resolve_attack(_active_player, monster, {
+			kind = "bolt",
+			weapon = { piercing = 3 },
+			ammo = { piercing = 4, voltaic = 2 },
+			force_hit = true
+		})
+		var thrown_res = CombatResolverScript.resolve_attack(_active_player, monster, {
+			kind = "thrown",
+			ammo = { crushing = 2 },
+			force_hit = true
+		})
+		_active_player.add_xp(monster.get_xp_value())
+		monster.free()
+		print("COMBAT_SIM: melee=" + str(melee_res.total_damage) + " bolt=" + str(bolt_res.total_damage) + " thrown=" + str(thrown_res.total_damage))
+	)
 
 	var quick_game_btn = Button.new()
 	quick_game_btn.text = "Launch Quick Game"
@@ -144,7 +171,34 @@ func _build_ui():
 
 	_apply_sprite_state()
 	_refresh_stats()
+	_verify_combat_resolver()
 	print("PLAYER_TEST_READY")
+
+func _verify_combat_resolver():
+	var blobby_def = OD.Database.get_monster("Blobby")
+	var monster = MonsterEntityScript.new()
+	monster.init(blobby_def, 1)
+	assert(monster.monster_name == "Blobby" and monster.hp > 0)
+	var melee = CombatResolverScript.resolve_attack(_active_player, monster, {
+		kind = "melee",
+		weapon = { crushing = 5, acidic = 4 },
+		force_hit = true
+	})
+	assert(melee.hit and melee.total_damage > 0)
+	var bolt = CombatResolverScript.resolve_attack(_active_player, monster, {
+		kind = "bolt",
+		ammo = { piercing = 6 },
+		force_hit = true
+	})
+	assert(bolt.hit and bolt.total_damage > 0)
+	var thrown = CombatResolverScript.resolve_attack(_active_player, monster, {
+		kind = "thrown",
+		ammo = { crushing = 3 },
+		force_hit = true
+	})
+	assert(thrown.hit and thrown.total_damage > 0)
+	monster.free()
+	print("COMBAT_RESOLVER_VERIFIED")
 
 func _add_action_btn(parent_node, title, callback):
 	var btn = Button.new()

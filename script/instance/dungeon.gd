@@ -8,6 +8,7 @@ const PocketDimensionScript = preload("res://script/instance/room_placement/pock
 const CommandProcessorScript = preload("res://script/instance/command/command_processor.gd")
 const InputMapperScript = preload("res://script/instance/input/input_mapper.gd")
 const TurnSchedulerScript = preload("res://script/instance/turn/turn_scheduler.gd")
+const CombatResolverScript = preload("res://script/instance/combat/combat_resolver.gd")
 
 signal floor_changed(floor_level, branch_name)
 
@@ -84,11 +85,103 @@ func execute_interact_command(command):
 	_interact_or_approach({ kind = kind, target_pos = cell })
 	return true
 
-func execute_attack_at(target_cell):
-	var keeper = _entity_grid.shop_manager.get_shopkeeper_at(target_cell.x, target_cell.y) if _entity_grid != null else null
-	if keeper != null and keeper.is_hostile:
-		_handle_shopkeeper_interaction(keeper, target_cell)
+func _get_player_melee_weapon_damage():
+	if _player == null or _player.equipment == null:
+		return null
+	var combined = {}
+	var has_weapon = false
+	for slot_name in ["weapon_right", "weapon_left"]:
+		var item = _player.equipment.get(slot_name, null)
+		if item != null and typeof(item) == TYPE_DICTIONARY:
+			has_weapon = true
+			for dmg_type in CombatResolverScript.ALL_DAMAGE_TYPES:
+				if item.has(dmg_type):
+					combined[dmg_type] = int(combined.get(dmg_type, 0)) + int(item[dmg_type])
+	return combined if has_weapon else null
+
+func _handle_enemy_death(enemy, grid_pos):
+	if enemy == null:
+		return
+	var enemy_name = enemy.get("monster_name") if enemy.get("monster_name") != null else "Enemy"
+	if enemy.has_method("play_sfx"):
+		enemy.play_sfx("die")
+	else:
+		OD.Audio.play_sfx("large_die")
+	var xp_gain = enemy.get_xp_value() if enemy.has_method("get_xp_value") else 10
+	_spawn_floating_text(grid_pos, enemy_name + " defeated! +" + str(xp_gain) + " XP", Color(0.45, 0.95, 0.45))
+	award_xp(xp_gain, grid_pos)
+	var drop_chance = int(OD.Database.get_tweak("monster loot drop chance", 3))
+	if drop_chance > 0 and (randi() % drop_chance) == 0 and _entity_grid != null:
+		var gold_per_lvl = max(1, int(OD.Database.get_tweak("gold drop per level", 3)))
+		var gold_amount = randi_range(1, gold_per_lvl * max(1, _floor_level))
+		_entity_grid.add_loot_item(grid_pos.x, grid_pos.y, { kind = "zorkmids", amount = gold_amount })
+	if _entity_grid != null:
+		_entity_grid.unregister_entity(enemy, grid_pos)
+	enemy.queue_free()
+
+func _resolve_player_attack(target, target_cell, options = {}):
+	if _player == null or target == null:
+		return false
+	var attack_opts = options.duplicate()
+	var kind = str(attack_opts.get("kind", "melee"))
+	if kind == "melee" and not attack_opts.has("weapon"):
+		var weapon_dmg = _get_player_melee_weapon_damage()
+		if weapon_dmg != null:
+			attack_opts["weapon"] = weapon_dmg
+		else:
+			attack_opts["weapon"] = { crushing = 2 }
+	var player_pos = _player.get_grid_position()
+	if player_pos != null:
+		var dx = int(target_cell.x) - int(player_pos.x)
+		var dy = int(target_cell.y) - int(player_pos.y)
+		if dx != 0 or dy != 0:
+			_player.update_animation(dx, dy)
+			_player.idle()
+	var res = CombatResolverScript.resolve_attack(_player, target, attack_opts)
+	if not res.hit:
+		_spawn_floating_text(target_cell, "Dodged!", Color(0.75, 0.75, 0.85))
+		if res.ammo_recovered and _entity_grid != null and attack_opts.has("ammo_item"):
+			_entity_grid.add_loot_item(target_cell.x, target_cell.y, attack_opts.ammo_item)
 		return true
+	target.hp -= res.total_damage
+	if target.has_method("play_hit_animation"):
+		target.play_hit_animation()
+	if target.has_method("play_sfx"):
+		target.play_sfx("hit")
+	else:
+		OD.Audio.play_sfx("large_damage")
+	var tag_suffix = ""
+	if res.critical:
+		tag_suffix += " CRIT!"
+	if res.blocked:
+		tag_suffix += " (Blocked)"
+	_spawn_floating_text(target_cell, "-" + str(res.total_damage) + tag_suffix, Color(1.0, 0.85, 0.25))
+	if res.ammo_recovered and _entity_grid != null and attack_opts.has("ammo_item"):
+		_entity_grid.add_loot_item(target_cell.x, target_cell.y, attack_opts.ammo_item)
+	if target.hp <= 0:
+		_handle_enemy_death(target, target_cell)
+		return true
+	if res.countered and player_pos != null:
+		var counter_res = CombatResolverScript.resolve_attack(target, _player, { kind = "melee", is_counter = true })
+		if counter_res.hit and counter_res.total_damage > 0:
+			_player.modify_hp(-counter_res.total_damage)
+			var p_cell = Vector2i(int(player_pos.x), int(player_pos.y))
+			_spawn_floating_text(p_cell, "Counter! -" + str(counter_res.total_damage), Color(1.0, 0.3, 0.3))
+	return true
+
+func execute_ranged_attack(target_cell, options = {}):
+	if _entity_grid == null or _player == null:
+		return false
+	var enemy = _entity_grid.get_enemy_at(target_cell.x, target_cell.y)
+	if enemy == null:
+		_spawn_floating_text(target_cell, "No target", Color(0.8, 0.8, 0.8))
+		return false
+	return _resolve_player_attack(enemy, target_cell, options)
+
+func execute_attack_at(target_cell):
+	var enemy = _entity_grid.get_enemy_at(target_cell.x, target_cell.y) if _entity_grid != null else null
+	if enemy != null:
+		return _resolve_player_attack(enemy, target_cell, { kind = "melee" })
 	var element = _entity_grid.get_element_at(target_cell.x, target_cell.y) if _entity_grid != null else null
 	if element != null and not element.is_broken and element.element_type == "custom_breakable":
 		_handle_element_interaction(element, target_cell)
@@ -105,6 +198,13 @@ func execute_cast_spell(spell_name, target_cell):
 func execute_use_item(item_data, target_cell):
 	if item_data.is_empty() or _player == null:
 		return false
+	var item_kind = str(item_data.get("kind", ""))
+	if item_kind == "bolt" or item_kind == "thrown":
+		return execute_ranged_attack(target_cell, {
+			kind = item_kind,
+			ammo = item_data.get("damage", item_data),
+			ammo_item = item_data
+		})
 	var pos = target_cell if target_cell != Vector2i.ZERO else Vector2i(int(_player.get_grid_position().x), int(_player.get_grid_position().y))
 	_spawn_floating_text(pos, "Used " + str(item_data.get("name", "Item")), Color(0.75, 0.95, 0.65))
 	return true
@@ -529,14 +629,7 @@ func _on_hostile_attack(attacker_name, damage, grid_pos):
 
 func _handle_shopkeeper_interaction(keeper, pos):
 	if keeper.is_hostile:
-		keeper.hp -= 25
-		OD.Audio.play_sfx("large_damage")
-		_spawn_floating_text(pos, "-25 HP", Color(1.0, 0.85, 0.25))
-		if keeper.hp <= 0:
-			OD.Audio.play_sfx("large_die")
-			_spawn_floating_text(pos, keeper.monster_name + " defeated!", Color(0.45, 0.95, 0.45))
-			_entity_grid.unregister_entity(keeper, pos)
-			keeper.queue_free()
+		_resolve_player_attack(keeper, pos, { kind = "melee" })
 		return
 	var shop = _entity_grid.shop_manager.get_shop_by_id(keeper.shop_id)
 	if shop == null:

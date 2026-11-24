@@ -10,6 +10,27 @@ var is_guard = false
 var hp = 120
 var max_hp = 120
 var attack_damage = 10
+var xp_value = 150
+var splat_type = "blood"
+var secondary_stats = {
+	dodge_chance = 10,
+	block_chance = 10,
+	counter_chance = 15,
+	armour_absorption = 2,
+	crit_chance = 10,
+	enemy_dodge_reduction = 5,
+	magic_resistance = 10
+}
+var resistances = {}
+
+func get_secondary_stat(stat_key):
+	return int(secondary_stats.get(stat_key, 0))
+
+func get_resistance(damage_type):
+	return int(resistances.get(damage_type, 0))
+
+func get_xp_value():
+	return xp_value
 
 var _sprites = {}
 var _active_sprite = null
