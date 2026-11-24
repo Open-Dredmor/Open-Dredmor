@@ -10,6 +10,13 @@ var current_animation = null
 
 var last_delta_x = 0
 var last_delta_y = 0
+var sight_radius = 8
+
+func get_sight_radius():
+	return sight_radius
+
+func set_sight_radius(radius):
+	sight_radius = max(1, int(radius))
 
 func update_animation(delta_x, delta_y):
 	if animations.is_empty():

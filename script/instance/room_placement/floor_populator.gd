@@ -385,6 +385,7 @@ static func _spawn_blocker_prop(entity_grid, cell):
 				var pixel_pos = OD.Math.grid_to_pixel(cell.x, cell.y)
 				if anim.is_tall():
 					pixel_pos.y -= OD.Assets.CELL_PIXEL_HEIGHT / 2.0
+				anim.set_meta("grid_cell", cell)
 				entity_grid.add_animation(pixel_pos.x, pixel_pos.y, "custom_blocker", anim)
 				entity_grid.mark_blocker(cell.x, cell.y)
 				return true

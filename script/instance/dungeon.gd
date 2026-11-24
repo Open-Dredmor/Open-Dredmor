@@ -210,7 +210,8 @@ func _execute_interaction(interaction):
 		"door":
 			var door = _entity_grid.get_door_at(pos.x, pos.y)
 			if door != null and not door.can_pass():
-				door.interact()
+				if door.interact():
+					update_fov()
 		"element":
 			var element = _entity_grid.get_element_at(pos.x, pos.y)
 			if element != null and not element.is_broken:
@@ -282,6 +283,7 @@ func _change_floor(direction):
 	_player.idle()
 	_entity_grid.add_entity(spawn_cell.x, spawn_cell.y, _target_cursor)
 	_entity_grid.update_trap_visibility(_player.get_grid_position())
+	update_fov()
 	OD.Audio.play_sfx("stairs")
 	_spawn_floating_text(spawn_cell, "Floor " + str(_floor_level), Color(0.95, 0.9, 0.45))
 	floor_changed.emit(_floor_level, _branch_name)
@@ -297,8 +299,19 @@ func get_player_global_position():
 		return _player.global_position
 	return null
 
+func update_fov():
+	if _entity_grid != null and _player != null and is_instance_valid(_player):
+		var player_pos = _player.get_grid_position()
+		if player_pos != null:
+			_entity_grid.update_fov(player_pos, _player.get_sight_radius())
+
+func _on_turn_completed(_turn_number, _summary):
+	update_fov()
+
 func _build_ui():
 	_turn_scheduler.init(_command_processor, OD.DungeonSettings.get_settings().get("base_turn_seconds", 0.24))
+	if not _turn_scheduler.turn_completed.is_connected(_on_turn_completed):
+		_turn_scheduler.turn_completed.connect(_on_turn_completed)
 	if _turn_scheduler.get_parent() == null:
 		add_child(_turn_scheduler)
 	_player = PlayerCharacter.new()
@@ -313,6 +326,7 @@ func _build_ui():
 	add_child(_entity_grid)
 	_entity_grid.add_entity(spawn_x, spawn_y, _target_cursor)
 	_entity_grid.update_trap_visibility(_player.get_grid_position())
+	update_fov()
 	_seed_player_bag()
 	floor_changed.emit(_floor_level, _branch_name)
 
@@ -333,6 +347,7 @@ func _on_teleporter_stepped(teleporter_info, _grid_pos):
 	_entity_grid.move_entity(_player, prev_pos, dest)
 	_target_cursor.select(dest.x, dest.y)
 	_entity_grid.update_trap_visibility(dest)
+	update_fov()
 	OD.Audio.play_sfx("teleport")
 	_spawn_floating_text(dest, "Teleported!", Color(0.55, 0.85, 1.0))
 
@@ -384,6 +399,7 @@ func _toggle_pocket_dimension(_portal_pos):
 	_player.idle()
 	_entity_grid.add_entity(spawn_cell.x, spawn_cell.y, _target_cursor)
 	_entity_grid.update_trap_visibility(_player.get_grid_position())
+	update_fov()
 	OD.Audio.play_sfx("portal")
 	_spawn_floating_text(spawn_cell, label_text, Color(0.75, 0.55, 1.0))
 	floor_changed.emit(_floor_level, branch_label)

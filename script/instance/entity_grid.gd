@@ -7,6 +7,7 @@ const ElementScript = preload("res://script/instance/entity/dungeon_element.gd")
 const TrapScript = preload("res://script/instance/entity/trap.gd")
 const ShopPedestalScript = preload("res://script/instance/entity/shop_pedestal.gd")
 const ShopManagerScript = preload("res://script/instance/shop_manager.gd")
+const FieldOfViewScript = preload("res://script/instance/fov.gd")
 
 signal script_ticker(message)
 signal script_spell_cast(spell_name, grid_pos)
@@ -79,6 +80,7 @@ var _entities_by_cell = {}
 var _named_entities = {}
 var _room_scripts = []
 var shop_manager = ShopManagerScript.new()
+var fov = FieldOfViewScript.new()
 var pending_shop_def = null
 var floor_level = 1
 var branch_id = 0
@@ -167,11 +169,18 @@ func insert(source_grid, offset_position):
 			if child.has_method("get_grid_position") and child.get_grid_position() != null:
 				var new_grid_pos = child.get_grid_position() + offset_position
 				child.move_to(new_grid_pos.x, new_grid_pos.y)
+				if child.has_meta("door_cells"):
+					var shifted_door_cells = []
+					for door_cell in child.get_meta("door_cells"):
+						shifted_door_cells.append(door_cell + offset_cell)
+					child.set_meta("door_cells", shifted_door_cells)
 			else:
 				var source_cell = Vector2i(int(round(child.position.x)), int(round(child.position.y)))
+				var target_cell = source_cell + offset_cell
 				child.position = OD.Math.grid_to_pixel(child.position.x + offset_position.x, child.position.y + offset_position.y)
+				child.set_meta("grid_cell", target_cell)
 				if layer_key == "floor":
-					_floor_tile_nodes[source_cell + offset_cell] = child
+					_floor_tile_nodes[target_cell] = child
 			target_layer.add_child(child)
 	for ped_cell in source_grid.shop_manager._pedestals_by_cell.keys():
 		var shifted_ped_cell = ped_cell + offset_cell
@@ -299,6 +308,7 @@ func add_tile(x, y, name, sprite_path = null):
 		_:
 			tile = OD.Load.animation(sprite_path)
 	tile.position = Vector2(x, y)
+	tile.set_meta("grid_cell", cell_key)
 	layer.add_child(tile)
 
 func mark_destructible(grid_x, grid_y):
@@ -368,6 +378,24 @@ func _has_clear_los(from_cell, to_cell):
 			y0 += sy
 	return true
 
+func update_fov(origin_cell, sight_radius = 8):
+	fov.compute(origin_cell, sight_radius, Callable(self, "is_opaque"))
+	fov.apply_visibility(self)
+	return fov.visible_cells
+
+func refresh_fov_visuals():
+	fov.apply_visibility(self)
+
+func is_cell_visible(grid_x, grid_y):
+	if not fov.has_computed():
+		return true
+	return fov.is_visible(grid_x, grid_y)
+
+func is_cell_explored(grid_x, grid_y):
+	if not fov.has_computed():
+		return true
+	return fov.is_explored(grid_x, grid_y)
+
 func has_visible_enemy(origin_cell, sight_radius = 8):
 	var origin = Vector2i(int(origin_cell.x), int(origin_cell.y))
 	if shop_manager != null:
@@ -385,15 +413,23 @@ func has_visible_enemy(origin_cell, sight_radius = 8):
 				if pos == null:
 					continue
 				var enemy_cell = Vector2i(int(pos.x), int(pos.y))
-				var dist = max(abs(enemy_cell.x - origin.x), abs(enemy_cell.y - origin.y))
-				if dist <= sight_radius and _has_clear_los(origin, enemy_cell):
-					return true
+				if fov.has_computed():
+					if fov.is_visible(enemy_cell.x, enemy_cell.y):
+						return true
+				else:
+					var dist = max(abs(enemy_cell.x - origin.x), abs(enemy_cell.y - origin.y))
+					if dist <= sight_radius and _has_clear_los(origin, enemy_cell):
+						return true
 	for cell_key in _entities_by_cell.keys():
-		var dist = max(abs(cell_key.x - origin.x), abs(cell_key.y - origin.y))
-		if dist > sight_radius:
-			continue
-		if has_enemy_at(cell_key.x, cell_key.y) and _has_clear_los(origin, cell_key):
-			return true
+		if fov.has_computed():
+			if fov.is_visible(cell_key.x, cell_key.y) and has_enemy_at(cell_key.x, cell_key.y):
+				return true
+		else:
+			var dist = max(abs(cell_key.x - origin.x), abs(cell_key.y - origin.y))
+			if dist > sight_radius:
+				continue
+			if has_enemy_at(cell_key.x, cell_key.y) and _has_clear_los(origin, cell_key):
+				return true
 	return false
 
 func is_blocked(grid_x, grid_y):
@@ -552,6 +588,7 @@ func _execute_script_action(action, player_cell):
 				info.cell = dest
 				if is_instance_valid(info.node):
 					info.node.position = OD.Math.grid_to_pixel(dest.x, dest.y)
+					info.node.set_meta("grid_cell", dest)
 		"create":
 			if action.has("grid_pos"):
 				var pos = action.grid_pos
@@ -570,6 +607,7 @@ func _execute_script_action(action, player_cell):
 				if created_node != null:
 					var layer_name = create_type if layers.lookup.has(create_type) else "custom_blocker"
 					var pixel_pos = OD.Math.grid_to_pixel(pos.x, pos.y)
+					created_node.set_meta("grid_cell", pos)
 					add_animation(pixel_pos.x, pixel_pos.y, layer_name, created_node)
 					if create_type == "customblocker" and (not action.has("passable") or int(action.passable) == 0):
 						mark_blocker(pos.x, pos.y)
@@ -591,6 +629,7 @@ func add_door(grid_x, grid_y, orientation = "ew", locked = false, style = "1x1")
 		return _doors_by_cell[cell_key]
 	var door = DoorScript.new()
 	door.init(orientation, locked, style)
+	var span_cells = []
 	if style == "3x3" and orientation == "ns":
 		add_entity(grid_x, grid_y - 1, door)
 		var aux = door.get_aux_node()
@@ -603,6 +642,9 @@ func add_door(grid_x, grid_y, orientation = "ew", locked = false, style = "1x1")
 				_wall_cells.erase(span_cell)
 				add_floor_tile_at_grid(span_cell.x, span_cell.y)
 			_doors_by_cell[span_cell] = door
+			span_cells.append(span_cell)
+		if aux != null:
+			aux.set_meta("door_cells", span_cells)
 	elif style == "3x3" and orientation == "ew":
 		add_entity(grid_x, grid_y, door)
 		for dx in [-1, 0, 1]:
@@ -611,9 +653,12 @@ func add_door(grid_x, grid_y, orientation = "ew", locked = false, style = "1x1")
 				_wall_cells.erase(span_cell)
 				add_floor_tile_at_grid(span_cell.x, span_cell.y)
 			_doors_by_cell[span_cell] = door
+			span_cells.append(span_cell)
 	else:
 		add_entity(grid_x, grid_y, door)
 		_doors_by_cell[cell_key] = door
+		span_cells.append(cell_key)
+	door.set_meta("door_cells", span_cells)
 	return door
 
 func add_floor_tile_at_grid(grid_x, grid_y):
@@ -621,6 +666,7 @@ func add_floor_tile_at_grid(grid_x, grid_y):
 	_floor_cells[cell_key] = true
 	var tile = _tilesets.basic.get_tile("floor")
 	tile.position = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
+	tile.set_meta("grid_cell", cell_key)
 	_floor_tile_nodes[cell_key] = tile
 	get_layer("floor").add_child(tile)
 
@@ -648,6 +694,7 @@ func carve_liquid_cell(grid_x, grid_y, liquid_type):
 	_liquid_cells[cell_key] = liquid_type
 	var anim = _tilesets.liquids.get_animation(liquid_type)
 	var pixel_pos = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
+	anim.set_meta("grid_cell", cell_key)
 	add_animation(pixel_pos.x, pixel_pos.y, "liquid", anim)
 
 func add_floor_decal(grid_x, grid_y, decal_path):
@@ -665,6 +712,7 @@ func add_floor_decal(grid_x, grid_y, decal_path):
 	if decal_node != null:
 		var pixel_pos = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
 		decal_node.position = pixel_pos
+		decal_node.set_meta("grid_cell", cell_key)
 		get_layer("floor_decoration").add_child(decal_node)
 	return decal_node
 
@@ -703,6 +751,7 @@ func add_stairs(grid_x, grid_y, direction):
 	var pixel_pos = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
 	if stairs_anim.is_tall():
 		pixel_pos.y -= OD.Assets.CELL_PIXEL_HEIGHT / 2.0
+	stairs_anim.set_meta("grid_cell", cell_key)
 	add_animation(pixel_pos.x, pixel_pos.y, "floor_decoration", stairs_anim)
 	_stairs_by_cell[cell_key] = {
 		direction = direction,
@@ -723,6 +772,7 @@ func get_stairs_at(grid_x, grid_y):
 func add_teleporter(grid_x, grid_y, channel, target_cell, animation):
 	var cell_key = Vector2i(int(grid_x), int(grid_y))
 	var pixel_pos = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
+	animation.set_meta("grid_cell", cell_key)
 	add_animation(pixel_pos.x, pixel_pos.y, "floor_decoration", animation)
 	_teleporters_by_cell[cell_key] = {
 		channel = channel,
@@ -771,6 +821,7 @@ func add_loot_item(grid_x, grid_y, loot_data):
 	if loot_node == null:
 		return null
 	var pixel_pos = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
+	loot_node.set_meta("grid_cell", cell_key)
 	add_animation(pixel_pos.x, pixel_pos.y, "loot", loot_node)
 	_loot_by_cell[cell_key] = {
 		node = loot_node,
@@ -793,9 +844,17 @@ func add_shop_pedestal(grid_x, grid_y, floor_level = 1):
 	mark_blocker(grid_x, grid_y)
 	return pedestal
 
+func _get_player_sight_radius():
+	if layers.lookup.has("actors"):
+		for actor in layers.lookup["actors"].get_children():
+			if actor.get("entity_kind") == "player" and actor.has_method("get_sight_radius"):
+				return actor.get_sight_radius()
+	return 8
+
 func on_player_step(player_pos):
 	evaluate_scripts(player_pos)
 	update_trap_visibility(player_pos)
+	update_fov(player_pos, _get_player_sight_radius())
 	trigger_trap_at(player_pos)
 	if shop_manager != null:
 		shop_manager.on_player_moved(player_pos, self)
@@ -851,6 +910,7 @@ func auto_tile_walls():
 		var has_east = _wall_cells.has(cell + Vector2i(1, 0))
 		var tile = _tilesets.basic.get_wall_tile(has_north, has_south, has_west, has_east)
 		tile.position = OD.Math.grid_to_pixel(cell.x, cell.y)
+		tile.set_meta("grid_cell", cell)
 		wall_layer.add_child(tile)
 
 func auto_tile_liquids():
@@ -873,6 +933,7 @@ func auto_tile_liquids():
 		var edge_tile = _tilesets.basic.get_liquid_edge_tile(has_n, has_s, has_w, has_e, has_nw, has_ne, has_sw, has_se)
 		if edge_tile != null:
 			edge_tile.position = OD.Math.grid_to_pixel(cell.x, cell.y)
+			edge_tile.set_meta("grid_cell", cell)
 			floor_layer.add_child(edge_tile)
 			_liquid_edge_nodes.append(edge_tile)
 
@@ -906,6 +967,7 @@ func decorate_walls():
 			continue
 		var decor_tile = _tilesets.basic.get_tile("wallDecor")
 		decor_tile.position = OD.Math.grid_to_pixel(cell.x, cell.y)
+		decor_tile.set_meta("grid_cell", cell)
 		decor_layer.add_child(decor_tile)
 		_wall_decor_nodes.append(decor_tile)
 		placed_decor[cell] = true

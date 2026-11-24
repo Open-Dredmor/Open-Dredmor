@@ -135,6 +135,8 @@ func translate_dungeon_input(ev, context):
 			return MoveCmdScript.new().init_path(player, cell, true)
 		if ev.button_index != MOUSE_BUTTON_LEFT or ev.pressed:
 			return null
+		if not entity_grid.is_cell_explored(cell.x, cell.y):
+			return null
 		var shopkeeper = entity_grid.shop_manager.get_shopkeeper_at(cell.x, cell.y)
 		if shopkeeper != null:
 			return InteractCmdScript.new().init(player, "shopkeeper", cell)
