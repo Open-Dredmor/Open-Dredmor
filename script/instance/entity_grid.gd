@@ -34,6 +34,7 @@ var layer_names = [
 	"loot",
 	"cursor",
 	"actors",
+	"floating_text"
 ]
 
 var xml_name_to_layer_name = {

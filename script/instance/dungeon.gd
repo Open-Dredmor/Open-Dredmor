@@ -379,7 +379,7 @@ func _spawn_spell_vfx(spell_name, grid_pos):
 		var vfx = OD.Load.png_sprite(anim_def.sprite, first_idx, first_idx + frame_count, frame_rate)
 		if vfx != null:
 			var px = OD.Math.grid_to_pixel(grid_pos.x, grid_pos.y)
-			_entity_grid.add_animation(px.x, px.y, "player", vfx)
+			_entity_grid.add_animation(px.x, px.y, "floating_text", vfx)
 			vfx.animation_complete.connect(func():
 				if is_instance_valid(vfx):
 					vfx.queue_free()
@@ -399,7 +399,7 @@ func _spawn_floating_text(grid_pos, text, color):
 	label.add_theme_color_override("font_color", color)
 	label.add_theme_constant_override("outline_size", 3)
 	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-	_entity_grid.get_layer("player").add_child(label)
+	_entity_grid.get_layer("floating_text").add_child(label)
 	var tween = create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(label, "position:y", label.position.y - 28.0, 0.9)
@@ -420,6 +420,11 @@ func _close_element_dialog():
 func _handle_element_interaction(element, grid_coords):
 	if element.element_type == "wizardportal" or element.element_type == "portal":
 		_toggle_pocket_dimension(grid_coords)
+		return
+	if element.element_type == "custom_breakable":
+		var break_res = element.interact()
+		_entity_grid.unblock_cell(grid_coords.x, grid_coords.y)
+		_spawn_floating_text(grid_coords, break_res.get("message", "Smashed!"), Color(0.95, 0.85, 0.45))
 		return
 	_close_element_dialog()
 	_interaction_dialog = ElementDialogScript.new()
