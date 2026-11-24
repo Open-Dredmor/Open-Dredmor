@@ -30,7 +30,15 @@ func _apply_bus_volume(bus_name, percent):
 
 func apply_volume_settings():
 	_apply_bus_volume(&"Master", OD.Settings.master_volume_percent())
+	_apply_bus_volume(&"Music", OD.Settings.music_volume_percent())
 	_apply_bus_volume(&"Sound", OD.Settings.sfx_volume_percent())
+	_apply_bus_volume(&"Dialogue", OD.Settings.dialogue_volume_percent())
+
+func apply_preview_volumes(master_pct, music_pct, sfx_pct, dialogue_pct):
+	_apply_bus_volume(&"Master", master_pct)
+	_apply_bus_volume(&"Music", music_pct)
+	_apply_bus_volume(&"Sound", sfx_pct)
+	_apply_bus_volume(&"Dialogue", dialogue_pct)
 
 func _clear_sfx_pool():
 	for player in _sfx_players:

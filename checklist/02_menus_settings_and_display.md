@@ -28,6 +28,6 @@ Pre-game flow, responsive UI scaling across window sizes, and preserving player 
   - *Current state*: [script/scene/skills_menu.gd](../script/scene/skills_menu.gd) has `last_selection_button` assets loaded in [script/singleton/assets.gd](../script/singleton/assets.gd) but never adds the button or persists last-used skills.
   - *Done when*: Selecting skills persists the last 7 skill IDs to user settings, the "Last" button restores them, and skill archetype/category info is shown.
 
-- [ ] **Settings Menu completeness**
+- [x] **Settings Menu completeness**
   - *Current state*: [script/scene/settings_menu.gd](../script/scene/settings_menu.gd) only toggles `audio_enabled` and forgets the install directory; `audio_volume_master_percent` in [script/singleton/settings.gd](../script/singleton/settings.gd) is unused.
   - *Done when*: Audio buses (`Master`, `Music`, `Sound`, `Dialogue` in [default_bus_layout.tres](../default_bus_layout.tres)) are controlled by volume sliders, plus display/fullscreen and keybind options, all persisted in `open-dredmor-settings.ini`.
