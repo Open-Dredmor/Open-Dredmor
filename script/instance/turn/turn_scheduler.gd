@@ -27,6 +27,7 @@ var _game_speed_override = -1.0
 var _phase_timer = Timer.new()
 var _active_context = {}
 var _cancel_auto_requested = false
+var _submitting_command = false
 var _cooldowns = {}
 var _status_effects = []
 var _regen_targets = {}
@@ -80,9 +81,15 @@ func _set_state(new_state):
 	state_changed.emit(state)
 
 func cancel_auto_actions():
-	_cancel_auto_requested = true
+	if state != State.WAITING_FOR_INPUT:
+		_cancel_auto_requested = true
 	if OD.ActionQueue != null:
 		OD.ActionQueue.clear()
+	var player = _active_context.get("player", null)
+	if player != null and is_instance_valid(player) and player.has_method("set_continuous_walk"):
+		player.set_continuous_walk(false)
+		if not player.is_moving():
+			player.idle()
 
 func submit_command(command, context):
 	if state != State.WAITING_FOR_INPUT:
@@ -90,7 +97,9 @@ func submit_command(command, context):
 	if _command_processor == null:
 		return { executed = false, consumes_turn = false, message = "" }
 	_cancel_auto_requested = false
+	_submitting_command = true
 	var result = _command_processor.submit(command, context)
+	_submitting_command = false
 	if result == null or typeof(result) != TYPE_DICTIONARY or not result.get("executed", false):
 		_set_state(State.WAITING_FOR_INPUT)
 		return result if result != null else { executed = false, consumes_turn = false, message = "" }
@@ -108,6 +117,8 @@ func submit_command(command, context):
 	return result
 
 func start_queued_actions(context):
+	if _submitting_command:
+		return
 	if OD.ActionQueue == null or not OD.ActionQueue.has_pending():
 		return
 	_cancel_auto_requested = false

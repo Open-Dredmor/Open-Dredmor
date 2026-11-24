@@ -8,12 +8,12 @@ const InteractCmdScript = preload("res://script/instance/command/interact_comman
 const WaitCmdScript = preload("res://script/instance/command/wait_command.gd")
 
 var _key_bindings = {
-	wait = [KEY_PERIOD, KEY_KP_5],
-	restart_scene = [KEY_SPACE],
-	pan_left = [KEY_LEFT],
-	pan_right = [KEY_RIGHT],
-	pan_up = [KEY_UP],
-	pan_down = [KEY_DOWN],
+	move_left = [KEY_A, KEY_LEFT, KEY_KP_4],
+	move_right = [KEY_D, KEY_RIGHT, KEY_KP_6],
+	move_up = [KEY_W, KEY_UP, KEY_KP_8],
+	move_down = [KEY_S, KEY_DOWN, KEY_KP_2],
+	wait = [KEY_SPACE, KEY_PERIOD, KEY_KP_5],
+	restart_scene = [KEY_F5],
 	center_camera = [KEY_C]
 }
 
@@ -31,16 +31,30 @@ func is_action_key(action_name, keycode):
 		return false
 	return keycode in _key_bindings[action_name]
 
+func sync_from_settings():
+	if OD.Settings == null or not OD.Settings.has_method("get_keybinds"):
+		return
+	var binds = OD.Settings.get_keybinds()
+	for action_name in ["move_up", "move_down", "move_left", "move_right", "wait"]:
+		if not binds.has(action_name):
+			continue
+		var primary = int(binds[action_name])
+		var existing = _key_bindings.get(action_name, []).duplicate()
+		if not (primary in existing):
+			existing.insert(0, primary)
+			_key_bindings[action_name] = existing
+
 func translate_camera_input(ev):
 	if ev is InputEventKey and ev.is_pressed():
-		if is_action_key("pan_left", ev.keycode):
-			return { kind = "pan", delta = Vector2(1, 0) }
-		if is_action_key("pan_right", ev.keycode):
-			return { kind = "pan", delta = Vector2(-1, 0) }
-		if is_action_key("pan_up", ev.keycode):
-			return { kind = "pan", delta = Vector2(0, 1) }
-		if is_action_key("pan_down", ev.keycode):
-			return { kind = "pan", delta = Vector2(0, -1) }
+		if ev.shift_pressed:
+			if ev.keycode == KEY_LEFT:
+				return { kind = "pan", delta = Vector2(1, 0) }
+			if ev.keycode == KEY_RIGHT:
+				return { kind = "pan", delta = Vector2(-1, 0) }
+			if ev.keycode == KEY_UP:
+				return { kind = "pan", delta = Vector2(0, 1) }
+			if ev.keycode == KEY_DOWN:
+				return { kind = "pan", delta = Vector2(0, -1) }
 		if is_action_key("center_camera", ev.keycode) and not ev.echo:
 			return { kind = "center_camera" }
 	if ev is InputEventMouseButton:
@@ -56,6 +70,42 @@ func translate_camera_input(ev):
 		return { kind = "drag_motion", position = ev.position }
 	return null
 
+func _directional_delta(keycode):
+	if is_action_key("move_left", keycode):
+		return Vector2i(-1, 0)
+	if is_action_key("move_right", keycode):
+		return Vector2i(1, 0)
+	if is_action_key("move_up", keycode):
+		return Vector2i(0, -1)
+	if is_action_key("move_down", keycode):
+		return Vector2i(0, 1)
+	return Vector2i.ZERO
+
+func _bump_command_for_delta(player, entity_grid, delta):
+	var player_pos = player.get_grid_position()
+	if player_pos == null:
+		return null
+	var target_cell = Vector2i(int(player_pos.x) + delta.x, int(player_pos.y) + delta.y)
+	if entity_grid.has_enemy_at(target_cell.x, target_cell.y):
+		return AttackCmdScript.new().init(player, target_cell)
+	var shopkeeper = entity_grid.shop_manager.get_shopkeeper_at(target_cell.x, target_cell.y)
+	if shopkeeper != null:
+		return InteractCmdScript.new().init(player, "shopkeeper", target_cell)
+	var shop_pedestal = entity_grid.shop_manager.get_pedestal_at(target_cell.x, target_cell.y)
+	if shop_pedestal != null:
+		return InteractCmdScript.new().init(player, "shop_pedestal", target_cell)
+	var door = entity_grid.get_door_at(target_cell.x, target_cell.y)
+	if door != null and not door.can_pass():
+		return InteractCmdScript.new().init(player, "door", target_cell)
+	var element = entity_grid.get_element_at(target_cell.x, target_cell.y)
+	if element != null and not element.is_broken:
+		if element.element_type == "custom_breakable":
+			return AttackCmdScript.new().init(player, target_cell)
+		return InteractCmdScript.new().init(player, "element", target_cell)
+	if entity_grid.is_walkable(target_cell.x, target_cell.y):
+		return MoveCmdScript.new().init_step(player, delta)
+	return null
+
 func translate_dungeon_input(ev, context):
 	var dungeon = context.get("dungeon", null)
 	var entity_grid = context.get("entity_grid", null)
@@ -63,10 +113,13 @@ func translate_dungeon_input(ev, context):
 	if dungeon == null or entity_grid == null or player == null:
 		return null
 
-	if ev is InputEventKey and ev.is_pressed() and not ev.echo:
-		if is_action_key("wait", ev.keycode):
+	if ev is InputEventKey and ev.is_pressed():
+		var move_delta = _directional_delta(ev.keycode)
+		if move_delta != Vector2i.ZERO:
+			return _bump_command_for_delta(player, entity_grid, move_delta)
+		if not ev.echo and is_action_key("wait", ev.keycode):
 			return WaitCmdScript.new().init(player)
-		if ev.unicode == ord(">") or ev.unicode == ord("<"):
+		if not ev.echo and (ev.unicode == ord(">") or ev.unicode == ord("<")):
 			var player_pos = player.get_grid_position()
 			var stairs = entity_grid.get_stairs_at(player_pos.x, player_pos.y)
 			if stairs != null:

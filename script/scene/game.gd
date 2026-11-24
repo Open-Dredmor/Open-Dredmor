@@ -69,7 +69,9 @@ func _build_ui():
 	_turn_label.text = "Turn 0"
 	hud_layer.add_child(_turn_label)
 	_dungeon.floor_changed.connect(_on_floor_changed)
+	_dungeon.get_turn_scheduler().turn_started.connect(_on_turn_started)
 	_dungeon.get_turn_scheduler().turn_completed.connect(_on_turn_completed)
+	_dungeon.get_input_mapper().sync_from_settings()
 	call_deferred("_center_on_player")
 	
 	OD.Audio.play(assets.music.default)
@@ -86,7 +88,11 @@ func _center_on_player():
 func _on_floor_changed(floor_level, branch_name):
 	if is_instance_valid(_floor_label):
 		_floor_label.text = "Floor " + str(floor_level) + " - " + branch_name
+	_camera_follow_enabled = true
 	call_deferred("_center_on_player")
+
+func _on_turn_started(_turn_number):
+	_camera_follow_enabled = true
 
 func _on_turn_completed(turn_number, _summary):
 	if is_instance_valid(_turn_label):
@@ -109,6 +115,10 @@ const CLICK_MAX_HOLD_MS = 160
 var speed = 200
 var drag_enabled = false
 var _is_dragging = false
+var _camera_follow_enabled = true
+var _target_zoom = 1.0
+var _zoom_anchor_local = Vector2.ZERO
+var _has_zoom_anchor = false
 var _drag_start_pos = Vector2.ZERO
 var _drag_press_time_ms = 0
 var _total_pan_px = 0.0
@@ -127,9 +137,11 @@ func _input(ev):
 	if cam_action != null:
 		match cam_action.kind:
 			"pan":
+				_camera_follow_enabled = false
 				moveable_container.position += cam_action.delta * speed
 				return
 			"center_camera":
+				_camera_follow_enabled = true
 				_center_on_player()
 				return
 			"drag":
@@ -164,27 +176,37 @@ func _input(ev):
 func _zoom_at(zoom_factor):
 	if moveable_container == null:
 		return
-	var old_scale = moveable_container.scale.x
-	var new_scale = clamp(old_scale * zoom_factor, 0.25, 4.0)
-	if is_equal_approx(old_scale, new_scale):
-		return
-	var local_mouse = moveable_container.get_parent().get_local_mouse_position()
-	var ratio = new_scale / old_scale
-	moveable_container.position = local_mouse - (local_mouse - moveable_container.position) * ratio
-	moveable_container.scale = Vector2(new_scale, new_scale)
+	_target_zoom = clamp(_target_zoom * zoom_factor, 0.25, 4.0)
+	_zoom_anchor_local = moveable_container.get_parent().get_local_mouse_position()
+	_has_zoom_anchor = true
 
 func _reset_zoom():
 	if moveable_container == null:
 		return
-	var old_scale = moveable_container.scale.x
-	if is_equal_approx(old_scale, 1.0):
-		return
-	var local_mouse = moveable_container.get_parent().get_local_mouse_position()
-	var ratio = 1.0 / old_scale
-	moveable_container.position = local_mouse - (local_mouse - moveable_container.position) * ratio
-	moveable_container.scale = Vector2.ONE
+	_target_zoom = 1.0
+	_zoom_anchor_local = moveable_container.get_parent().get_local_mouse_position()
+	_has_zoom_anchor = true
 
-func _physics_process(_delta):
+func _apply_smooth_zoom(delta):
+	if moveable_container == null:
+		return
+	var old_scale = moveable_container.scale.x
+	if abs(old_scale - _target_zoom) < 0.001:
+		if not is_equal_approx(old_scale, _target_zoom):
+			var snap_ratio = _target_zoom / old_scale
+			if _has_zoom_anchor:
+				moveable_container.position = _zoom_anchor_local - (_zoom_anchor_local - moveable_container.position) * snap_ratio
+			moveable_container.scale = Vector2(_target_zoom, _target_zoom)
+		_has_zoom_anchor = false
+		return
+	var new_scale = lerp(old_scale, _target_zoom, min(1.0, delta * 16.0))
+	var ratio = new_scale / old_scale
+	if _has_zoom_anchor:
+		moveable_container.position = _zoom_anchor_local - (_zoom_anchor_local - moveable_container.position) * ratio
+	moveable_container.scale = Vector2(new_scale, new_scale)
+
+func _physics_process(delta):
+	_apply_smooth_zoom(delta)
 	if old_position != null and drag_enabled:
 		var new_position = get_global_mouse_position()
 		var delta_position = new_position - old_position
@@ -195,3 +217,13 @@ func _physics_process(_delta):
 			old_position = new_position
 		if _total_pan_px >= DRAG_THRESHOLD_PX or (Time.get_ticks_msec() - _drag_press_time_ms) >= CLICK_MAX_HOLD_MS:
 			_is_dragging = true
+			_camera_follow_enabled = false
+	elif _camera_follow_enabled and moveable_container != null and _dungeon != null and is_instance_valid(_dungeon):
+		var player_global = _dungeon.get_player_global_position()
+		if player_global != null:
+			var target_screen = OD.Settings.display_size() / 2.0
+			var offset = target_screen - player_global
+			if offset.length() > 0.5:
+				moveable_container.global_position += offset * min(1.0, delta * 12.0)
+			elif offset.length() > 0.0:
+				moveable_container.global_position += offset

@@ -143,7 +143,7 @@ func handle_dungeon_input(ev):
 		submit_command(command)
 
 func _is_adjacent(pos_a, pos_b):
-	return max(abs(int(pos_a.x) - int(pos_b.x)), abs(int(pos_a.y) - int(pos_b.y))) <= 1
+	return abs(int(pos_a.x) - int(pos_b.x)) + abs(int(pos_a.y) - int(pos_b.y)) <= 1
 
 func _find_best_adjacent_cell(target_cell):
 	var player_pos = _player.get_grid_position()
@@ -168,8 +168,9 @@ func _interact_or_approach(interaction):
 	if dest_cell == null:
 		return
 	_pending_interaction = interaction
-	_target_cursor.select(interaction.target_pos.x, interaction.target_pos.y)
-	_turn_scheduler.cancel_auto_actions()
+	if _target_cursor != null:
+		_target_cursor.select(interaction.target_pos.x, interaction.target_pos.y)
+	OD.ActionQueue.clear()
 	var action = OD.Actions.MoveToLocation.new()
 	action.init(_player, dest_cell, _entity_grid)
 	action.completed.connect(_on_approach_completed)
@@ -180,8 +181,9 @@ func _move_to_stairs(stairs_cell, direction):
 	if not _entity_grid.is_walkable(stairs_cell.x, stairs_cell.y):
 		return
 	_pending_interaction = { kind = "stairs", target_pos = stairs_cell, direction = direction }
-	_target_cursor.select(stairs_cell.x, stairs_cell.y)
-	_turn_scheduler.cancel_auto_actions()
+	if _target_cursor != null:
+		_target_cursor.select(stairs_cell.x, stairs_cell.y)
+	OD.ActionQueue.clear()
 	var action = OD.Actions.MoveToLocation.new()
 	action.init(_player, stairs_cell, _entity_grid)
 	action.completed.connect(_on_approach_completed)

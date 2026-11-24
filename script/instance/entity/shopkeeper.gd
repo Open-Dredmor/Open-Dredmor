@@ -78,7 +78,7 @@ func step_toward(player_cell, entity_grid):
 	if not is_hostile:
 		return { acted = false }
 	var current_cell = Vector2i(int(_grid_position.x), int(_grid_position.y))
-	var dist = max(abs(current_cell.x - player_cell.x), abs(current_cell.y - player_cell.y))
+	var dist = abs(current_cell.x - player_cell.x) + abs(current_cell.y - player_cell.y)
 	if dist <= 1:
 		set_facing(player_cell.x - current_cell.x, player_cell.y - current_cell.y)
 		return {

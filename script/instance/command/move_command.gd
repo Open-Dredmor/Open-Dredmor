@@ -70,7 +70,8 @@ func execute(context):
 		dungeon.clear_pending_interaction()
 		OD.ActionQueue.clear()
 		target_actor.move_delta(delta.x, delta.y)
-		target_actor.idle()
+		if not target_actor.is_moving():
+			target_actor.idle()
 		entity_grid.move_entity(target_actor, current_pos, target_actor.get_grid_position())
 		entity_grid.on_player_step(target_actor.get_grid_position())
 		return { executed = true, consumes_turn = true, message = "" }

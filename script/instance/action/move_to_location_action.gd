@@ -30,7 +30,9 @@ func update():
 		return
 	if _entity_grid != null:
 		if _path.is_empty():
-			_entity.idle()
+			_entity.set_continuous_walk(false)
+			if not _entity.is_moving():
+				_entity.idle()
 			_action_complete = true
 			completed.emit(true)
 			return
@@ -38,6 +40,7 @@ func update():
 		var current_cell = Vector2i(int(current_pos.x), int(current_pos.y))
 		if _entity.get("entity_kind") == "player" and _entity_grid.has_visible_enemy(current_cell):
 			interrupted_reason = "enemy_spotted"
+			_entity.set_continuous_walk(false)
 			_entity.idle()
 			_action_complete = true
 			completed.emit(false)
@@ -45,28 +48,33 @@ func update():
 		var next_step = _path[0]
 		if _entity_grid.has_enemy_at(next_step.x, next_step.y):
 			interrupted_reason = "enemy"
+			_entity.set_continuous_walk(false)
 			_entity.idle()
 			_action_complete = true
 			completed.emit(false)
 			return
 		if _entity_grid.is_hazard(next_step.x, next_step.y):
 			interrupted_reason = "hazard"
+			_entity.set_continuous_walk(false)
 			_entity.idle()
 			_action_complete = true
 			completed.emit(false)
 			return
 		if not _entity_grid.is_walkable(next_step.x, next_step.y):
 			interrupted_reason = "blocked"
+			_entity.set_continuous_walk(false)
 			_entity.idle()
 			_action_complete = true
 			completed.emit(false)
 			return
 		_path.remove_at(0)
+		_entity.set_continuous_walk(not _path.is_empty())
 		_entity.move_delta(next_step.x - current_cell.x, next_step.y - current_cell.y)
 		_entity_grid.move_entity(_entity, current_cell, _entity.get_grid_position())
 		_entity_grid.on_player_step(_entity.get_grid_position())
 		if _path.is_empty():
-			_entity.idle()
+			if not _entity.is_moving():
+				_entity.idle()
 			_action_complete = true
 			completed.emit(true)
 		return

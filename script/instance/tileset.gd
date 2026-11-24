@@ -5,17 +5,22 @@ extends RefCounted
 class_name Tileset
 
 var _texture = null
+var _source_image = null
 var _branch = null
 var _tile_lookup = {}
+var _tile_texture_cache = {}
 var _animation_lookup = {}
 
 func set_texture(texture):
+	_tile_texture_cache.clear()
 	if texture == null:
 		_texture = null
+		_source_image = null
 		return
 	var img = texture.get_image()
 	if img == null:
 		_texture = texture
+		_source_image = null
 		return
 	var converted = img.duplicate()
 	if converted.get_format() != Image.FORMAT_RGBA8:
@@ -27,6 +32,8 @@ func set_texture(texture):
 			var col = converted.get_pixel(px, py)
 			if col.r8 == 0 and col.g8 == 255 and col.b8 == 0:
 				converted.set_pixel(px, py, Color(0, 0, 0, 0))
+	_source_image = converted
+	converted.generate_mipmaps()
 	_texture = ImageTexture.create_from_image(converted)
 
 func set_branch(branch_id):
@@ -135,16 +142,32 @@ func get_liquid_edge_tile(has_n, has_s, has_w, has_e, has_nw, has_ne, has_sw, ha
 		return null
 	return get_tile(tile_name)
 
+func _get_tile_texture(tile):
+	if _source_image == null:
+		return null
+	var region_key = Vector4i(tile.start_x, tile.start_y, tile.width, tile.height)
+	if _tile_texture_cache.has(region_key):
+		return _tile_texture_cache[region_key]
+	var tile_img = _source_image.get_region(Rect2i(tile.start_x, tile.start_y, tile.width, tile.height))
+	tile_img.generate_mipmaps()
+	var tex = ImageTexture.create_from_image(tile_img)
+	_tile_texture_cache[region_key] = tex
+	return tex
+
 func get_tile(tile_name):
 	if not has_tile(tile_name):
 		return Sprite2D.new()
 	var options = _tile_lookup[tile_name]
 	var tile = options[randi() % options.size()]
 	var sprite = Sprite2D.new()
-	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	sprite.region_enabled = true
-	sprite.region_rect = Rect2(tile.start_x, tile.start_y, tile.width, tile.height)
-	sprite.texture = _texture
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+	var tile_tex = _get_tile_texture(tile)
+	if tile_tex != null:
+		sprite.texture = tile_tex
+	else:
+		sprite.region_enabled = true
+		sprite.region_rect = Rect2(tile.start_x, tile.start_y, tile.width, tile.height)
+		sprite.texture = _texture
 	if tile.height > OD.Assets.CELL_PIXEL_HEIGHT:
 		sprite.offset.y = -float(tile.height - OD.Assets.CELL_PIXEL_HEIGHT) / 2.0
 	return sprite
