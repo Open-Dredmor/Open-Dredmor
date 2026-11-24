@@ -1,5 +1,7 @@
 extends Node
 
+const FloorPopulator = preload("res://script/instance/room_placement/floor_populator.gd")
+
 const GRID_SIZE_NORMAL = 100
 const GRID_SIZE_NO_GRIND = 75
 const GRID_BORDER = 3
@@ -352,5 +354,6 @@ static func generate(_branch_name, floor_level):
 	if best_grid != null:
 		_place_retail_stairs(entity_grid, best_grid, grid_size, floor_level, branch_length)
 
+	FloorPopulator.populate(entity_grid, best_placements, floor_level, no_grind)
 	entity_grid.auto_tile_walls()
 	return entity_grid

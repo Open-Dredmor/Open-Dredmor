@@ -74,6 +74,27 @@ var paths = {
 	},
 	pedestal = "dungeon/pedestal_empty.spr",
 	shop_pedestal = "dungeon/store_pedestal.png",
+	props = {
+		destructible = [
+			{ sprite = "dungeon/barrelA.png", name = "Barrel" },
+			{ sprite = "dungeon/crate.png", name = "Crate" },
+			{ sprite = "dungeon/dark_urn.png", name = "Dark Urn" },
+			{ sprite = "dungeon/fancy_urn.png", name = "Fancy Urn" },
+			{ sprite = "dungeon/techcrate.png", name = "Tech Crate" }
+		],
+		decorative = [
+			"dungeon/basic_pillar.spr",
+			"dungeon/table_small.spr",
+			"dungeon/table_wood.png",
+			"dungeon/rock_1.spr",
+			"dungeon/rock_2.spr",
+			"dungeon/grey_rocks.spr",
+			"dungeon/skull_pile.spr",
+			"dungeon/furnaceA.png",
+			"dungeon/furnaceB.png",
+			"dungeon/dungeon_rubble.png"
+		]
+	},
 	traps = [
 		'dungeon/trap_pressure_plate0.png',
 		'dungeon/trap_mine.png',
@@ -83,10 +104,17 @@ var paths = {
 	],
 	element = {
 		anvil = "dungeon/statue_anvil.spr",
+		bbq = "dungeon/bbq_closed.spr",
 		bookshelf = "dungeon/bookshelf.spr",
 		dredmor_statue = "dungeon/statue_dredmor.png",
+		evilchest = "dungeon/crate_of_evil.spr",
+		fountain = "dungeon/fountain.spr",
+		freezer = "dungeon/minifridge.spr",
 		lever = "dungeon/lever1.spr",
 		lutefisk_statue = "dungeon/shrine_lutefisk_god.png",
+		quest_statue = "dungeon/statue_quest.spr",
+		uberchest = "dungeon/uberchest.spr",
+		wizard_graffiti = "dungeon/wizard_graffitiA/wizard_graffitiA",
 		statues = [
 			'dungeon/statue_book.spr',
 			'dungeon/statue_cake.spr',

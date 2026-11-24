@@ -186,6 +186,8 @@ func element(element_type):
 	match element_type:
 		"anvil":
 			return OD.Load.animation(element_paths.anvil)
+		"bbq":
+			return OD.Load.animation(element_paths.bbq)
 		"boltvending":
 			return OD.Load.split_animation(element_paths.vendor.bolt)
 		"bookshelf":
@@ -198,18 +200,32 @@ func element(element_type):
 			return OD.Load.animation(element_paths.dredmor_statue)
 		"drinkvending":
 			return OD.Load.split_animation(element_paths.vendor.drink)
+		"evilchest":
+			return OD.Load.animation(element_paths.evilchest)
 		"foodvending":
 			return OD.Load.split_animation(element_paths.vendor.food)
+		"fountain":
+			return OD.Load.animation(element_paths.fountain)
+		"freezer":
+			return OD.Load.animation(element_paths.freezer)
 		"lever":
 			var lever_anim = OD.Load.animation(element_paths.lever)
 			lever_anim.set_step_only(true)
 			return lever_anim
 		"lutefiskstatue":
 			return OD.Load.animation(element_paths.lutefisk_statue)
+		"queststatue":
+			return OD.Load.animation(element_paths.quest_statue)
 		"statue":
 			return OD.Load.animation(OD.DataStructure.choose(element_paths.statues))
 		"thrownvending":
 			return OD.Load.split_animation(element_paths.vendor.thrown)
+		"uberchest":
+			return OD.Load.animation(element_paths.uberchest)
+		"wizard_graffiti":
+			if OD.Load.exists(element_paths.wizard_graffiti + "0000.png"):
+				return OD.Load.png_sprite(element_paths.wizard_graffiti, 0, 4, 200)
+			return null
 		_:
 			return null
 

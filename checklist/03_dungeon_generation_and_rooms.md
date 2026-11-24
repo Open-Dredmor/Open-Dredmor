@@ -46,7 +46,7 @@ Fast floor layout generation, branch tilesets, interactive room elements, traps,
   - *Current state*: [script/instance/dungeon.gd](../script/instance/dungeon.gd) has an unused `floors = []` array and only generates floor 1.
   - *Done when*: Stepping on/activating Stairs Down/Up generates or restores the target floor state, places the player at the corresponding stairs, and persists visited floors until save/quit.
 
-- [ ] **Procedural floor props, blockers & interactive spawns**
+- [x] **Procedural floor props, blockers & interactive spawns**
   - *Current state*: [script/instance/room.gd](../script/instance/room.gd) only spawns blockers and interactive elements explicitly authored in `<room>` XML tags, leaving most rooms empty.
   - *Done when*: Post-generation populates rooms and floors using [tweakDB.xml](../airef/steam-install/game/tweakDB.xml) rules (respecting `noblockers` room flags):
     - Random decorative/destructible blockers (`minimum blockers`, `blocker number a`, `blocker number b`).

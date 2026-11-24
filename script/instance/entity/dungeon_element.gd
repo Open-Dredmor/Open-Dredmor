@@ -101,6 +101,20 @@ func interact():
 			return { kind = "info", title = "Statue", message = "You feel briefly inspired by the ancient stonework." }
 		"pedestal":
 			return _interact_pedestal()
+		"fountain":
+			return _interact_fountain()
+		"uberchest":
+			return _interact_chest("Uberchest", "artifact")
+		"evilchest":
+			return _interact_chest("Crate of Evil", "weapon")
+		"bbq":
+			return _interact_supply_box("Barbecue", "food", "You grill up a tasty morsel!")
+		"freezer":
+			return _interact_supply_box("Mini-Fridge", "potion", "You grab a chilled beverage from the freezer.")
+		"queststatue":
+			return _interact_quest_statue()
+		"wizard_graffiti":
+			return _interact_wizard_graffiti()
 		"custom_breakable":
 			return break_element()
 		_:
@@ -230,3 +244,61 @@ func break_element():
 		message = "Smashed!" + (" (+" + str(exp_gain) + " XP)" if exp_gain > 0 else ""),
 		exp = exp_gain
 	}
+
+func _interact_fountain():
+	if used:
+		return { kind = "info", title = "Fountain", message = "The fountain is dry." }
+	used = true
+	OD.Audio.play_sfx("potions")
+	return { kind = "info", title = "Fountain", message = "You drink from the sparkling dungeon fountain and feel refreshed!" }
+
+func _interact_chest(title_text, loot_category):
+	if used:
+		return { kind = "info", title = title_text, message = "The chest has already been looted." }
+	used = true
+	OD.Audio.play_sfx("metal_get")
+	var loot = OD.Database.get_loot(loot_category)
+	if loot != null:
+		var icon_path = loot.get("iconFile", "")
+		var item_desc = ""
+		if loot.has("description") and typeof(loot.description) == TYPE_DICTIONARY and loot.description.has("text"):
+			item_desc = loot.description.text
+		return {
+			kind = "info",
+			title = title_text,
+			icon = icon_path,
+			tooltip = item_desc,
+			message = "Found: " + str(loot.get("name", "Treasure"))
+		}
+	return { kind = "info", title = title_text, message = "You open the " + title_text + "!" }
+
+func _interact_supply_box(title_text, category_name, fallback_msg):
+	if used:
+		return { kind = "info", title = title_text, message = "It is empty." }
+	used = true
+	OD.Audio.play_sfx("food")
+	var pool = OD.Database.get_items_by_category(category_name)
+	if not pool.is_empty():
+		var item = pool[randi() % pool.size()]
+		return {
+			kind = "info",
+			title = title_text,
+			icon = item.icon,
+			tooltip = item.description,
+			message = "Found: " + item.name
+		}
+	return { kind = "info", title = title_text, message = fallback_msg }
+
+func _interact_quest_statue():
+	if used:
+		return { kind = "info", title = "Statue of Inconsequentia", message = "Inconsequentia awaits your deeds." }
+	used = true
+	OD.Audio.play_sfx("choir")
+	return { kind = "info", title = "Statue of Inconsequentia", message = "Inconsequentia demands you prove your valor in the dungeon!" }
+
+func _interact_wizard_graffiti():
+	if used:
+		return { kind = "info", title = "Wizard Graffiti", message = "The arcane runes glow faintly." }
+	used = true
+	OD.Audio.play_sfx("turnpage")
+	return { kind = "info", title = "Wizard Graffiti", message = "You decipher an ancient Wizardlands portal rune." }

@@ -752,6 +752,10 @@ func _build_room_layouts():
 			special = flags.has("special") and int(flags.special) == 1,
 			shop = flags.has("shop") and int(flags.shop) == 1,
 			zoo = flags.has("zoo") and int(flags.zoo) == 1,
+			noblockers = flags.has("noblockers") and int(flags.noblockers) == 1,
+			notraps = flags.has("notraps") and int(flags.notraps) == 1,
+			notreasure = flags.has("notreasure") and int(flags.notreasure) == 1,
+			nomonsters = flags.has("nomonsters") and int(flags.nomonsters) == 1,
 			doors = doors,
 			floor_cells = floor_cells
 		}
