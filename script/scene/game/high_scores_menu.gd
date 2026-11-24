@@ -127,7 +127,10 @@ func _render_scores():
 	var root = _score_tree.create_item()
 	for entry in _scores:
 		var item = _score_tree.create_item(root)
-		item.set_text(0, str(entry.get("name", "Unknown")))
+		var name_text = str(entry.get("name", "Unknown"))
+		if entry.has("level"):
+			name_text += " (Lv " + str(entry.get("level", 1)) + ")"
+		item.set_text(0, name_text)
 		item.set_text(1, str(entry.get("score", 0)))
 		item.set_text(2, str(entry.get("floor", 1)))
 		item.set_text(3, str(entry.get("difficulty", "")))

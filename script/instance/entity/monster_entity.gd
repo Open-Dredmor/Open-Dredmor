@@ -384,7 +384,7 @@ func step_ai(entity_grid, player_pos, player, dungeon = null):
 		var res = CombatResolverScript.resolve_attack(self, player, { kind = "melee" })
 		if res.hit and res.total_damage > 0:
 			if player.has_method("modify_hp"):
-				player.modify_hp(-res.total_damage)
+				player.modify_hp(-res.total_damage, monster_name)
 			if dungeon != null and dungeon.has_method("on_monster_attack_player"):
 				dungeon.on_monster_attack_player(self, res, my_pos, target_pos)
 			for oh in on_hit_procs:

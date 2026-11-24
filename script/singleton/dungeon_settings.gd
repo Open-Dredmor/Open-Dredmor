@@ -28,7 +28,8 @@ func reset():
 		base_turn_seconds = 0.5,
 		turn_pacing_seconds = 0.12,
 		active_packs = default_packs,
-		debug_teleport = false
+		debug_teleport = false,
+		save_file_path = ""
 	}
 
 func set_difficulty(difficulty):
@@ -55,6 +56,12 @@ func set_active_packs(pack_ids):
 
 func set_debug_teleport(enabled):
 	_settings.debug_teleport = enabled
+
+func set_save_file_path(path):
+	_settings.save_file_path = str(path)
+
+func get_save_file_path():
+	return str(_settings.get("save_file_path", ""))
 
 func has_initialized_packs():
 	return _packs_initialized

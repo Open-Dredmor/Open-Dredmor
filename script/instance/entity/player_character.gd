@@ -11,6 +11,7 @@ signal skills_changed
 signal skill_unlocked(skill_id, level_entry)
 signal zorkmids_changed(amount)
 signal buffs_changed
+signal died(cause_of_death)
 
 const PRIMARY_STAT_KEYS = [
 	"burliness",
@@ -97,6 +98,8 @@ var hp = 40
 var max_hp = 40
 var mp = 30
 var max_mp = 30
+var is_dead = false
+var last_damage_source = "Unknown"
 var xp = 0
 var xp_to_next_level = 190
 var level = 1
@@ -269,11 +272,20 @@ func add_damage_bonus(damage_type, amount):
 	damage_bonuses[damage_type] += int(amount)
 	stats_changed.emit()
 
+func set_last_damage_source(source_name):
+	if str(source_name) != "":
+		last_damage_source = str(source_name)
+
 func set_hp(value):
 	hp = clamp(int(value), 0, max_hp)
 	hp_changed.emit(hp, max_hp)
+	if hp <= 0 and not is_dead:
+		is_dead = true
+		died.emit(last_damage_source)
 
-func modify_hp(delta_amount):
+func modify_hp(delta_amount, source_name = ""):
+	if int(delta_amount) < 0 and str(source_name) != "":
+		last_damage_source = str(source_name)
 	set_hp(hp + int(delta_amount))
 
 func set_mp(value):

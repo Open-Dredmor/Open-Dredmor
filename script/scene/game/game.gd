@@ -12,6 +12,8 @@ var _floor_label = null
 var _turn_label = null
 var _spell_hotbar = null
 var _buff_bar = null
+var _hud_layer = null
+var _death_dialog = null
 
 func _ready():
 	call_deferred("_build_ui")
@@ -55,6 +57,7 @@ func _build_ui():
 	var hud_layer = CanvasLayer.new()
 	hud_layer.name = "FloorHudLayer"
 	container.add_child(hud_layer)
+	_hud_layer = hud_layer
 	_floor_label = Label.new()
 	_floor_label.position = Vector2(16, 12)
 	_floor_label.add_theme_font_override("font", OD.Assets.dialog().font)
@@ -78,6 +81,7 @@ func _build_ui():
 	_buff_bar = BuffBarScript.new().init(_dungeon.get_player())
 	hud_layer.add_child(_buff_bar)
 	_dungeon.floor_changed.connect(_on_floor_changed)
+	_dungeon.player_died.connect(_on_player_died)
 	_dungeon.get_turn_scheduler().turn_started.connect(_on_turn_started)
 	_dungeon.get_turn_scheduler().turn_completed.connect(_on_turn_completed)
 	_dungeon.get_input_mapper().sync_from_settings()
@@ -106,6 +110,109 @@ func _on_turn_started(_turn_number):
 func _on_turn_completed(turn_number, _summary):
 	if is_instance_valid(_turn_label):
 		_turn_label.text = "Turn " + str(turn_number)
+
+func _on_player_died(summary):
+	if _hud_layer == null or is_instance_valid(_death_dialog):
+		return
+	var entry = summary.get("score_entry", {})
+	var perma_deleted = bool(summary.get("permadeath_deleted", false))
+
+	var backdrop = ColorRect.new()
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	backdrop.color = Color(0, 0, 0, 0.55)
+	_hud_layer.add_child(backdrop)
+	_death_dialog = backdrop
+
+	var center = CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	backdrop.add_child(center)
+
+	var vp_size = OD.Settings.display_size()
+	var dialog_w = clamp(vp_size.x * 0.48, 420.0, 640.0)
+	var dialog_h = clamp(vp_size.y * 0.55, 340.0, 520.0)
+
+	var panel = PanelContainer.new()
+	panel.custom_minimum_size = Vector2(dialog_w, dialog_h)
+	var dialog_assets = OD.Assets.dialog()
+	var bg_tex = dialog_assets.textures.alert_bigger if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("alert_bigger") else null
+	if bg_tex != null:
+		var style_box = StyleBoxTexture.new()
+		style_box.texture = bg_tex
+		style_box.texture_margin_left = 44
+		style_box.texture_margin_right = 44
+		style_box.texture_margin_top = 44
+		style_box.texture_margin_bottom = 44
+		style_box.content_margin_left = 40
+		style_box.content_margin_right = 40
+		style_box.content_margin_top = 34
+		style_box.content_margin_bottom = 36
+		panel.add_theme_stylebox_override("panel", style_box)
+	center.add_child(panel)
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 12)
+	panel.add_child(vbox)
+
+	var header_hbox = HBoxContainer.new()
+	header_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	header_hbox.add_theme_constant_override("separation", 14)
+	vbox.add_child(header_hbox)
+
+	if OD.Load != null and OD.Load.exists("ui/dredmor_grave.png"):
+		var grave_tex = OD.Load.image("ui/dredmor_grave.png")
+		if grave_tex != null:
+			var grave_rect = TextureRect.new()
+			grave_rect.texture = grave_tex
+			grave_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			grave_rect.custom_minimum_size = Vector2(64, 64)
+			header_hbox.add_child(grave_rect)
+
+	var title = Label.new()
+	title.text = "Here Lies " + str(entry.get("name", "Unknown"))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title.add_theme_font_override("font", dialog_assets.font)
+	title.add_theme_font_size_override("font_size", 32)
+	title.add_theme_color_override("font_color", Color(0.58, 0.08, 0.08))
+	header_hbox.add_child(title)
+
+	var scroll = ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	vbox.add_child(scroll)
+
+	var details = Label.new()
+	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	details.add_theme_font_override("font", dialog_assets.font)
+	details.add_theme_font_size_override("font_size", 20)
+	details.add_theme_color_override("font_color", Color(0.16, 0.1, 0.06))
+	var skills_str = ", ".join(entry.get("skills", []))
+	var lines = [
+		"Level: %d | Floor: %d | Difficulty: %s" % [int(entry.get("level", 1)), int(entry.get("floor", 1)), str(entry.get("difficulty", "Medium"))],
+		"Slain by: %s" % str(entry.get("cause_of_death", "Unknown")),
+		"Final Score: %d" % int(entry.get("score", 0)),
+		"Skills: %s" % (skills_str if skills_str != "" else "None")
+	]
+	if perma_deleted:
+		lines.append("Permadeath: Save file deleted.")
+	details.text = "\n".join(lines)
+	scroll.add_child(details)
+
+	var btn_row = HBoxContainer.new()
+	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	btn_row.add_theme_constant_override("separation", 18)
+	vbox.add_child(btn_row)
+
+	var ink_color = Color(0.18, 0.12, 0.08)
+	var blank_tex = dialog_assets.textures.blank if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("blank") else null
+	var scores_btn = OD.Chrome.parchment_button("High Scores", dialog_assets.font, ink_color, blank_tex, 20)
+	scores_btn.pressed.connect(func(): OD.Scenes.goto(OD.Scenes.HIGH_SCORES_MENU))
+	btn_row.add_child(scores_btn)
+
+	var menu_btn = OD.Chrome.parchment_button("Main Menu", dialog_assets.font, ink_color, blank_tex, 20)
+	menu_btn.pressed.connect(func(): OD.Scenes.goto(OD.Scenes.MAIN_MENU))
+	btn_row.add_child(menu_btn)
 
 func _dev_seed():
 	OD.Audio.setup(get_tree().get_root())

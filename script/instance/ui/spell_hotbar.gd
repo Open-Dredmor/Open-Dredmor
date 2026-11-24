@@ -138,8 +138,8 @@ func _create_hotbar_style():
 func _create_dialog_style():
 	var dialog_assets = OD.Assets.dialog() if OD.Assets != null else null
 	var bg_tex = null
-	if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("background"):
-		bg_tex = dialog_assets.textures.background
+	if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("alert_bigger"):
+		bg_tex = dialog_assets.textures.alert_bigger
 	if bg_tex != null:
 		var style_box = StyleBoxTexture.new()
 		style_box.texture = bg_tex

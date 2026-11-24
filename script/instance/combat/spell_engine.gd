@@ -361,7 +361,7 @@ static func _apply_effect(eff, spell_def, caster, caster_pos, cell, context, tri
 			})
 			if res.total_damage > 0 and target.get("hp") != null:
 				if target.has_method("modify_hp"):
-					target.modify_hp(-res.total_damage)
+					target.modify_hp(-res.total_damage, spell_def.name)
 				else:
 					target.hp = max(0, int(target.hp) - res.total_damage)
 				if target.has_method("play_hit_animation"):

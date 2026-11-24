@@ -11,10 +11,12 @@ const TurnSchedulerScript = preload("res://script/instance/turn/turn_scheduler.g
 const CombatResolverScript = preload("res://script/instance/combat/combat_resolver.gd")
 const SpellEngineScript = preload("res://script/instance/combat/spell_engine.gd")
 const CastSpellCommandScript = preload("res://script/instance/command/cast_spell_command.gd")
+const DeathManagerScript = preload("res://script/instance/death_manager.gd")
 
 signal floor_changed(floor_level, branch_name)
 signal spell_cast_completed(spell_name, result)
 signal spell_targeting_changed(spell_name)
+signal player_died(death_summary)
 
 var floors = []
 # TODO Use ID instead of name
@@ -38,6 +40,7 @@ var _lutefisk_ref = { value = 10 }
 var _player_bag = []
 var _interaction_dialog = null
 var _pending_spell_name = ""
+var _monsters_killed = 0
 var _pending_interaction = null
 var _in_pocket_dimension = false
 var _pocket_dimensions = {}
@@ -107,6 +110,7 @@ func _get_player_melee_weapon_damage():
 func _handle_enemy_death(enemy, grid_pos):
 	if enemy == null:
 		return
+	_monsters_killed += 1
 	var enemy_name = enemy.get("monster_name") if enemy.get("monster_name") != null else "Enemy"
 	if enemy.has_method("play_sfx"):
 		enemy.play_sfx("die")
@@ -185,7 +189,7 @@ func _resolve_player_attack(target, target_cell, options = {}):
 	if res.countered and player_pos != null:
 		var counter_res = CombatResolverScript.resolve_attack(target, _player, { kind = "melee", is_counter = true })
 		if counter_res.hit and counter_res.total_damage > 0:
-			_player.modify_hp(-counter_res.total_damage)
+			_player.modify_hp(-counter_res.total_damage, str(target.get("monster_name")))
 			var p_cell = Vector2i(int(player_pos.x), int(player_pos.y))
 			_spawn_floating_text(p_cell, "Counter! -" + str(counter_res.total_damage), Color(1.0, 0.3, 0.3))
 			_trigger_player_hit_procs(target_cell)
@@ -282,6 +286,8 @@ func init():
 	call_deferred("_build_ui")
 
 func handle_dungeon_input(ev):
+	if _player != null and _player.is_dead:
+		return
 	if is_instance_valid(_interaction_dialog):
 		if ev is InputEventKey and ev.pressed and ev.keycode == KEY_ESCAPE:
 			_close_element_dialog()
@@ -506,6 +512,7 @@ func _build_ui():
 		add_child(_turn_scheduler)
 	_player = PlayerCharacter.new()
 	_player.init()
+	_player.died.connect(_on_player_died)
 	_zorkmids_ref = _player.get_zorkmids_ref()
 	_target_cursor = TargetCursor.new()
 	_target_cursor.init()
@@ -719,6 +726,31 @@ func _trigger_player_hit_procs(attacker_cell):
 			dungeon = self,
 			free_cast = true
 		})
+
+func _on_player_died(cause_of_death):
+	_turn_scheduler.cancel_auto_actions()
+	cancel_spell_targeting()
+	_close_element_dialog()
+	OD.ActionQueue.clear()
+	if OD.Audio != null:
+		OD.Audio.play_sfx("humanoid_die")
+		if OD.Load != null and OD.Load.exists("tunes/death-open.ogg"):
+			OD.Audio.play("tunes/death-open.ogg")
+	if _player != null and is_instance_valid(_player):
+		_player.modulate = Color(0.55, 0.2, 0.2, 0.65)
+		var p_pos = _player.get_grid_position()
+		if p_pos != null:
+			_spawn_floating_text(Vector2i(int(p_pos.x), int(p_pos.y)), "You have died!", Color(1.0, 0.2, 0.2))
+	var settings = OD.DungeonSettings.get_settings() if OD.DungeonSettings != null and OD.DungeonSettings.get_settings() != null else {}
+	var permadeath = bool(settings.get("permadeath", false))
+	var save_path = OD.DungeonSettings.get_save_file_path() if OD.DungeonSettings != null else ""
+	var deleted_save = DeathManagerScript.delete_permadeath_save(save_path, permadeath)
+	var score_entry = DeathManagerScript.record_high_score(_player, _floor_level, cause_of_death, _monsters_killed)
+	var summary = {
+		score_entry = score_entry,
+		permadeath_deleted = deleted_save
+	}
+	player_died.emit(summary)
 
 func on_monster_attack_player(monster, res, monster_pos, player_pos):
 	var m_name = str(monster.get("monster_name")) if monster != null else "Monster"

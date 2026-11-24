@@ -28,6 +28,6 @@ Player stats, skill tree progression, melee/ranged combat, `spellDB` effects, st
   - *Current state*: [script/instance/room.gd](../script/instance/room.gd) spawns static idle animations for monsters/hordes.
   - *Done when*: Monsters instantiate as full entities from `monDB.xml` (stats, resistances, spells, drops, sprites for idle/walk/attack/die), roam/alert on FOV, pathfind toward the player, attack or cast spells, and spawn periodically if `no_time_to_grind` is false.
 
-- [ ] **Player Death, Permadeath & High Scores**
+- [x] **Player Death, Permadeath & High Scores**
   - *Current state*: None.
   - *Done when*: Reaching 0 HP plays death sequence, deletes the save file if `permadeath` is enabled, records the run to the High Scores list (name, level, score, cause of death, skills), and returns to Main Menu / High Scores.
