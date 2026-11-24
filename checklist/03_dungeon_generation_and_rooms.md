@@ -15,7 +15,7 @@ Fast floor layout generation, branch tilesets, interactive room elements, traps,
   - *Current state*: [script/instance/tileset.gd](../script/instance/tileset.gd) picks a random `floor` or `wall` tile from branch `0` without contextual wall/corner/edge selection or branch switching per floor.
   - *Done when*: Each floor uses its `branchDB` tileset and renders proper wall/floor/corner variants, destructible walls (`!`), and invisible blockers (`X`).
 
-- [ ] **Doors (placement, state, interaction)**
+- [x] **Doors (placement, state, interaction)**
   - *Current state*: [script/instance/room.gd](../script/instance/room.gd) tracks `_doors` for room linking and seals unused ones, but `claim_door` has `# TODO Add the door and remove surrounding walls`.
   - *Done when*: Claimed doors spawn interactive Door entities (closed by default, openable by player/monsters, lockable/kickable/lockpickable, with proper L/R and U/D sprites).
 

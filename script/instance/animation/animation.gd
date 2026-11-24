@@ -68,6 +68,13 @@ func play():
 func next_frame():
 	_on_NextFrameTimer_timeout()
 
+func set_frame(frame_index):
+	if _frames == null or _frames.size() == 0:
+		return
+	_frame_index = clamp(int(frame_index), 0, _frames.size() - 1)
+	if is_inside_tree():
+		_frames.load_sprite(_sprite, _frame_index)
+
 func _on_NextFrameTimer_timeout():
 	if is_inside_tree():
 		_frame_index = (_frame_index + 1) % _frames.size()

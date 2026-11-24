@@ -2,6 +2,8 @@ extends Node2D
 
 class_name EntityGrid
 
+const DoorScript = preload("res://script/instance/entity/door.gd")
+
 var layers = {
 	list = [],
 	lookup = {}
@@ -49,6 +51,7 @@ var _grid_center = null
 var _wall_cells = {}
 var _destructible_cells = {}
 var _blocker_cells = {}
+var _doors_by_cell = {}
 
 func init(branch_id = 0):
 	_tilesets = OD.Assets.tileset_for_branch(branch_id)
@@ -138,7 +141,31 @@ func is_destructible(grid_x, grid_y):
 
 func is_blocked(grid_x, grid_y):
 	var cell_key = Vector2i(int(grid_x), int(grid_y))
-	return _wall_cells.has(cell_key) or _blocker_cells.has(cell_key)
+	if _wall_cells.has(cell_key) or _blocker_cells.has(cell_key):
+		return true
+	if _doors_by_cell.has(cell_key):
+		var door = _doors_by_cell[cell_key]
+		if is_instance_valid(door) and not door.can_pass():
+			return true
+	return false
+
+func add_door(grid_x, grid_y, orientation = "ew", locked = false):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	if _doors_by_cell.has(cell_key):
+		return _doors_by_cell[cell_key]
+	var door = DoorScript.new()
+	door.init(orientation, locked)
+	add_entity(grid_x, grid_y, door)
+	_doors_by_cell[cell_key] = door
+	return door
+
+func get_door_at(grid_x, grid_y):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	if _doors_by_cell.has(cell_key):
+		var door = _doors_by_cell[cell_key]
+		if is_instance_valid(door):
+			return door
+	return null
 
 func auto_tile_walls():
 	var wall_layer = layers.lookup["wall"]

@@ -34,6 +34,9 @@ func _input(ev):
 			_entity_grid.move(grid_coords.x, grid_coords.y, _target_cursor)
 	if ev is InputEventMouseButton and ev.pressed and _target_cursor != null:
 		var grid_coords = global_coordinates_to_grid(ev.position.x, ev.position.y)
+		var door = _entity_grid.get_door_at(grid_coords.x, grid_coords.y) if _entity_grid != null else null
+		if door != null:
+			door.interact()
 		_target_cursor.select(grid_coords.x, grid_coords.y)
 		var action = OD.Actions.MoveToLocation.new()
 		action.init(_player, grid_coords)

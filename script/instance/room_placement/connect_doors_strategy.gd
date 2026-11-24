@@ -86,12 +86,13 @@ static func _try_place_from_pool(candidates, frontier_doors, buckets, placements
 					layout = layout,
 					x = offset.x,
 					y = offset.y,
-					claimed_doors = [{ x = target_door.x, y = target_door.y, kind = target_door.kind }]
+					claimed_doors = [{ x = target_door.x, y = target_door.y, kind = target_door.kind, spawn_door = false }]
 				})
 				placements[source_door.placement_index].claimed_doors.append({
 					x = source_door.local_x,
 					y = source_door.local_y,
-					kind = source_door.kind
+					kind = source_door.kind,
+					spawn_door = true
 				})
 				_insert_bucket(buckets, rect)
 				frontier_doors.remove_at(frontier_idx)
@@ -183,6 +184,11 @@ static func generate(_branch_name, floor_level):
 			room.claim_door(door.x, door.y, door.kind)
 		room.seal_available_doors()
 		entity_grid.insert(room.entity_grid, room.position)
+		for door in placement.claimed_doors:
+			if door.get("spawn_door", false):
+				var orientation = "ns" if door.kind == "left" or door.kind == "right" else "ew"
+				var is_locked = floor_level > 1 and randi() % 8 == 0
+				entity_grid.add_door(placement.x + door.x, placement.y + door.y, orientation, is_locked)
 		var debug_button = room.get_debug_button()
 		debug_button.position = OD.Math.grid_to_pixel(room.position.x, room.position.y) + entity_grid.position - Vector2(32, 32)
 		entity_grid.add_child(debug_button)

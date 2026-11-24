@@ -348,18 +348,20 @@ func get_door(kind):
 	_doors[kind].shuffle()
 	return _doors[kind][0]
 	
-func claim_door(x, y, kind):
+func claim_door(x, y, kind, spawn_door = false, locked = false):
 	var kill_index = null
 	var index = 0
 	for door in _doors[kind]:		
 		if door.x == x and door.y == y:
 			entity_grid.add_tile(door.x, door.y, "floor")
+			if spawn_door:
+				var orientation = "ns" if kind == "left" or kind == "right" else "ew"
+				entity_grid.add_door(door.x, door.y, orientation, locked)
 			kill_index = index
 			break
 		index += 1
 	if kill_index != null:
 		_doors[kind].remove_at(kill_index)
-	# TODO Add the door and remove surrounding walls
 
 func seal_available_doors():
 	for kind in _doors.keys():
