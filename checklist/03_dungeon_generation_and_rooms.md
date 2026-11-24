@@ -60,6 +60,6 @@ Fast floor layout generation, branch tilesets, interactive room elements, traps,
   - *Current state*: [script/instance/entity_grid.gd](../script/instance/entity_grid.gd) renders basic walls and floors without `branchDB.xml` `wallDecor`, floor mess decals, or procedural lakes.
   - *Done when*: Floors apply branch `wallDecor` sprites along walls, scatter floor mess/dirt decals, and carve branch-appropriate liquid pools (water, lava, ice, goo) when `genLakes="1"` is set in `branchDB.xml`.
 
-- [ ] **Procedural floor loot, reagents & random traps**
+- [x] **Procedural floor loot, reagents & random traps**
   - *Current state*: Only room-authored `<loot>` and `<trap>` tags are spawned.
   - *Done when*: Post-generation scatters random treasures (`minimum number of treasures`, `maximum additional treasures`), crafting reagents/mushrooms (`number of reagents per level`), zorkmids/food (`zorkmids per level`, `minimum food per level`), and random traps (`num traps per level`) on valid empty floor cells while respecting `notreasure` and `notraps` room flags.

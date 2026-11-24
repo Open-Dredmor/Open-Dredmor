@@ -119,6 +119,167 @@ static func _populate_lakes(entity_grid, placements, used_cells, no_grind):
 		if not carved_cells.is_empty():
 			lakes_carved += 1
 
+static func _collect_flagged_cells(entity_grid, placements, flag_name):
+	var cells = []
+	for placement in placements:
+		var layout = placement.layout
+		if layout.shop or layout.zoo or layout.name == "Starting Room":
+			continue
+		if flag_name != "" and layout.get(flag_name, false):
+			continue
+		for local_cell in layout.floor_cells:
+			var world_cell = Vector2i(placement.x + local_cell.x, placement.y + local_cell.y)
+			if not entity_grid.is_walkable(world_cell.x, world_cell.y):
+				continue
+			if entity_grid.has_liquid(world_cell.x, world_cell.y):
+				continue
+			if entity_grid.get_stairs_at(world_cell.x, world_cell.y) != null:
+				continue
+			if entity_grid.get_door_at(world_cell.x, world_cell.y) != null:
+				continue
+			if entity_grid.get_element_at(world_cell.x, world_cell.y) != null:
+				continue
+			if entity_grid.get_trap_at(world_cell.x, world_cell.y) != null:
+				continue
+			if entity_grid.get_teleporter_at(world_cell.x, world_cell.y) != null:
+				continue
+			if entity_grid.get_loot_at(world_cell.x, world_cell.y) != null:
+				continue
+			if entity_grid.player_spawn_cell != null and world_cell == entity_grid.player_spawn_cell:
+				continue
+			if _is_adjacent_to_door(entity_grid, world_cell):
+				continue
+			cells.append(world_cell)
+	cells.shuffle()
+	return cells
+
+static func _pick_valid_item_from_pool(pool, max_level):
+	if pool.is_empty():
+		return null
+	var leveled = []
+	var fallback = []
+	for entry in pool:
+		var icon_path = entry.get("icon", "")
+		if icon_path == "" or not OD.Load.exists(icon_path):
+			continue
+		fallback.append(entry)
+		if entry.get("level", 1) <= max_level:
+			leveled.append(entry)
+	var source = leveled if not leveled.is_empty() else fallback
+	if source.is_empty():
+		return null
+	return source[randi() % source.size()]
+
+static func _roll_treasure_loot(floor_level):
+	var roll_size = max(1, int(OD.Database.get_tweak("treasure roll size", 690)))
+	var roll = randi() % roll_size
+	var weapon_max = int(OD.Database.get_tweak("weapon roll max", 89))
+	var armour_max = int(OD.Database.get_tweak("armour roll max", 249))
+	var ring_max = int(OD.Database.get_tweak("ring roll max", 269))
+	var ammo_max = int(OD.Database.get_tweak("ammo roll max", 349))
+	var food_max = int(OD.Database.get_tweak("food roll max", 429))
+	var potion_max = int(OD.Database.get_tweak("potion roll max", 519))
+	var lockpick_max = int(OD.Database.get_tweak("lockpick roll max", 559))
+	var mushroom_max = int(OD.Database.get_tweak("mushroom roll max", 649))
+	var max_level = floor_level + 2
+
+	if roll <= weapon_max:
+		var item = _pick_valid_item_from_pool(OD.Database.get_items_by_category("weapon"), max_level)
+		return { kind = "item", item = item } if item != null else null
+	if roll <= armour_max:
+		var item = _pick_valid_item_from_pool(OD.Database.get_items_by_category("armour"), max_level)
+		return { kind = "item", item = item } if item != null else null
+	if roll <= ring_max:
+		var rings = []
+		for armour_item in OD.Database.get_items_by_category("armour"):
+			var raw_armour = armour_item.get("raw", {}).get("armour", {})
+			if typeof(raw_armour) == TYPE_DICTIONARY and raw_armour.get("type", "") == "ring":
+				rings.append(armour_item)
+		var pool = rings if not rings.is_empty() else OD.Database.get_items_by_category("armour")
+		var item = _pick_valid_item_from_pool(pool, max_level)
+		return { kind = "item", item = item } if item != null else null
+	if roll <= ammo_max:
+		var item = _pick_valid_item_from_pool(OD.Database.get_items_by_category("bolts"), max_level)
+		return { kind = "item", item = item } if item != null else null
+	if roll <= food_max:
+		var item = _pick_valid_item_from_pool(OD.Database.get_items_by_category("food"), max_level)
+		return { kind = "item", item = item } if item != null else null
+	if roll <= potion_max:
+		var item = _pick_valid_item_from_pool(OD.Database.get_items_by_category("potion"), max_level)
+		return { kind = "item", item = item } if item != null else null
+	if roll <= lockpick_max:
+		return { kind = "lockpick", amount = 1 }
+	if roll <= mushroom_max:
+		var mushrooms = []
+		for food_item in OD.Database.get_items_by_category("food"):
+			var lower_name = food_item.get("name", "").to_lower()
+			if "cap" in lower_name or "shroom" in lower_name or "truffle" in lower_name or "ear" in lower_name or "puffball" in lower_name:
+				mushrooms.append(food_item)
+		var pool = mushrooms if not mushrooms.is_empty() else OD.Database.get_items_by_category("reagent")
+		var item = _pick_valid_item_from_pool(pool, max_level)
+		return { kind = "item", item = item } if item != null else null
+	var wand_item = _pick_valid_item_from_pool(OD.Database.get_items_by_category("wand"), max_level)
+	return { kind = "item", item = wand_item } if wand_item != null else null
+
+static func _populate_floor_loot_and_traps(entity_grid, placements, floor_level, no_grind):
+	var scale_factor = 0.5 if no_grind else 1.0
+	var used_cells = {}
+
+	var trap_cells = _collect_flagged_cells(entity_grid, placements, "notraps")
+	var target_traps = int(ceil(float(max(0, int(OD.Database.get_tweak("num traps per level", 60)))) * scale_factor))
+	for _ii in range(target_traps):
+		var cell = _take_random_cell(trap_cells, used_cells)
+		if cell == null:
+			break
+		var trap_def = OD.Database.get_trap(null, floor_level + 1)
+		if trap_def != null:
+			entity_grid.add_trap(cell.x, cell.y, trap_def)
+
+	var treasure_cells = _collect_flagged_cells(entity_grid, placements, "notreasure")
+	var min_treasures = max(0, int(OD.Database.get_tweak("minimum number of treasures", 37)))
+	var max_add_treasures = max(0, int(OD.Database.get_tweak("maximum additional treasures", 55)))
+	var target_treasures = int(ceil(float(min_treasures + randi_range(0, max_add_treasures)) * scale_factor))
+	for _ii in range(target_treasures):
+		var cell = _take_random_cell(treasure_cells, used_cells)
+		if cell == null:
+			break
+		var loot_data = _roll_treasure_loot(floor_level)
+		if loot_data != null:
+			entity_grid.add_loot_item(cell.x, cell.y, loot_data)
+
+	var reagent_pool = []
+	reagent_pool.append_array(OD.Database.get_items_by_category("reagent"))
+	reagent_pool.append_array(OD.Database.get_items_by_category("component"))
+	var target_reagents = int(ceil(float(max(0, int(OD.Database.get_tweak("number of reagents per level", 30)))) * scale_factor))
+	for _ii in range(target_reagents):
+		var cell = _take_random_cell(treasure_cells, used_cells)
+		if cell == null:
+			break
+		var reagent_item = _pick_valid_item_from_pool(reagent_pool, floor_level + 2)
+		if reagent_item != null:
+			entity_grid.add_loot_item(cell.x, cell.y, { kind = "item", item = reagent_item })
+
+	var target_zorkmids = int(ceil(float(max(0, int(OD.Database.get_tweak("zorkmids per level", 210)))) * scale_factor))
+	var zorkmids_remaining = target_zorkmids
+	while zorkmids_remaining > 0:
+		var cell = _take_random_cell(treasure_cells, used_cells)
+		if cell == null:
+			break
+		var pile_amount = min(zorkmids_remaining, randi_range(8, 28) + floor_level * 2)
+		zorkmids_remaining -= pile_amount
+		entity_grid.add_loot_item(cell.x, cell.y, { kind = "zorkmids", amount = pile_amount })
+
+	var min_food = int(ceil(float(max(0, int(OD.Database.get_tweak("minimum food per level", 35)))) * scale_factor))
+	var target_food_items = clamp(min_food / 5, 4, 14)
+	var food_pool = OD.Database.get_items_by_category("food")
+	for _ii in range(target_food_items):
+		var cell = _take_random_cell(treasure_cells, used_cells)
+		if cell == null:
+			break
+		var food_item = _pick_valid_item_from_pool(food_pool, floor_level + 2)
+		if food_item != null:
+			entity_grid.add_loot_item(cell.x, cell.y, { kind = "item", item = food_item })
+
 static func _populate_floor_decals(entity_grid, placements, no_grind):
 	var valid_decals = []
 	for decal_path in OD.Resources.paths.decals:
@@ -324,4 +485,5 @@ static func populate(entity_grid, placements, _floor_level, no_grind = false):
 
 	_populate_teleporters(entity_grid, all_eligible_cells, used_cells)
 	_populate_wizard_portal(entity_grid, all_eligible_cells, used_cells)
+	_populate_floor_loot_and_traps(entity_grid, placements, _floor_level, no_grind)
 	_populate_floor_decals(entity_grid, placements, no_grind)

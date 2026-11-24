@@ -72,6 +72,7 @@ var _blocker_cells = {}
 var _doors_by_cell = {}
 var _elements_by_cell = {}
 var _traps_by_cell = {}
+var _loot_by_cell = {}
 var _teleporters_by_cell = {}
 var _stairs_by_cell = {}
 var _named_entities = {}
@@ -124,6 +125,8 @@ func insert(source_grid, offset_position):
 		_elements_by_cell[elem_cell + offset_cell] = source_grid._elements_by_cell[elem_cell]
 	for trap_cell in source_grid._traps_by_cell.keys():
 		_traps_by_cell[trap_cell + offset_cell] = source_grid._traps_by_cell[trap_cell]
+	for loot_cell in source_grid._loot_by_cell.keys():
+		_loot_by_cell[loot_cell + offset_cell] = source_grid._loot_by_cell[loot_cell]
 	for entity_id in source_grid._named_entities.keys():
 		var info = source_grid._named_entities[entity_id]
 		_named_entities[entity_id] = {
@@ -529,6 +532,45 @@ func add_trap(grid_x, grid_y, trap_def):
 	add_entity(grid_x, grid_y, trap)
 	_traps_by_cell[cell_key] = trap
 	return trap
+
+func add_loot_item(grid_x, grid_y, loot_data):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	var icon_path = ""
+	if loot_data.get("kind", "") == "zorkmids":
+		var cash_paths = OD.Resources.paths.loot.zorkmids
+		var cash_idx = clamp(int(loot_data.get("amount", 10)) / 8, 0, cash_paths.size() - 1)
+		icon_path = cash_paths[cash_idx]
+	elif loot_data.get("kind", "") == "lockpick":
+		icon_path = OD.Resources.paths.loot.lockpick
+	elif loot_data.has("item") and loot_data.item != null:
+		icon_path = loot_data.item.get("icon", "")
+	if icon_path == "" or not OD.Load.exists(icon_path):
+		return null
+	var loot_node = null
+	if icon_path.ends_with(".spr"):
+		loot_node = OD.Load.animation(icon_path)
+	else:
+		var tex = OD.Load.image(icon_path)
+		if tex != null:
+			var sprite = Sprite2D.new()
+			sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			sprite.texture = tex
+			loot_node = sprite
+	if loot_node == null:
+		return null
+	var pixel_pos = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
+	add_animation(pixel_pos.x, pixel_pos.y, "loot", loot_node)
+	_loot_by_cell[cell_key] = {
+		node = loot_node,
+		data = loot_data
+	}
+	return _loot_by_cell[cell_key]
+
+func get_loot_at(grid_x, grid_y):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	if _loot_by_cell.has(cell_key):
+		return _loot_by_cell[cell_key]
+	return null
 
 func add_shop_pedestal(grid_x, grid_y, floor_level = 1):
 	var pedestal = ShopPedestalScript.new()
