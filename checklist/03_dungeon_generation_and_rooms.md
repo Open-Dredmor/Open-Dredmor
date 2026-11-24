@@ -34,7 +34,7 @@ Fast floor layout generation, branch tilesets, interactive room elements, traps,
     - **Statues / Dredmor Statue**: flavor text / quest or buff interaction.
     - **Custom breakables / Pedestals**: breakable on attack/spell; pedestals hold/spawn items.
 
-- [ ] **Traps**
+- [x] **Traps**
   - *Current state*: [script/instance/room.gd](../script/instance/room.gd) (`trap_tile_handler`) uses placeholder sprites and no trap logic.
   - *Done when*: Traps use proper definitions, respect player `TRAP_SENSE` / `TRAP_SIGHT` for visibility, trigger their spell/damage effect when stepped on, and can be disarmed or picked up (based on Trap Affinity / Tinkering).
 

@@ -553,6 +553,8 @@ func _classify_item(item, reagent_set, component_set):
 		return { category = "toolkit", slot = "" }
 	if item.has("artifact"):
 		return { category = "artifact", slot = "" }
+	if item.has("trap"):
+		return { category = "trap", slot = "" }
 	if item.has("name"):
 		if reagent_set.has(item.name):
 			return { category = "reagent", slot = "" }
@@ -623,6 +625,22 @@ func get_all_items():
 	if result_cache == null or not result_cache.has("item_info"):
 		return []
 	return result_cache["item_info"].list
+
+func get_trap(trap_name = null, max_level = 99):
+	if trap_name != null and trap_name != "":
+		var named = get_item(trap_name)
+		if named != null and named.category == "trap":
+			return named
+	var traps = get_items_by_category("trap")
+	if traps.is_empty():
+		return null
+	var eligible = []
+	for trap_entry in traps:
+		if trap_entry.level <= max_level:
+			eligible.append(trap_entry)
+	if eligible.is_empty():
+		return traps[randi() % traps.size()]
+	return eligible[randi() % eligible.size()]
 
 func _build_tweak_info():
 	var tweaks = {}

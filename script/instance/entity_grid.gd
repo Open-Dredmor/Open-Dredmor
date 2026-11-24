@@ -4,6 +4,11 @@ class_name EntityGrid
 
 const DoorScript = preload("res://script/instance/entity/door.gd")
 const ElementScript = preload("res://script/instance/entity/dungeon_element.gd")
+const TrapScript = preload("res://script/instance/entity/trap.gd")
+
+signal script_ticker(message)
+signal script_spell_cast(spell_name, grid_pos)
+signal trap_triggered(trap_result, grid_pos)
 
 var layers = {
 	list = [],
@@ -49,15 +54,13 @@ var animated_tile_lookup = {
 var _tilesets
 var _grid_lookup = null
 var _grid_center = null
-signal script_ticker(message)
-signal script_spell_cast(spell_name, grid_pos)
-
 var _wall_cells = {}
 var _floor_cells = {}
 var _destructible_cells = {}
 var _blocker_cells = {}
 var _doors_by_cell = {}
 var _elements_by_cell = {}
+var _traps_by_cell = {}
 var _named_entities = {}
 var _room_scripts = []
 
@@ -95,6 +98,8 @@ func insert(source_grid, offset_position):
 		_blocker_cells[blocker_cell + offset_cell] = true
 	for elem_cell in source_grid._elements_by_cell.keys():
 		_elements_by_cell[elem_cell + offset_cell] = source_grid._elements_by_cell[elem_cell]
+	for trap_cell in source_grid._traps_by_cell.keys():
+		_traps_by_cell[trap_cell + offset_cell] = source_grid._traps_by_cell[trap_cell]
 	for entity_id in source_grid._named_entities.keys():
 		var info = source_grid._named_entities[entity_id]
 		_named_entities[entity_id] = {
@@ -371,6 +376,37 @@ func get_element_at(grid_x, grid_y):
 
 func unblock_cell(grid_x, grid_y):
 	_blocker_cells.erase(Vector2i(int(grid_x), int(grid_y)))
+
+func add_trap(grid_x, grid_y, trap_def):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	var trap = TrapScript.new()
+	trap.init(trap_def)
+	add_entity(grid_x, grid_y, trap)
+	_traps_by_cell[cell_key] = trap
+	return trap
+
+func get_trap_at(grid_x, grid_y):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	if _traps_by_cell.has(cell_key):
+		var trap = _traps_by_cell[cell_key]
+		if is_instance_valid(trap):
+			return trap
+	return null
+
+func update_trap_visibility(player_pos, trap_sight_radius = 2, trap_sense_level = 1):
+	for trap in _traps_by_cell.values():
+		if is_instance_valid(trap):
+			trap.update_visibility(player_pos, trap_sight_radius, trap_sense_level)
+
+func trigger_trap_at(grid_pos):
+	var cell_key = Vector2i(int(grid_pos.x), int(grid_pos.y))
+	var trap = get_trap_at(cell_key.x, cell_key.y)
+	if trap == null:
+		return null
+	var result = trap.step_on()
+	if result != null:
+		trap_triggered.emit(result, cell_key)
+	return result
 
 func auto_tile_walls():
 	var wall_layer = layers.lookup["wall"]

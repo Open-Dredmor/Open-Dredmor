@@ -36,6 +36,8 @@ func update():
 		var current_pos = _entity.get_grid_position()
 		_entity.move_delta(next_step.x - int(current_pos.x), next_step.y - int(current_pos.y))
 		_entity_grid.evaluate_scripts(_entity.get_grid_position())
+		_entity_grid.update_trap_visibility(_entity.get_grid_position())
+		_entity_grid.trigger_trap_at(_entity.get_grid_position())
 		if _path.is_empty():
 			_entity.idle()
 			_action_complete = true

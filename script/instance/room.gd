@@ -350,25 +350,9 @@ func custombreakable_tile_handler(item, x, y):
 	entity_grid.add_element(x, y, "custom_breakable", animation, { name = item.get("name", "Breakable") })
 	
 func trap_tile_handler(item, x, y):
-	# TODO All of these graphics are placeholders
-	var animation = null
-	if not item.has('name'):
-		animation = OD.Load.animation(OD.DataStructure.choose(OD.Resources.paths.traps))
-	else:
-		match item.name:
-			"Gargoyle Arrow Trap":
-				animation = OD.Load.animation(OD.Resources.paths.traps[0])
-			"Gargoyle Acid Bolt Trap":
-				animation = OD.Load.animation(OD.Resources.paths.traps[1])
-			"Robo Bolt Trigger":
-				animation = OD.Load.animation(OD.Resources.paths.traps[2])
-			"Scalding Steam Mine":
-				animation = OD.Load.animation(OD.Resources.paths.traps[3])
-			"Shoddy Dwarven IED":
-				animation = OD.Load.animation(OD.Resources.paths.traps[4])
-			_:
-				OD.Log.warn("Unhandled trap [" + item.name + "]")
-	entity_grid.add_animation(x, y, 'trap', animation)
+	var trap_name = item.name if item.has("name") else null
+	var trap_def = OD.Database.get_trap(trap_name)
+	entity_grid.add_trap(x, y, trap_def)
 	
 func possible_doors():
 	var result = []

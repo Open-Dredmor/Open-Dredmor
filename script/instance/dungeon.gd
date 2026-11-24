@@ -19,7 +19,7 @@ var FLOOR_STRATEGY = {
 	CENTER_PACK = "center_pack"
 }
 
-var _active_strategy = FLOOR_STRATEGY.CONNECT_DOORS
+var _active_strategy = FLOOR_STRATEGY.DEBUG_ROOMS
 var _zorkmids_ref = { value = 150 }
 var _lutefisk_ref = { value = 10 }
 var _interaction_dialog = null
@@ -67,6 +67,10 @@ func _input(ev):
 		if element != null and not element.is_broken:
 			_handle_element_interaction(element, grid_coords)
 			return
+		var trap = _entity_grid.get_trap_at(grid_coords.x, grid_coords.y) if _entity_grid != null else null
+		if trap != null and trap.is_discovered and not trap.is_disarmed:
+			_handle_trap_disarm(trap)
+			return
 		if _entity_grid != null and not _entity_grid.is_walkable(grid_coords.x, grid_coords.y):
 			return
 		_target_cursor.select(grid_coords.x, grid_coords.y)
@@ -87,6 +91,68 @@ func _build_ui():
 	_target_cursor = TargetCursor.new()
 	_target_cursor.init()
 	_entity_grid.add_entity(0, 0, _target_cursor)
+	_entity_grid.update_trap_visibility(_player.get_grid_position())
+	_entity_grid.trap_triggered.connect(_on_trap_triggered)
+
+func _on_trap_triggered(trap_result, grid_pos):
+	_spawn_spell_vfx(trap_result.casts_spell, grid_pos)
+	_spawn_floating_text(grid_pos, trap_result.trap_name + "!", Color(1.0, 0.35, 0.25))
+
+func _handle_trap_disarm(trap):
+	var disarm_res = trap.attempt_disarm()
+	var pos = trap.get_grid_position()
+	if disarm_res.success:
+		_spawn_floating_text(pos, "Disarmed!", Color(0.45, 0.95, 0.45))
+	else:
+		if disarm_res.has("triggered") and disarm_res.triggered != null:
+			_spawn_spell_vfx(disarm_res.triggered.casts_spell, pos)
+		_spawn_floating_text(pos, "Trap Triggered!", Color(1.0, 0.35, 0.25))
+
+func _spawn_spell_vfx(spell_name, grid_pos):
+	if spell_name == "" or _entity_grid == null:
+		return
+	var spell = OD.Database.get_spell(spell_name)
+	if spell == null or spell.anim == null or typeof(spell.anim) != TYPE_DICTIONARY:
+		return
+	var anim_def = spell.anim
+	if anim_def.has("sfx"):
+		OD.Audio.play_sfx(anim_def.sfx)
+	if anim_def.has("sprite") and anim_def.has("frames"):
+		var first_idx = int(anim_def.get("first", 0))
+		var frame_count = int(anim_def.frames)
+		var frame_rate = int(anim_def.get("framerate", 80))
+		var vfx = OD.Load.png_sprite(anim_def.sprite, first_idx, first_idx + frame_count, frame_rate)
+		if vfx != null:
+			var px = OD.Math.grid_to_pixel(grid_pos.x, grid_pos.y)
+			_entity_grid.add_animation(px.x, px.y, "player", vfx)
+			vfx.animation_complete.connect(func():
+				if is_instance_valid(vfx):
+					vfx.queue_free()
+			)
+
+func _spawn_floating_text(grid_pos, text, color):
+	if _entity_grid == null:
+		return
+	var label = Label.new()
+	label.text = text
+	var px = OD.Math.grid_to_pixel(grid_pos.x, grid_pos.y)
+	label.position = px + Vector2(-80, -32)
+	label.custom_minimum_size = Vector2(160, 24)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_override("font", OD.Assets.dialog().font)
+	label.add_theme_font_size_override("font_size", 18)
+	label.add_theme_color_override("font_color", color)
+	label.add_theme_constant_override("outline_size", 3)
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	_entity_grid.get_layer("player").add_child(label)
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(label, "position:y", label.position.y - 28.0, 0.9)
+	tween.tween_property(label, "modulate:a", 0.0, 0.9)
+	tween.chain().tween_callback(func():
+		if is_instance_valid(label):
+			label.queue_free()
+	)
 
 func _close_element_dialog():
 	if is_instance_valid(_interaction_dialog):

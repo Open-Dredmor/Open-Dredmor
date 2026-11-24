@@ -1,6 +1,6 @@
 extends Node
 
-const FEATURED_NORTH_ROOM = "Ignition Hall 1"
+const FEATURED_NORTH_ROOM = "Traps for Treasure"
 
 static func generate(_branch_name, _floor_level):
 	OD.Math.fixed_chances(true)
