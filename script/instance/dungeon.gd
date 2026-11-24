@@ -735,7 +735,9 @@ func _on_player_died(cause_of_death):
 	if OD.Audio != null:
 		OD.Audio.play_sfx("humanoid_die")
 		if OD.Load != null and OD.Load.exists("tunes/death-open.ogg"):
-			OD.Audio.play("tunes/death-open.ogg")
+			var death_music = OD.Load.sfx("tunes/death-open.ogg")
+			if death_music != null:
+				OD.Audio.play(death_music)
 	if _player != null and is_instance_valid(_player):
 		_player.modulate = Color(0.55, 0.2, 0.2, 0.65)
 		var p_pos = _player.get_grid_position()
