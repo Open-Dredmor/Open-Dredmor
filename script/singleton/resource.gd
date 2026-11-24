@@ -155,6 +155,18 @@ var paths = {
 		header_background = "ui/menus/topbar_horz_tile_bg.png",
 		font = {
 			default = "fonts/Austin.ttf"
+		},
+		dialog = {
+			alert = "ui/dialog_alert.png",
+			alert_bigger = "ui/dialog_alert_bigger.png",
+			lutefisk_bg = "ui/gameplay/lutefisk_god_bg.png",
+			krong_pleased = "ui/gameplay/krong_pleased.png",
+			krong_displeased = "ui/gameplay/krong_displeased.png",
+			close = _button_paths("ui/gameplay/xclose_copper"),
+			ok = _button_paths("ui/dialog_but_ok"),
+			buy = _button_paths("ui/dialog_but_buy"),
+			awesome = _button_paths("ui/dialog_but_awesome"),
+			shucks = _button_paths("ui/dialog_but_shucks")
 		}
 	}
 }

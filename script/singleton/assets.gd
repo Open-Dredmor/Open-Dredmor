@@ -255,3 +255,26 @@ func tileset_for_branch(branch_id):
 	}
 	_branch_tilesets[branch_id] = result
 	return result
+
+var _dialog_assets = null
+
+func dialog():
+	if _dialog_assets != null:
+		return _dialog_assets
+	var paths = OD.Resources.paths.shared.dialog
+	_dialog_assets = {
+		textures = {
+			alert = OD.Load.image(paths.alert),
+			alert_bigger = OD.Load.image(paths.alert_bigger),
+			lutefisk_bg = OD.Load.image(paths.lutefisk_bg),
+			krong_pleased = OD.Load.image(paths.krong_pleased),
+			krong_displeased = OD.Load.image(paths.krong_displeased),
+			close = _button_textures(paths.close),
+			ok = _button_textures(paths.ok),
+			buy = _button_textures(paths.buy),
+			awesome = _button_textures(paths.awesome),
+			shucks = _button_textures(paths.shucks)
+		},
+		font = OD.Load.font(OD.Resources.paths.shared.font.default)
+	}
+	return _dialog_assets

@@ -2,6 +2,8 @@ extends Node2D
 
 class_name Dungeon
 
+const ElementDialogScript = preload("res://script/instance/ui/element_dialog.gd")
+
 var floors = []
 # TODO Use ID instead of name
 var _branch_name = "The Dungeon"
@@ -17,7 +19,10 @@ var FLOOR_STRATEGY = {
 	CENTER_PACK = "center_pack"
 }
 
-var _active_strategy = FLOOR_STRATEGY.DEBUG_ROOMS
+var _active_strategy = FLOOR_STRATEGY.CONNECT_DOORS
+var _zorkmids_ref = { value = 150 }
+var _lutefisk_ref = { value = 10 }
+var _interaction_dialog = null
 
 func global_coordinates_to_grid(x, y):
 	var xform = get_global_transform_with_canvas()
@@ -31,6 +36,10 @@ func init():
 	call_deferred("_build_ui")
 
 func _input(ev):
+	if is_instance_valid(_interaction_dialog):
+		if ev is InputEventKey and ev.pressed and ev.keycode == KEY_ESCAPE:
+			_close_element_dialog()
+		return
 	if ev is InputEventKey and ev.is_pressed():
 		if ev.keycode == KEY_SPACE and not ev.echo:
 			OD.Scenes.goto(OD.Scenes.GAME)
@@ -54,6 +63,10 @@ func _input(ev):
 		if door != null and not door.can_pass():
 			door.interact()
 			return
+		var element = _entity_grid.get_element_at(grid_coords.x, grid_coords.y) if _entity_grid != null else null
+		if element != null and not element.is_broken:
+			_handle_element_interaction(element, grid_coords)
+			return
 		if _entity_grid != null and not _entity_grid.is_walkable(grid_coords.x, grid_coords.y):
 			return
 		_target_cursor.select(grid_coords.x, grid_coords.y)
@@ -74,4 +87,21 @@ func _build_ui():
 	_target_cursor = TargetCursor.new()
 	_target_cursor.init()
 	_entity_grid.add_entity(0, 0, _target_cursor)
+
+func _close_element_dialog():
+	if is_instance_valid(_interaction_dialog):
+		_interaction_dialog.queue_free()
+		_interaction_dialog = null
+
+func _handle_element_interaction(element, grid_coords):
+	_close_element_dialog()
+	_interaction_dialog = ElementDialogScript.new()
+	add_child(_interaction_dialog)
+	_interaction_dialog.show_element_dialog(
+		element,
+		_zorkmids_ref,
+		_lutefisk_ref,
+		func(): _interaction_dialog = null,
+		func(): _entity_grid.unblock_cell(grid_coords.x, grid_coords.y)
+	)
 		

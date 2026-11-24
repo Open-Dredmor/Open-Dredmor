@@ -296,8 +296,7 @@ func element_tile_handler(item, x, y):
 	if asset == null:
 		OD.Log.warn("Unhandled element tile type [" + item.type + "]")
 	else:
-		entity_grid.add_animation(x, y, "element", asset)
-		entity_grid.mark_blocker(x, y)
+		entity_grid.add_element(x, y, item.type, asset)
 
 func loot_tile_handler(item, x, y):
 	# TODO Loot should have a sparkling effect
@@ -344,12 +343,11 @@ func horde_tile_handler(item, x, y):
 
 func pedestal_tile_handler(_item, x, y):
 	var animation = OD.Load.animation(OD.Resources.paths.pedestal)
-	entity_grid.add_animation(x, y, 'pedestal', animation)
-	entity_grid.mark_blocker(x, y)
+	entity_grid.add_element(x, y, "pedestal", animation)
 
 func custombreakable_tile_handler(item, x, y):
 	var animation = OD.Load.animation(item.png)
-	entity_grid.add_animation(x, y, 'custom_breakable', animation)
+	entity_grid.add_element(x, y, "custom_breakable", animation, { name = item.get("name", "Breakable") })
 	
 func trap_tile_handler(item, x, y):
 	# TODO All of these graphics are placeholders

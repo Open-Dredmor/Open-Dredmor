@@ -3,6 +3,7 @@ extends Node2D
 class_name EntityGrid
 
 const DoorScript = preload("res://script/instance/entity/door.gd")
+const ElementScript = preload("res://script/instance/entity/dungeon_element.gd")
 
 var layers = {
 	list = [],
@@ -56,6 +57,7 @@ var _floor_cells = {}
 var _destructible_cells = {}
 var _blocker_cells = {}
 var _doors_by_cell = {}
+var _elements_by_cell = {}
 var _named_entities = {}
 var _room_scripts = []
 
@@ -91,6 +93,8 @@ func insert(source_grid, offset_position):
 		_destructible_cells[destructible_cell + offset_cell] = true
 	for blocker_cell in source_grid._blocker_cells.keys():
 		_blocker_cells[blocker_cell + offset_cell] = true
+	for elem_cell in source_grid._elements_by_cell.keys():
+		_elements_by_cell[elem_cell + offset_cell] = source_grid._elements_by_cell[elem_cell]
 	for entity_id in source_grid._named_entities.keys():
 		var info = source_grid._named_entities[entity_id]
 		_named_entities[entity_id] = {
@@ -122,7 +126,11 @@ func insert(source_grid, offset_position):
 		var target_layer = layers.lookup[layer_key]
 		for child in source_layer.get_children():
 			child.get_parent().remove_child(child)
-			child.position = OD.Math.grid_to_pixel(child.position.x + offset_position.x, child.position.y + offset_position.y)
+			if child.has_method("get_grid_position") and child.get_grid_position() != null:
+				var new_grid_pos = child.get_grid_position() + offset_position
+				child.move_to(new_grid_pos.x, new_grid_pos.y)
+			else:
+				child.position = OD.Math.grid_to_pixel(child.position.x + offset_position.x, child.position.y + offset_position.y)
 			# Compensate for sprites greater than 1 tile height not being properly anchored.
 			# Might be another root cause, but this fixes the graphical problem of 2+ tile high sprites being drawn slightly too low
 			if child.has_method('is_tall'):				
@@ -343,6 +351,26 @@ func get_door_at(grid_x, grid_y):
 		if is_instance_valid(door):
 			return door
 	return null
+
+func add_element(grid_x, grid_y, element_type, animation, initial_data = {}):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	var element = ElementScript.new()
+	element.init(element_type, animation, initial_data)
+	add_entity(grid_x, grid_y, element)
+	_elements_by_cell[cell_key] = element
+	mark_blocker(grid_x, grid_y)
+	return element
+
+func get_element_at(grid_x, grid_y):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	if _elements_by_cell.has(cell_key):
+		var element = _elements_by_cell[cell_key]
+		if is_instance_valid(element):
+			return element
+	return null
+
+func unblock_cell(grid_x, grid_y):
+	_blocker_cells.erase(Vector2i(int(grid_x), int(grid_y)))
 
 func auto_tile_walls():
 	var wall_layer = layers.lookup["wall"]

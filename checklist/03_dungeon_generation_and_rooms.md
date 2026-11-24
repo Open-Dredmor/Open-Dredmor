@@ -23,7 +23,7 @@ Fast floor layout generation, branch tilesets, interactive room elements, traps,
   - *Current state*: [script/instance/room.gd](../script/instance/room.gd) parses `<script>` coordinates partially (note: lines 104–109 check `script_location.has(ii)` instead of `script_location._coordinate`) and executes no script actions.
   - *Done when*: Room `<script>` conditions and actions (e.g., levers, pressure plates, braziers, spawns, doors, traps) evaluate and trigger during gameplay.
 
-- [ ] **Interactive dungeon elements**
+- [x] **Interactive dungeon elements**
   - *Current state*: [script/instance/room.gd](../script/instance/room.gd) (`element_tile_handler`) places static animations for anvils, bookshelves, statues, levers, and vending machines.
   - *Done when*: Each element is an interactive entity:
     - **Krong Anvil**: corrupts/enchants an equipped or inventory item.
