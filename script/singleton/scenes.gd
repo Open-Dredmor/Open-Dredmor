@@ -12,6 +12,7 @@ var INTRO_ONE = "game/intro_one"
 var INTRO_TWO = "game/intro_two"
 var LOAD_GAME_MENU = "game/load_game_menu"
 var MAIN_MENU = "game/main_menu"
+var MONSTER_TEST = "dev/monster_test"
 var PLAYER_TEST = "dev/player_test"
 var PRELOAD_ASSETS = "game/preload_assets"
 var QUICK_GAME = "dev/quick_game"
@@ -25,7 +26,7 @@ var UI_TEST = "dev/ui_test"
 #var FIRST_SCENE = PRELOAD_ASSETS
 
 # For debugging specific levels or gameplay features
-var FIRST_SCENE = BUFF_TEST
+var FIRST_SCENE = MONSTER_TEST
 
 func quit():
 	get_tree().quit()

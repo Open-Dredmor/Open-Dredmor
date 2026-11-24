@@ -184,17 +184,21 @@ func advance_turn(context):
 func _advance_monsters(context):
 	var entity_grid = context.get("entity_grid", null)
 	var player = context.get("player", null)
+	var dungeon = context.get("dungeon", null)
 	if entity_grid == null or player == null or not is_instance_valid(player):
 		return 0
 	var player_pos = player.get_grid_position()
 	if player_pos == null:
 		return 0
+	var acted = 0
 	if entity_grid.has_method("step_monsters"):
-		return int(entity_grid.step_monsters(player_pos))
-	if entity_grid.shop_manager != null:
+		acted = int(entity_grid.step_monsters(player_pos, player, dungeon))
+	elif entity_grid.shop_manager != null:
 		entity_grid.shop_manager.step_hostile_actors(entity_grid, player_pos)
-		return 1
-	return 0
+		acted = 1
+	if entity_grid.has_method("maybe_spawn_periodic_monster"):
+		entity_grid.maybe_spawn_periodic_monster(player_pos, entity_grid.floor_level, turn_count)
+	return acted
 
 func _advance_traps(context):
 	var entity_grid = context.get("entity_grid", null)

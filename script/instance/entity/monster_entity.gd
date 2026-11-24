@@ -1,6 +1,7 @@
 extends "res://script/instance/entity/entity.gd"
 
 const CombatResolverScript = preload("res://script/instance/combat/combat_resolver.gd")
+const SpellEngineScript = preload("res://script/instance/combat/spell_engine.gd")
 
 var entity_kind = "monster"
 var monster_name = ""
@@ -17,6 +18,15 @@ var damage_profile = {}
 var resistances = {}
 var secondary_stats = {}
 var sfx_map = {}
+var spells = []
+var drops = []
+var on_hit_procs = []
+var ai_aggressiveness = 3
+var ai_span = 4
+var ai_spell_pct = 30
+var sight_radius = 7
+var alerted = false
+var spell_cooldowns = {}
 var active_buffs = []
 var active_dots = []
 var status_flags = {}
@@ -24,6 +34,7 @@ var status_flags = {}
 var _idle_sprites = {}
 var _attack_sprites = {}
 var _hit_sprites = {}
+var _cast_sprites = {}
 var _die_sprite_path = ""
 var _palette_path = null
 var _active_sprite = null
@@ -64,7 +75,7 @@ func init(monster_def, floor_level = 1):
 	if monster_def == null:
 		return
 	monster_name = str(monster_def.get("name", "Monster"))
-	monster_level = int(monster_def.get("level", 0))
+	monster_level = str(monster_def.get("level", "0")).to_int()
 	taxa = str(monster_def.get("taxa", "Other"))
 	splat_type = str(monster_def.get("splat", "blood"))
 
@@ -109,6 +120,41 @@ func init(monster_def, floor_level = 1):
 	_load_directional_sprites(monster_def.get("idleSprite", null), _idle_sprites)
 	_load_directional_sprites(monster_def.get("attackSprite", null), _attack_sprites)
 	_load_directional_sprites(monster_def.get("hitSprite", null), _hit_sprites)
+	_load_directional_sprites(monster_def.get("castSpellSprite", null), _cast_sprites)
+
+	spells.clear()
+	if monster_def.has("spell"):
+		for sp in OD.DataStructure.arrayify(monster_def.spell):
+			if typeof(sp) == TYPE_DICTIONARY and sp.has("name"):
+				var sp_name = str(sp.name)
+				if sp_name != "" and not spells.has(sp_name):
+					spells.append(sp_name)
+
+	drops.clear()
+	if monster_def.has("drop"):
+		for dr in OD.DataStructure.arrayify(monster_def.drop):
+			if typeof(dr) == TYPE_DICTIONARY and dr.has("name"):
+				drops.append({
+					name = str(dr.name),
+					percent = int(dr.get("percent", 10))
+				})
+
+	on_hit_procs.clear()
+	if monster_def.has("onhit"):
+		for oh in OD.DataStructure.arrayify(monster_def.onhit):
+			if typeof(oh) == TYPE_DICTIONARY and oh.has("spell"):
+				on_hit_procs.append({
+					spell = str(oh.spell),
+					one_chance_in = max(1, int(oh.get("onechancein", 1)))
+				})
+
+	if monster_def.has("ai") and typeof(monster_def.ai) == TYPE_DICTIONARY:
+		ai_aggressiveness = int(monster_def.ai.get("aggressiveness", 3))
+		ai_span = max(1, int(monster_def.ai.get("span", 4)))
+		ai_spell_pct = clamp(int(monster_def.ai.get("spellPercentage", 30)), 0, 100)
+
+	if monster_def.has("sight") and typeof(monster_def.sight) == TYPE_DICTIONARY:
+		sight_radius = max(2, int(monster_def.sight.get("radius", 7)))
 
 	if _idle_sprites.has("down"):
 		_active_sprite = _idle_sprites["down"]
@@ -176,6 +222,202 @@ func get_die_sprite_path():
 
 func get_palette_path():
 	return _palette_path
+
+func play_cast_animation():
+	if _cast_sprites.is_empty():
+		play_attack_animation()
+		return
+	_show_sprite(_cast_sprites, _facing_dir)
+	var timer = get_tree().create_timer(0.24) if is_inside_tree() else null
+	if timer != null:
+		timer.timeout.connect(func():
+			if is_instance_valid(self):
+				_show_sprite(_idle_sprites, _facing_dir)
+		)
+
+func play_die_animation_at(entity_grid, cell):
+	if _die_sprite_path == "" or entity_grid == null or OD.Load == null:
+		return
+	var die_anim = OD.Load.animation(_die_sprite_path, _palette_path)
+	if die_anim == null:
+		return
+	var px = OD.Math.grid_to_pixel(cell.x, cell.y)
+	entity_grid.add_animation(px.x, px.y, "floating_text", die_anim)
+	var timer = entity_grid.get_tree().create_timer(0.45) if entity_grid.is_inside_tree() else null
+	if timer != null:
+		timer.timeout.connect(func():
+			if is_instance_valid(die_anim):
+				die_anim.queue_free()
+		)
+
+func roll_drops():
+	var rolled = []
+	if OD.Database == null:
+		return rolled
+	for drop_entry in drops:
+		var pct = clamp(int(drop_entry.get("percent", 0)), 0, 100)
+		if pct >= 100 or (randi() % 100) < pct:
+			var item_def = OD.Database.get_item(str(drop_entry.name))
+			if item_def != null:
+				rolled.append({
+					kind = "item",
+					item = item_def
+				})
+	return rolled
+
+func _tick_spell_cooldowns():
+	for key in spell_cooldowns.keys():
+		var rem = int(spell_cooldowns[key]) - 1
+		if rem <= 0:
+			spell_cooldowns.erase(key)
+		else:
+			spell_cooldowns[key] = rem
+
+func _pick_castable_spell():
+	var candidates = []
+	for sp_name in spells:
+		if int(spell_cooldowns.get(sp_name, 0)) <= 0:
+			candidates.append(sp_name)
+	if candidates.is_empty():
+		return ""
+	return candidates[randi() % candidates.size()]
+
+func _step_toward(entity_grid, my_pos, target_pos):
+	var best_cell = null
+	var best_dist = 999999
+	for dir in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]:
+		var cand = my_pos + dir
+		if not entity_grid.is_walkable(cand.x, cand.y):
+			continue
+		var d = abs(cand.x - target_pos.x) + abs(cand.y - target_pos.y)
+		if d < best_dist:
+			best_dist = d
+			best_cell = cand
+	if best_cell == null:
+		var adj_goal = null
+		var adj_dist = 999999
+		for dir in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var cand = target_pos + dir
+			if entity_grid.is_walkable(cand.x, cand.y):
+				var path = entity_grid.find_path(my_pos, cand, { max_visited = 192 })
+				if not path.is_empty() and path.size() < adj_dist:
+					adj_dist = path.size()
+					adj_goal = path[0]
+		best_cell = adj_goal
+	if best_cell != null:
+		var dx = best_cell.x - my_pos.x
+		var dy = best_cell.y - my_pos.y
+		set_facing(dx, dy)
+		entity_grid.move_actor_to(self, best_cell.x, best_cell.y)
+		return true
+	return false
+
+func _step_away(entity_grid, my_pos, threat_pos):
+	var best_cell = null
+	var best_dist = abs(my_pos.x - threat_pos.x) + abs(my_pos.y - threat_pos.y)
+	for dir in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		var cand = my_pos + dir
+		if not entity_grid.is_walkable(cand.x, cand.y):
+			continue
+		var d = abs(cand.x - threat_pos.x) + abs(cand.y - threat_pos.y)
+		if d > best_dist:
+			best_dist = d
+			best_cell = cand
+	if best_cell != null:
+		set_facing(best_cell.x - my_pos.x, best_cell.y - my_pos.y)
+		entity_grid.move_actor_to(self, best_cell.x, best_cell.y)
+		return true
+	return false
+
+func _roam_step(entity_grid, my_pos):
+	var dirs = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	dirs.shuffle()
+	for dir in dirs:
+		var cand = my_pos + dir
+		if entity_grid.is_walkable(cand.x, cand.y):
+			set_facing(dir.x, dir.y)
+			entity_grid.move_actor_to(self, cand.x, cand.y)
+			return true
+	return false
+
+func step_ai(entity_grid, player_pos, player, dungeon = null):
+	if hp <= 0 or entity_grid == null or player_pos == null:
+		return "none"
+	_tick_spell_cooldowns()
+	if has_status_flag("paralyze") or has_status_flag("sleep"):
+		return "stunned"
+	var pos_raw = get_grid_position()
+	if pos_raw == null:
+		return "none"
+	var my_pos = Vector2i(int(pos_raw.x), int(pos_raw.y))
+	var target_pos = Vector2i(int(player_pos.x), int(player_pos.y))
+	var cheb_dist = max(abs(target_pos.x - my_pos.x), abs(target_pos.y - my_pos.y))
+
+	if not alerted and cheb_dist <= sight_radius:
+		if entity_grid.is_cell_visible(my_pos.x, my_pos.y) or entity_grid._has_clear_los(my_pos, target_pos):
+			alerted = true
+
+	if has_status_flag("fear"):
+		if _step_away(entity_grid, my_pos, target_pos):
+			return "flee"
+		return "idle"
+
+	if has_status_flag("confuse"):
+		if _roam_step(entity_grid, my_pos):
+			return "confused_move"
+		return "idle"
+
+	if not is_hostile or has_status_flag("pacify"):
+		if (randi() % 100) < 30 and _roam_step(entity_grid, my_pos):
+			return "roam"
+		return "idle"
+
+	if not alerted:
+		if (randi() % 100) < 35 and _roam_step(entity_grid, my_pos):
+			return "roam"
+		return "idle"
+
+	if cheb_dist == 1 and player != null and is_instance_valid(player):
+		set_facing(target_pos.x - my_pos.x, target_pos.y - my_pos.y)
+		play_attack_animation()
+		play_sfx("attack")
+		var res = CombatResolverScript.resolve_attack(self, player, { kind = "melee" })
+		if res.hit and res.total_damage > 0:
+			if player.has_method("modify_hp"):
+				player.modify_hp(-res.total_damage)
+			if dungeon != null and dungeon.has_method("on_monster_attack_player"):
+				dungeon.on_monster_attack_player(self, res, my_pos, target_pos)
+			for oh in on_hit_procs:
+				if (randi() % int(oh.one_chance_in)) == 0:
+					SpellEngineScript.execute_spell(oh.spell, self, target_pos, {
+						entity_grid = entity_grid,
+						dungeon = dungeon,
+						free_cast = true
+					})
+		elif dungeon != null and dungeon.has_method("_spawn_floating_text"):
+			dungeon._spawn_floating_text(target_pos, "Dodged!", Color(0.75, 0.75, 0.85))
+		return "attack"
+
+	if not spells.is_empty() and cheb_dist <= sight_radius and (randi() % 100) < ai_spell_pct:
+		var chosen_spell = _pick_castable_spell()
+		if chosen_spell != "":
+			set_facing(target_pos.x - my_pos.x, target_pos.y - my_pos.y)
+			play_cast_animation()
+			play_sfx("spell")
+			var sp_def = OD.Database.get_spell(chosen_spell) if OD.Database != null else null
+			var cd = SpellEngineScript.get_cooldown_turns(sp_def)
+			spell_cooldowns[chosen_spell] = max(2, cd)
+			SpellEngineScript.execute_spell(chosen_spell, self, target_pos, {
+				entity_grid = entity_grid,
+				dungeon = dungeon,
+				free_cast = true
+			})
+			return "cast:" + chosen_spell
+
+	if not has_status_flag("lockdown"):
+		if _step_toward(entity_grid, my_pos, target_pos):
+			return "chase"
+	return "idle"
 
 func has_buff(buff_name):
 	var target_name = str(buff_name)

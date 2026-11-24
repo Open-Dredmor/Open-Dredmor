@@ -9,6 +9,7 @@ var _destination
 var _entity_grid = null
 var _path = []
 var _action_complete = false
+var _started_with_visible_enemy = false
 var interrupted_reason = ""
 
 func init(entity, grid_destination, entity_grid = null):
@@ -18,6 +19,8 @@ func init(entity, grid_destination, entity_grid = null):
 	interrupted_reason = ""
 	if _entity_grid != null and is_instance_valid(_entity):
 		var start_pos = _entity.get_grid_position()
+		if _entity.get("entity_kind") == "player" and start_pos != null:
+			_started_with_visible_enemy = _entity_grid.has_visible_enemy(Vector2i(int(start_pos.x), int(start_pos.y)))
 		_path = _entity_grid.find_path(start_pos, _destination, { avoid_hazards = true })
 		if _path.is_empty():
 			_action_complete = true
@@ -38,7 +41,7 @@ func update():
 			return
 		var current_pos = _entity.get_grid_position()
 		var current_cell = Vector2i(int(current_pos.x), int(current_pos.y))
-		if _entity.get("entity_kind") == "player" and _entity_grid.has_visible_enemy(current_cell):
+		if _entity.get("entity_kind") == "player" and not _started_with_visible_enemy and _path.size() > 1 and _entity_grid.has_visible_enemy(current_cell):
 			interrupted_reason = "enemy_spotted"
 			_entity.set_continuous_walk(false)
 			_entity.idle()

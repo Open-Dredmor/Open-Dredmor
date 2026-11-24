@@ -870,11 +870,66 @@ func on_player_step(player_pos):
 	if teleporter != null:
 		teleporter_stepped.emit(teleporter, Vector2i(int(player_pos.x), int(player_pos.y)))
 
-func step_monsters(player_pos):
+func get_monsters():
+	var result = []
+	var seen = {}
+	for cell_key in _entities_by_cell.keys():
+		for entity in _entities_by_cell[cell_key]:
+			if entity != null and is_instance_valid(entity) and entity.get("entity_kind") == "monster":
+				var eid = entity.get_instance_id()
+				if not seen.has(eid):
+					seen[eid] = true
+					result.append(entity)
+	return result
+
+func step_monsters(player_pos, player = null, dungeon = null):
+	var acted = 0
+	for monster in get_monsters():
+		if monster.has_method("step_ai"):
+			var action = monster.step_ai(self, player_pos, player, dungeon)
+			if action != "none":
+				acted += 1
 	if shop_manager != null:
 		shop_manager.step_hostile_actors(self, player_pos)
-		return 1
-	return 0
+		acted += 1
+	return acted
+
+func maybe_spawn_periodic_monster(player_pos, target_floor_level = -1, turn_number = 0, force_spawn = false):
+	if not force_spawn:
+		if OD.DungeonSettings != null and OD.DungeonSettings.get_settings() != null:
+			if bool(OD.DungeonSettings.get_settings().get("no_time_to_grind", false)):
+				return null
+		if turn_number <= 0 or (turn_number % 25) != 0:
+			return null
+	if get_monsters().size() >= 40:
+		return null
+	var lvl = floor_level if target_floor_level < 0 else int(target_floor_level)
+	var p_cell = Vector2i(int(player_pos.x), int(player_pos.y)) if player_pos != null else Vector2i.ZERO
+	var far_cells = []
+	var any_cells = []
+	for cell_key in _floor_cells.keys():
+		if is_walkable(cell_key.x, cell_key.y):
+			any_cells.append(cell_key)
+			var dist = max(abs(cell_key.x - p_cell.x), abs(cell_key.y - p_cell.y))
+			if dist >= 6:
+				far_cells.append(cell_key)
+	var pool = far_cells if not far_cells.is_empty() else any_cells
+	if pool.is_empty() or OD.Database == null:
+		return null
+	var chosen_cell = pool[randi() % pool.size()]
+	var mon_def = null
+	for _try in range(12):
+		var cand = OD.Database.get_random_monster()
+		if typeof(cand) == TYPE_DICTIONARY and cand.has("name") and OD.Database.get_monster(str(cand.name)) != null:
+			var cand_lvl = str(cand.get("level", "0")).to_int()
+			if cand_lvl <= max(1, lvl + 1):
+				mon_def = cand
+				break
+	if mon_def == null:
+		mon_def = OD.Database.get_monster("Diggle")
+	if mon_def == null or not mon_def.has("name"):
+		return null
+	return spawn_monster_at(str(mon_def.name), chosen_cell.x, chosen_cell.y, lvl, true)
 
 func tick_traps():
 	var ticked = 0
@@ -1017,7 +1072,10 @@ func move_actor_to(actor, target_x, target_y):
 		unregister_entity(actor, Vector2i(int(old_pos.x), int(old_pos.y)))
 	else:
 		unregister_entity(actor)
-	actor.position = OD.Math.grid_to_pixel(dest.x, dest.y)
+	if actor.has_method("move_to"):
+		actor.move_to(dest.x, dest.y)
+	else:
+		actor.position = OD.Math.grid_to_pixel(dest.x, dest.y)
 	register_entity(dest.x, dest.y, actor)
 	return true
 
@@ -1030,14 +1088,14 @@ func get_random_walkable_cell():
 		return null
 	return candidates[randi() % candidates.size()]
 
-func spawn_monster_at(monster_name, grid_x, grid_y, target_floor_level = -1, hostile = true):
+func spawn_monster_at(monster_name, grid_x, grid_y, target_floor_level = -1, hostile = true, ignore_walkable = false):
 	if OD.Database == null:
 		return null
 	var monster_def = OD.Database.get_monster(str(monster_name))
 	if monster_def == null:
 		return null
 	var spawn_cell = Vector2i(int(grid_x), int(grid_y))
-	if not is_walkable(spawn_cell.x, spawn_cell.y):
+	if not ignore_walkable and not is_walkable(spawn_cell.x, spawn_cell.y):
 		var found = null
 		for offset in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1), Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1)]:
 			var cand = spawn_cell + offset

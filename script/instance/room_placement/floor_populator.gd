@@ -420,6 +420,46 @@ static func _populate_wizard_portal(entity_grid, all_eligible_cells, used_cells)
 	if portal_cell != null:
 		_spawn_element(entity_grid, portal_cell, "wizardportal")
 
+static func _pick_floor_monster(floor_level):
+	if OD.Database == null:
+		return null
+	for _try in range(12):
+		var cand = OD.Database.get_random_monster()
+		if typeof(cand) == TYPE_DICTIONARY and cand.has("name") and OD.Database.get_monster(str(cand.name)) != null:
+			var lvl = str(cand.get("level", "0")).to_int()
+			if lvl <= max(1, int(floor_level) + 1):
+				return cand
+	return OD.Database.get_monster("Diggle")
+
+static func _populate_monsters(entity_grid, placements, floor_level, no_grind):
+	var min_per_room = max(1, int(OD.Database.get_tweak("minimum number of monsters in room", 1)))
+	var max_extra = max(1, int(OD.Database.get_tweak("maximum number of additional monsters", 3)))
+	for placement in placements:
+		var layout = placement.layout
+		if layout.shop or layout.name == "Starting Room":
+			continue
+		var room_cells = []
+		for local_cell in layout.floor_cells:
+			var world_cell = Vector2i(placement.x + local_cell.x, placement.y + local_cell.y)
+			if entity_grid.is_walkable(world_cell.x, world_cell.y) and entity_grid.get_stairs_at(world_cell.x, world_cell.y) == null:
+				room_cells.append(world_cell)
+		if room_cells.is_empty():
+			continue
+		room_cells.shuffle()
+		var target_count = min_per_room + randi_range(0, max_extra)
+		if layout.zoo:
+			target_count = max(target_count, min(room_cells.size() / 2, 12))
+		elif no_grind:
+			target_count = max(1, int(ceil(float(target_count) * 0.7)))
+		var spawned = 0
+		for cell in room_cells:
+			if spawned >= target_count:
+				break
+			var mon_def = _pick_floor_monster(floor_level)
+			if mon_def != null and mon_def.has("name"):
+				if entity_grid.spawn_monster_at(str(mon_def.name), cell.x, cell.y, floor_level, true) != null:
+					spawned += 1
+
 static func populate(entity_grid, placements, _floor_level, no_grind = false):
 	var used_cells = {}
 	_populate_lakes(entity_grid, placements, used_cells, no_grind)
@@ -487,4 +527,5 @@ static func populate(entity_grid, placements, _floor_level, no_grind = false):
 	_populate_teleporters(entity_grid, all_eligible_cells, used_cells)
 	_populate_wizard_portal(entity_grid, all_eligible_cells, used_cells)
 	_populate_floor_loot_and_traps(entity_grid, placements, _floor_level, no_grind)
+	_populate_monsters(entity_grid, placements, _floor_level, no_grind)
 	_populate_floor_decals(entity_grid, placements, no_grind)

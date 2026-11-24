@@ -114,7 +114,14 @@ func _handle_enemy_death(enemy, grid_pos):
 		OD.Audio.play_sfx("large_die")
 	var xp_gain = enemy.get_xp_value() if enemy.has_method("get_xp_value") else 10
 	_spawn_floating_text(grid_pos, enemy_name + " defeated! +" + str(xp_gain) + " XP", Color(0.45, 0.95, 0.45))
+	if enemy.has_method("play_sfx"):
+		enemy.play_sfx("die")
+	if enemy.has_method("play_die_animation_at"):
+		enemy.play_die_animation_at(_entity_grid, grid_pos)
 	award_xp(xp_gain, grid_pos)
+	if enemy.has_method("roll_drops") and _entity_grid != null:
+		for drop_data in enemy.roll_drops():
+			_entity_grid.add_loot_item(grid_pos.x, grid_pos.y, drop_data)
 	var drop_chance = int(OD.Database.get_tweak("monster loot drop chance", 3))
 	if drop_chance > 0 and (randi() % drop_chance) == 0 and _entity_grid != null:
 		var gold_per_lvl = max(1, int(OD.Database.get_tweak("gold drop per level", 3)))
@@ -712,6 +719,11 @@ func _trigger_player_hit_procs(attacker_cell):
 			dungeon = self,
 			free_cast = true
 		})
+
+func on_monster_attack_player(monster, res, monster_pos, player_pos):
+	var m_name = str(monster.get("monster_name")) if monster != null else "Monster"
+	_spawn_floating_text(player_pos, m_name + " hits -" + str(res.total_damage), Color(1.0, 0.25, 0.25))
+	_trigger_player_hit_procs(monster_pos)
 
 func _on_hostile_attack(attacker_name, damage, grid_pos):
 	_turn_scheduler.cancel_auto_actions()

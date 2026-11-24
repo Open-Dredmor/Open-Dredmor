@@ -328,32 +328,27 @@ func loot_tile_handler(item, x, y):
 		entity_grid.add_animation(x, y, 'loot', sprite)
 
 func monster_tile_handler(item, x, y):
-	if not item.has('name'):
-		return
-	var monster = null
-	if item.has('name'):
-		monster = OD.Database.get_monster(item.name)
+	var monster_name = ""
+	if item.has('name') and str(item.name) != "":
+		monster_name = str(item.name)
 	else:
-		monster = OD.Database.get_random_monster()
-	if monster == null:
-		OD.Log.warn("Unhandled monster tile type [" + item.name + "]")
+		var random_mon = OD.Database.get_random_monster()
+		if random_mon != null and random_mon.has("name"):
+			monster_name = str(random_mon.name)
+	if monster_name == "":
+		OD.Log.warn("Unhandled monster tile type [" + str(item.get("name", "")) + "]")
 		return
-	var palette_path = monster.palette.name if monster.has('palette') and monster.palette.has('name') else null
-	var animation = OD.Load.animation(monster.idleSprite.down, palette_path)
-	if animation != null:
-		entity_grid.add_animation(x, y, 'monster', animation)
+	var spawned = entity_grid.spawn_monster_at(monster_name, x, y, entity_grid.floor_level, true, true)
+	if spawned == null:
+		OD.Log.warn("Failed to spawn monster [" + monster_name + "]")
 			
 func horde_tile_handler(item, x, y):
 	if not item.has('name'):
 		return
-	var monster = OD.Database.get_monster(item.name)
-	if monster == null:
-		OD.Log.warn("Unhandled horde tile type [" + item.name + "]")
-		return
-	var palette_path = monster.palette.name if monster.has('palette') and monster.palette.has('name') else null
-	var animation = OD.Load.animation(monster.idleSprite.down, palette_path)
-	if animation != null:
-		entity_grid.add_animation(x, y, 'horde', animation)
+	var monster_name = str(item.name)
+	var spawned = entity_grid.spawn_monster_at(monster_name, x, y, entity_grid.floor_level, true, true)
+	if spawned == null:
+		OD.Log.warn("Unhandled horde tile type [" + monster_name + "]")
 
 func pedestal_tile_handler(_item, x, y):
 	var animation = OD.Load.animation(OD.Resources.paths.pedestal)

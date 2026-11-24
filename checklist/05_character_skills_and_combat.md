@@ -24,7 +24,7 @@ Player stats, skill tree progression, melee/ranged combat, `spellDB` effects, st
   - *Current state*: None.
   - *Done when*: Timed buffs/debuffs, brittle/on-hit procs, and DoTs tick per turn, modify stats dynamically, and display active icons/durations.
 
-- [ ] **Monster AI & Spawning**
+- [x] **Monster AI & Spawning**
   - *Current state*: [script/instance/room.gd](../script/instance/room.gd) spawns static idle animations for monsters/hordes.
   - *Done when*: Monsters instantiate as full entities from `monDB.xml` (stats, resistances, spells, drops, sprites for idle/walk/attack/die), roam/alert on FOV, pathfind toward the player, attack or cast spells, and spawn periodically if `no_time_to_grind` is false.
 
