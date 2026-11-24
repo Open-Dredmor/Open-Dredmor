@@ -249,7 +249,7 @@ func _interact_fountain():
 	if used:
 		return { kind = "info", title = "Fountain", message = "The fountain is dry." }
 	used = true
-	OD.Audio.play_sfx("potions")
+	OD.Audio.play_sfx("fountain")
 	return { kind = "info", title = "Fountain", message = "You drink from the sparkling dungeon fountain and feel refreshed!" }
 
 func _interact_chest(title_text, loot_category):
@@ -280,7 +280,7 @@ func _interact_supply_box(title_text, category_name, fallback_msg):
 	used = true
 	if _animation != null and element_type == "freezer":
 		_animation.set_frame(1)
-	OD.Audio.play_sfx("food")
+	OD.Audio.play_sfx("chest")
 	var pool = OD.Database.get_items_by_category(category_name)
 	if not pool.is_empty():
 		var item = pool[randi() % pool.size()]

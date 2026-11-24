@@ -75,6 +75,7 @@ var _traps_by_cell = {}
 var _loot_by_cell = {}
 var _teleporters_by_cell = {}
 var _stairs_by_cell = {}
+var _entities_by_cell = {}
 var _named_entities = {}
 var _room_scripts = []
 var shop_manager = ShopManagerScript.new()
@@ -127,6 +128,11 @@ func insert(source_grid, offset_position):
 		_traps_by_cell[trap_cell + offset_cell] = source_grid._traps_by_cell[trap_cell]
 	for loot_cell in source_grid._loot_by_cell.keys():
 		_loot_by_cell[loot_cell + offset_cell] = source_grid._loot_by_cell[loot_cell]
+	for occ_cell in source_grid._entities_by_cell.keys():
+		var shifted_occ = occ_cell + offset_cell
+		for occ_entity in source_grid._entities_by_cell[occ_cell]:
+			if is_instance_valid(occ_entity):
+				register_entity(shifted_occ.x, shifted_occ.y, occ_entity)
 	for entity_id in source_grid._named_entities.keys():
 		var info = source_grid._named_entities[entity_id]
 		_named_entities[entity_id] = {
@@ -184,6 +190,91 @@ func add_entity(grid_x, grid_y, entity):
 	entity.position = OD.Math.grid_to_pixel(grid_x, grid_y)
 	entity.move_to(grid_x, grid_y)
 	layer.add_child(entity)
+	register_entity(grid_x, grid_y, entity)
+
+func _is_physical_occupant(entity):
+	if entity == null or not is_instance_valid(entity):
+		return false
+	var kind = entity.get("entity_kind")
+	if kind == "cursor" or kind == "trap":
+		return false
+	return true
+
+func _sync_grid_cell(grid_x, grid_y):
+	if _grid_lookup == null:
+		return
+	var ix = int(grid_x)
+	var iy = int(grid_y)
+	if not _grid_lookup.has(ix) or not _grid_lookup[ix].has(iy):
+		return
+	_grid_lookup[ix][iy] = get_cell_info(ix, iy)
+
+func register_entity(grid_x, grid_y, entity):
+	if not _is_physical_occupant(entity):
+		return
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	if not _entities_by_cell.has(cell_key):
+		_entities_by_cell[cell_key] = []
+	var list = _entities_by_cell[cell_key]
+	if not (entity in list):
+		list.append(entity)
+	_sync_grid_cell(cell_key.x, cell_key.y)
+
+func unregister_entity(entity, cell = null):
+	if entity == null:
+		return
+	var target_cell = cell
+	if target_cell == null and is_instance_valid(entity) and entity.has_method("get_grid_position"):
+		target_cell = entity.get_grid_position()
+	if target_cell == null:
+		return
+	var cell_key = Vector2i(int(target_cell.x), int(target_cell.y))
+	if _entities_by_cell.has(cell_key):
+		var list = _entities_by_cell[cell_key]
+		list.erase(entity)
+		if list.is_empty():
+			_entities_by_cell.erase(cell_key)
+		_sync_grid_cell(cell_key.x, cell_key.y)
+
+func move_entity(entity, from_cell, to_cell):
+	if not _is_physical_occupant(entity):
+		return
+	if from_cell != null:
+		unregister_entity(entity, from_cell)
+	if to_cell != null:
+		register_entity(to_cell.x, to_cell.y, entity)
+
+func get_entities_at(grid_x, grid_y):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	if not _entities_by_cell.has(cell_key):
+		return []
+	var valid = []
+	for entity in _entities_by_cell[cell_key]:
+		if is_instance_valid(entity):
+			valid.append(entity)
+	if valid.size() != _entities_by_cell[cell_key].size():
+		if valid.is_empty():
+			_entities_by_cell.erase(cell_key)
+		else:
+			_entities_by_cell[cell_key] = valid
+	return valid
+
+func get_actor_at(grid_x, grid_y, exclude_entity = null):
+	for entity in get_entities_at(grid_x, grid_y):
+		if entity == exclude_entity:
+			continue
+		var kind = entity.get("entity_kind")
+		if kind == "player" or kind == "monster":
+			return entity
+	return null
+
+func get_cell_info(grid_x, grid_y):
+	return {
+		walkable = is_walkable(grid_x, grid_y),
+		opaque = is_opaque(grid_x, grid_y),
+		hazard = is_hazard(grid_x, grid_y),
+		entities = get_entities_at(grid_x, grid_y)
+	}
 
 func add_animation(x, y, name, animation):
 	var layer = get_layer(name)
@@ -219,6 +310,92 @@ func mark_blocker(grid_x, grid_y):
 func is_destructible(grid_x, grid_y):
 	return _destructible_cells.has(Vector2i(int(grid_x), int(grid_y)))
 
+func is_opaque(grid_x, grid_y):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	if _wall_cells.has(cell_key):
+		return true
+	if _doors_by_cell.has(cell_key):
+		var door = _doors_by_cell[cell_key]
+		if is_instance_valid(door) and not door.can_pass():
+			return true
+	return false
+
+func is_hazard(grid_x, grid_y):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	var trap = get_trap_at(cell_key.x, cell_key.y)
+	if trap != null and trap.is_discovered and not trap.is_disarmed:
+		return true
+	var liquid = _liquid_cells.get(cell_key, "")
+	if liquid == "lava" or liquid == "goo":
+		return true
+	return false
+
+func get_enemy_at(grid_x, grid_y):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	if shop_manager != null:
+		var keeper = shop_manager.get_shopkeeper_at(cell_key.x, cell_key.y)
+		if keeper != null and keeper.is_hostile:
+			return keeper
+	for entity in get_entities_at(cell_key.x, cell_key.y):
+		if entity.get("entity_kind") == "monster" and entity.get("is_hostile"):
+			return entity
+	return null
+
+func has_enemy_at(grid_x, grid_y):
+	return get_enemy_at(grid_x, grid_y) != null
+
+func _has_clear_los(from_cell, to_cell):
+	var x0 = int(from_cell.x)
+	var y0 = int(from_cell.y)
+	var x1 = int(to_cell.x)
+	var y1 = int(to_cell.y)
+	var dx = abs(x1 - x0)
+	var dy = abs(y1 - y0)
+	var sx = 1 if x0 < x1 else -1
+	var sy = 1 if y0 < y1 else -1
+	var err = dx - dy
+	while true:
+		if x0 == x1 and y0 == y1:
+			return true
+		if (x0 != int(from_cell.x) or y0 != int(from_cell.y)) and is_opaque(x0, y0):
+			return false
+		var e2 = 2 * err
+		if e2 > -dy:
+			err -= dy
+			x0 += sx
+		if e2 < dx:
+			err += dx
+			y0 += sy
+	return true
+
+func has_visible_enemy(origin_cell, sight_radius = 8):
+	var origin = Vector2i(int(origin_cell.x), int(origin_cell.y))
+	if shop_manager != null:
+		for shop in shop_manager._shops:
+			if not shop.is_hostile:
+				continue
+			var candidates = []
+			if is_instance_valid(shop.brax):
+				candidates.append(shop.brax)
+			for guard in shop.guards:
+				if is_instance_valid(guard):
+					candidates.append(guard)
+			for actor in candidates:
+				var pos = actor.get_grid_position()
+				if pos == null:
+					continue
+				var enemy_cell = Vector2i(int(pos.x), int(pos.y))
+				var dist = max(abs(enemy_cell.x - origin.x), abs(enemy_cell.y - origin.y))
+				if dist <= sight_radius and _has_clear_los(origin, enemy_cell):
+					return true
+	for cell_key in _entities_by_cell.keys():
+		var dist = max(abs(cell_key.x - origin.x), abs(cell_key.y - origin.y))
+		if dist > sight_radius:
+			continue
+		if has_enemy_at(cell_key.x, cell_key.y) and _has_clear_los(origin, cell_key):
+			return true
+	return false
+
 func is_blocked(grid_x, grid_y):
 	var cell_key = Vector2i(int(grid_x), int(grid_y))
 	if _wall_cells.has(cell_key) or _blocker_cells.has(cell_key):
@@ -229,39 +406,74 @@ func is_blocked(grid_x, grid_y):
 			return true
 	if shop_manager != null and shop_manager.has_actor_at(cell_key):
 		return true
+	if get_actor_at(cell_key.x, cell_key.y) != null:
+		return true
 	return false
 
 func is_walkable(grid_x, grid_y):
 	var cell_key = Vector2i(int(grid_x), int(grid_y))
 	return _floor_cells.has(cell_key) and not is_blocked(grid_x, grid_y)
 
-func find_path(start_cell, goal_cell, max_visited = 4096):
+func find_path(start_cell, goal_cell, options = {}):
+	var max_visited = 4096
+	var avoid_hazards = true
+	var allow_goal_hazard = false
+	if typeof(options) == TYPE_INT:
+		max_visited = options
+	elif typeof(options) == TYPE_DICTIONARY:
+		max_visited = int(options.get("max_visited", 4096))
+		avoid_hazards = bool(options.get("avoid_hazards", true))
+		allow_goal_hazard = bool(options.get("allow_goal_hazard", false))
 	var start = Vector2i(int(start_cell.x), int(start_cell.y))
 	var goal = Vector2i(int(goal_cell.x), int(goal_cell.y))
 	if start == goal or not is_walkable(goal.x, goal.y):
 		return []
-	var frontier = [start]
+	if avoid_hazards and not allow_goal_hazard and is_hazard(goal.x, goal.y):
+		return []
+	var open_list = [start]
+	var open_set = { start: true }
+	var closed_set = {}
 	var came_from = {}
-	came_from[start] = start
+	var g_score = { start: 0 }
+	var f_score = { start: abs(start.x - goal.x) + abs(start.y - goal.y) }
 	var visited_count = 0
 	var directions = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
 	var found = false
-	var head = 0
-	while head < frontier.size() and visited_count < max_visited:
-		var current = frontier[head]
-		head += 1
-		visited_count += 1
+	while not open_list.is_empty() and visited_count < max_visited:
+		var best_idx = 0
+		var best_f = f_score.get(open_list[0], 9999999)
+		for ii in range(1, open_list.size()):
+			var candidate_f = f_score.get(open_list[ii], 9999999)
+			if candidate_f < best_f:
+				best_f = candidate_f
+				best_idx = ii
+		var current = open_list[best_idx]
+		open_list.remove_at(best_idx)
+		open_set.erase(current)
 		if current == goal:
 			found = true
 			break
+		closed_set[current] = true
+		visited_count += 1
+		var current_g = g_score.get(current, 0)
 		for dir in directions:
 			var next_cell = current + dir
-			if came_from.has(next_cell):
+			if closed_set.has(next_cell):
 				continue
 			if not is_walkable(next_cell.x, next_cell.y):
 				continue
-			came_from[next_cell] = current
-			frontier.append(next_cell)
+			if avoid_hazards and is_hazard(next_cell.x, next_cell.y):
+				if next_cell != goal or not allow_goal_hazard:
+					continue
+			var tentative_g = current_g + 1
+			if not open_set.has(next_cell) or tentative_g < g_score.get(next_cell, 9999999):
+				came_from[next_cell] = current
+				g_score[next_cell] = tentative_g
+				var h_score = abs(next_cell.x - goal.x) + abs(next_cell.y - goal.y)
+				f_score[next_cell] = tentative_g + h_score
+				if not open_set.has(next_cell):
+					open_list.append(next_cell)
+					open_set[next_cell] = true
 	if not found:
 		return []
 	var path = []

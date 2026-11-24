@@ -49,12 +49,14 @@ func execute(context):
 	if dungeon == null or entity_grid == null or target_actor == null:
 		return { executed = false, consumes_turn = false, message = "" }
 	if debug_teleport and destination != null:
+		var prev_pos = target_actor.get_grid_position()
 		dungeon.clear_pending_interaction()
 		OD.ActionQueue.clear()
 		if target_cursor != null:
 			target_cursor.select(destination.x, destination.y)
 		target_actor.move_to(destination.x, destination.y)
 		target_actor.idle()
+		entity_grid.move_entity(target_actor, prev_pos, target_actor.get_grid_position())
 		entity_grid.on_player_step(target_actor.get_grid_position())
 		var debug_stairs = entity_grid.get_stairs_at(destination.x, destination.y)
 		if debug_stairs != null:
@@ -69,6 +71,7 @@ func execute(context):
 		OD.ActionQueue.clear()
 		target_actor.move_delta(delta.x, delta.y)
 		target_actor.idle()
+		entity_grid.move_entity(target_actor, current_pos, target_actor.get_grid_position())
 		entity_grid.on_player_step(target_actor.get_grid_position())
 		return { executed = true, consumes_turn = true, message = "" }
 	if is_path and destination != null:

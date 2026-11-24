@@ -12,8 +12,11 @@ var last_delta_x = 0
 var last_delta_y = 0
 
 func update_animation(delta_x, delta_y):
+	if animations.is_empty():
+		return
 	if last_delta_x != delta_x or last_delta_y != delta_y:
-		current_animation.visible = false
+		if current_animation != null:
+			current_animation.visible = false
 		if delta_x != 0:
 			if delta_x < 0:
 				current_animation = animations.move.left
@@ -24,12 +27,16 @@ func update_animation(delta_x, delta_y):
 				current_animation = animations.move.up
 			else:
 				current_animation = animations.move.down
-		current_animation.visible = true
+		if current_animation != null:
+			current_animation.visible = true
 		last_delta_x = delta_x
 		last_delta_y = delta_y
 
 func idle():
-	current_animation.visible = false
+	if animations.is_empty():
+		return
+	if current_animation != null:
+		current_animation.visible = false
 	if last_delta_x != 0:
 		if last_delta_x < 0:
 			current_animation = animations.idle.left
@@ -40,7 +47,8 @@ func idle():
 			current_animation = animations.idle.up
 		else:
 			current_animation = animations.idle.down
-	current_animation.visible = true
+	if current_animation != null:
+		current_animation.visible = true
 
 func init():
 	animations.move = {

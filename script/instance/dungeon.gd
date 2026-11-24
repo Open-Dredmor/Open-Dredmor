@@ -260,6 +260,8 @@ func _change_floor(direction):
 	_turn_scheduler.cancel_auto_actions()
 	_close_element_dialog()
 	if _player.get_parent() != null:
+		if _entity_grid != null:
+			_entity_grid.unregister_entity(_player)
 		_player.get_parent().remove_child(_player)
 	if _target_cursor.get_parent() != null:
 		_target_cursor.get_parent().remove_child(_target_cursor)
@@ -323,8 +325,10 @@ func _on_teleporter_stepped(teleporter_info, _grid_pos):
 	var dest = teleporter_info.target_cell
 	_pending_interaction = null
 	_turn_scheduler.cancel_auto_actions()
+	var prev_pos = _player.get_grid_position()
 	_player.move_to(dest.x, dest.y)
 	_player.idle()
+	_entity_grid.move_entity(_player, prev_pos, dest)
 	_target_cursor.select(dest.x, dest.y)
 	_entity_grid.update_trap_visibility(dest)
 	OD.Audio.play_sfx("teleport")
@@ -335,6 +339,8 @@ func _toggle_pocket_dimension(_portal_pos):
 	_turn_scheduler.cancel_auto_actions()
 	_close_element_dialog()
 	if _player.get_parent() != null:
+		if _entity_grid != null:
+			_entity_grid.unregister_entity(_player)
 		_player.get_parent().remove_child(_player)
 	if _target_cursor.get_parent() != null:
 		_target_cursor.get_parent().remove_child(_target_cursor)
@@ -494,6 +500,7 @@ func _handle_shopkeeper_interaction(keeper, pos):
 		if keeper.hp <= 0:
 			OD.Audio.play_sfx("large_die")
 			_spawn_floating_text(pos, keeper.monster_name + " defeated!", Color(0.45, 0.95, 0.45))
+			_entity_grid.unregister_entity(keeper, pos)
 			keeper.queue_free()
 		return
 	var shop = _entity_grid.shop_manager.get_shop_by_id(keeper.shop_id)

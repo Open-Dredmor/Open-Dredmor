@@ -12,7 +12,7 @@ Command decoupling, roguelike turn scheduling, grid collision/pathfinding, camer
   - *Current state*: [script/singleton/action_queue.gd](../script/singleton/action_queue.gd) runs a real-time 0.5s `Timer` that ticks queued actions continuously.
   - *Done when*: Gameplay is strictly turn-based: a resolved player command advances 1 turn, then all active monsters, traps, cooldowns, regen, and status effects advance by 1 turn, with smooth animation pacing before accepting the next player turn.
 
-- [ ] **Grid occupancy, collision & A* pathfinding**
+- [x] **Grid occupancy, collision & A* pathfinding**
   - *Current state*: [script/instance/entity_grid.gd](../script/instance/entity_grid.gd) initializes `_grid_lookup` in `resize()` but never populates or queries it; [move_to_location_action.gd](../script/instance/action/move_to_location_action.gd) steps naively toward destination ignoring walls/entities; `OD.Math.pixel_to_grid` is a stub.
   - *Done when*: `EntityGrid` tracks walkability, opacity, and entity occupancy per cell; A* pathfinding routes around obstacles and stops on hazards/enemies; clicking a tile issues a pathing command that walks until arrival, interruption, or enemy spotted.
 

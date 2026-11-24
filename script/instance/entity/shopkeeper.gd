@@ -103,6 +103,7 @@ func step_toward(player_cell, entity_grid):
 		var old_dist = abs(current_cell.x - player_cell.x) + abs(current_cell.y - player_cell.y)
 		if best_score <= old_dist:
 			set_facing(best_step.x - current_cell.x, best_step.y - current_cell.y)
-			move_to(best_step.x, best_step.y)
+			move_delta(best_step.x - current_cell.x, best_step.y - current_cell.y)
+			entity_grid.move_entity(self, current_cell, best_step)
 			return { acted = true, attacked = false }
 	return { acted = false }
