@@ -16,7 +16,7 @@ Foundational work to reliably validate the user's *Dungeons of Dredmor* installa
   - *Current state*: [script/singleton/load.gd](../script/singleton/load.gd) (`_pro_motion_sprites`) reads `_trans_chunk` into a local variable but ignores it, only using color index `0` for alpha.
   - *Done when*: `_trans_chunk` (when present) is applied to the generated `Image` alpha channel so sprites with non-zero transparent indices render cleanly.
 
-- [ ] **Clean XML parser text/hierarchy handling**
+- [x] **Clean XML parser text/hierarchy handling**
   - *Current state*: [script/singleton/load.gd](../script/singleton/load.gd) (`xml`) stores `NODE_TEXT` in a flat `result['data_nodes']` array with a `length() > 4` workaround, which breaks or misaligns text nodes on general XML files.
   - *Done when*: Text content is attached directly to its owning element node (e.g., `node.text`) and `.xml` sprite animations + room `<row>`/`<script>`/`<text>` data parse cleanly without the `data_nodes` workaround.
 

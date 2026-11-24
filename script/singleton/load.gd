@@ -66,70 +66,46 @@ func xml(relative_path):
 	var xml_parser = XMLParser.new()
 	xml_parser.open_buffer(xml_content.to_utf8_buffer())
 	var result = {}
-	var manual_close_nodes = {}
+	var element_stack = []
 	var reading = true
-	var err
-	
-	while reading:		
+	var err = null
+	while reading:
 		var node_type = xml_parser.get_node_type()
 		match node_type:
 			XMLParser.NODE_ELEMENT_END:
-				var node_kind = xml_parser.get_node_name()
-				if ! manual_close_nodes.has(node_kind):
-					manual_close_nodes[node_kind] = 1
-				else:
-					manual_close_nodes[node_kind] = manual_close_nodes[node_kind] + 1
-		err = xml_parser.read()
-		if err != OK:
-			if err != ERR_FILE_EOF:
-				print("An error occurred while reading XML: "+str(err))
-			reading = false
-	manual_close_nodes = manual_close_nodes.keys()
-	
-	xml_parser.seek(0)
-	var depth_queue = OD.DataStructure.NewQueue()	
-	reading = true
-	err = null
-	while reading:		
-		var node_type = xml_parser.get_node_type()		
-		match node_type:
-			XMLParser.NODE_ELEMENT_END:
-				depth_queue.pop()
+				if element_stack.size() > 0:
+					element_stack.pop_back()
 			XMLParser.NODE_ELEMENT:
 				var node_kind = xml_parser.get_node_name()
 				var current_node = {}
-				var attribute_count = xml_parser.get_attribute_count()						
-				for ii in range(attribute_count):					
+				var attribute_count = xml_parser.get_attribute_count()
+				for ii in range(attribute_count):
 					var attribute_name = xml_parser.get_attribute_name(ii)
 					current_node[attribute_name] = xml_parser.get_attribute_value(ii)
-				
-				var depth_tree = depth_queue.tree()
-				var target_node = result
-				for ii in range(depth_tree.size()):
-					target_node = target_node[depth_tree[ii]]
-					if typeof(target_node) == TYPE_ARRAY:
-						target_node = target_node[target_node.size()-1]
-				if target_node.has(node_kind):
-					if typeof(target_node[node_kind]) != TYPE_ARRAY:
-						target_node[node_kind] = [target_node[node_kind]]
-					target_node[node_kind].append(current_node)
+				var parent_node = element_stack[element_stack.size() - 1] if element_stack.size() > 0 else result
+				if parent_node.has(node_kind):
+					if typeof(parent_node[node_kind]) != TYPE_ARRAY:
+						parent_node[node_kind] = [parent_node[node_kind]]
+					parent_node[node_kind].append(current_node)
 				else:
-					target_node[node_kind] = current_node
-				if manual_close_nodes.has(node_kind):
-					depth_queue.push(node_kind)
-			XMLParser.NODE_TEXT:
-				# I would prefer to hang a 'node_data' prop off the leaf node, but this is a quick and dirty workaround
-				if ! result.has('data_nodes'):
-					result['data_nodes'] = []
-				var node_data = xml_parser.get_node_data()
-				# FIXME This is a brittle workaround for some null looking characters showing up as NODE_TEXT
-				if node_data.length() > 4:
-					result['data_nodes'].append(node_data)
+					parent_node[node_kind] = current_node
+				if not xml_parser.is_empty():
+					element_stack.append(current_node)
+			XMLParser.NODE_TEXT, XMLParser.NODE_CDATA:
+				var node_data = xml_parser.get_node_data().strip_edges()
+				if node_data.length() > 0 and element_stack.size() > 0:
+					var owner_node = element_stack[element_stack.size() - 1]
+					if owner_node.has("text"):
+						owner_node["text"] += node_data
+					else:
+						owner_node["text"] = node_data
 			_:
 				pass
 		err = xml_parser.read()
 		if err != OK:
-			reading = false	
+			if err != ERR_FILE_EOF:
+				print("An error occurred while reading XML: " + str(err))
+			reading = false
 	return result
 
 func font(relative_path):
@@ -243,15 +219,18 @@ func _xml_sprites(relative_path):
 	var document = xml(relative_path)
 	var animation = OD.Animations.new()
 	animation.init()
-	var image_count = document.data_nodes.size()
+	if not document.has("sprite") or not document.sprite.has("frame"):
+		return animation
+	var frames = OD.DataStructure.arrayify(document.sprite.frame)
 	var path_parts = relative_path.split('/')
 	var image_root = ''
 	for ii in range(path_parts.size() - 1): # chop the XML file out of the path
 		image_root += path_parts[ii] + '/'
-	for ii in range(image_count):
-		var image_name = document.data_nodes[ii]
-		var image_path = image_root + image_name
-		var delay_milliseconds = document.sprite.frame[ii].delay
+	for frame in frames:
+		if not frame.has("text"):
+			continue
+		var image_path = image_root + frame.text
+		var delay_milliseconds = int(frame.delay) if frame.has("delay") else DEFAULT_ANIMATION_FRAME_RATE_MILLISECONDS
 		var texture = image(image_path)
 		animation.add_texture_frame(texture, delay_milliseconds)
 	return animation
