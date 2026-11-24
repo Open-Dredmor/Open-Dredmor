@@ -48,11 +48,16 @@ var animated_tile_lookup = {
 var _tilesets
 var _grid_lookup = null
 var _grid_center = null
+signal script_ticker(message)
+signal script_spell_cast(spell_name, grid_pos)
+
 var _wall_cells = {}
 var _floor_cells = {}
 var _destructible_cells = {}
 var _blocker_cells = {}
 var _doors_by_cell = {}
+var _named_entities = {}
+var _room_scripts = []
 
 func init(branch_id = 0):
 	_tilesets = OD.Assets.tileset_for_branch(branch_id)
@@ -86,6 +91,32 @@ func insert(source_grid, offset_position):
 		_destructible_cells[destructible_cell + offset_cell] = true
 	for blocker_cell in source_grid._blocker_cells.keys():
 		_blocker_cells[blocker_cell + offset_cell] = true
+	for entity_id in source_grid._named_entities.keys():
+		var info = source_grid._named_entities[entity_id]
+		_named_entities[entity_id] = {
+			node = info.node,
+			layer = info.layer,
+			cell = info.cell + offset_cell,
+			is_blocker = info.is_blocker
+		}
+	for script_def in source_grid._room_scripts:
+		var shifted_conditions = []
+		for cond in script_def.conditions:
+			var shifted_cond = cond.duplicate()
+			if shifted_cond.has("grid_pos"):
+				shifted_cond.grid_pos = shifted_cond.grid_pos + offset_cell
+			shifted_conditions.append(shifted_cond)
+		var shifted_actions = []
+		for act in script_def.actions:
+			var shifted_act = act.duplicate()
+			if shifted_act.has("grid_pos"):
+				shifted_act.grid_pos = shifted_act.grid_pos + offset_cell
+			shifted_actions.append(shifted_act)
+		_room_scripts.append({
+			repeat = script_def.repeat,
+			conditions = shifted_conditions,
+			actions = shifted_actions
+		})
 	for layer_key in source_grid.layers.lookup.keys():
 		var source_layer = source_grid.layers.lookup[layer_key]
 		var target_layer = layers.lookup[layer_key]
@@ -193,6 +224,107 @@ func find_path(start_cell, goal_cell, max_visited = 4096):
 		step = came_from[step]
 	path.reverse()
 	return path
+
+func register_named_entity(entity_id, node, layer_name, grid_x, grid_y, is_blocker = false):
+	if entity_id == null or entity_id == "":
+		return
+	_named_entities[entity_id] = {
+		node = node,
+		layer = layer_name,
+		cell = Vector2i(int(grid_x), int(grid_y)),
+		is_blocker = is_blocker
+	}
+
+func add_room_script(script_def):
+	_room_scripts.append(script_def)
+
+func evaluate_scripts(player_grid_pos):
+	var player_cell = Vector2i(int(player_grid_pos.x), int(player_grid_pos.y))
+	for script_def in _room_scripts:
+		if script_def.repeat == 0:
+			continue
+		if _conditions_met(script_def.conditions, player_cell):
+			if script_def.repeat > 0:
+				script_def.repeat -= 1
+			for action in script_def.actions:
+				_execute_script_action(action, player_cell)
+
+func _conditions_met(conditions, player_cell):
+	for cond in conditions:
+		if cond.get("condition_type", "") == "at":
+			if not cond.has("grid_pos"):
+				return false
+			var target_cell = cond.grid_pos
+			var target_id = cond.get("id", "")
+			if target_id == "player":
+				if player_cell != target_cell:
+					return false
+			else:
+				if not _named_entities.has(target_id):
+					return false
+				if _named_entities[target_id].cell != target_cell:
+					return false
+	return true
+
+func _execute_script_action(action, player_cell):
+	if action.get("on", "success") != "success":
+		return
+	var action_type = action.get("action_type", "")
+	match action_type:
+		"remove":
+			var target_id = action.get("id", "")
+			if _named_entities.has(target_id):
+				var info = _named_entities[target_id]
+				if info.is_blocker:
+					_blocker_cells.erase(info.cell)
+				if is_instance_valid(info.node):
+					if info.node.get_parent() != null:
+						info.node.get_parent().remove_child(info.node)
+					info.node.queue_free()
+				_named_entities.erase(target_id)
+		"move":
+			var target_id = action.get("id", "")
+			if _named_entities.has(target_id) and action.has("grid_pos"):
+				var info = _named_entities[target_id]
+				var dest = action.grid_pos
+				if info.is_blocker:
+					_blocker_cells.erase(info.cell)
+					_blocker_cells[dest] = true
+				info.cell = dest
+				if is_instance_valid(info.node):
+					info.node.position = OD.Math.grid_to_pixel(dest.x, dest.y)
+		"create":
+			if action.has("grid_pos"):
+				var pos = action.grid_pos
+				var create_type = action.get("create_type", "")
+				var created_node = null
+				var is_blocker = false
+				if action.has("pngSprite"):
+					created_node = OD.Load.png_sprite(action.pngSprite, int(action.get("pngFirst", 0)), int(action.get("pngNum", 1)), int(action.get("pngRate", 100)))
+				elif action.has("png"):
+					created_node = OD.Load.animation(action.png)
+				elif create_type == "monster":
+					var monster = OD.Database.get_monster(action.get("name", "")) if action.has("name") else OD.Database.get_random_monster()
+					if monster != null:
+						var palette_path = monster.palette.name if monster.has("palette") and monster.palette.has("name") else null
+						created_node = OD.Load.animation(monster.idleSprite.down, palette_path)
+				if created_node != null:
+					var layer_name = create_type if layers.lookup.has(create_type) else "custom_blocker"
+					var pixel_pos = OD.Math.grid_to_pixel(pos.x, pos.y)
+					add_animation(pixel_pos.x, pixel_pos.y, layer_name, created_node)
+					if create_type == "customblocker" and (not action.has("passable") or int(action.passable) == 0):
+						mark_blocker(pos.x, pos.y)
+						is_blocker = true
+					if action.has("id"):
+						register_named_entity(action.id, created_node, layer_name, pos.x, pos.y, is_blocker)
+		"ticker":
+			var msg = action.get("text", "")
+			if msg != "":
+				script_ticker.emit(msg)
+		"spell":
+			var spell_name = action.get("casts", "")
+			if spell_name != "":
+				script_spell_cast.emit(spell_name, player_cell)
 
 func add_door(grid_x, grid_y, orientation = "ew", locked = false):
 	var cell_key = Vector2i(int(grid_x), int(grid_y))

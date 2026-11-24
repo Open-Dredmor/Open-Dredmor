@@ -19,7 +19,7 @@ Fast floor layout generation, branch tilesets, interactive room elements, traps,
   - *Current state*: [script/instance/room.gd](../script/instance/room.gd) tracks `_doors` for room linking and seals unused ones, but `claim_door` has `# TODO Add the door and remove surrounding walls`.
   - *Done when*: Claimed doors spawn interactive Door entities (closed by default, openable by player/monsters, lockable/kickable/lockpickable, with proper L/R and U/D sprites).
 
-- [ ] **Room scripts & triggers**
+- [x] **Room scripts & triggers**
   - *Current state*: [script/instance/room.gd](../script/instance/room.gd) parses `<script>` coordinates partially (note: lines 104–109 check `script_location.has(ii)` instead of `script_location._coordinate`) and executes no script actions.
   - *Done when*: Room `<script>` conditions and actions (e.g., levers, pressure plates, braziers, spawns, doors, traps) evaluate and trigger during gameplay.
 

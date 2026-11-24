@@ -35,6 +35,7 @@ func update():
 		_path.remove_at(0)
 		var current_pos = _entity.get_grid_position()
 		_entity.move_delta(next_step.x - int(current_pos.x), next_step.y - int(current_pos.y))
+		_entity_grid.evaluate_scripts(_entity.get_grid_position())
 		if _path.is_empty():
 			_entity.idle()
 			_action_complete = true

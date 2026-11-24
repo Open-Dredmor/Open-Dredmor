@@ -1,9 +1,14 @@
 extends Node
 
+const FEATURED_NORTH_ROOM = "Ignition Hall 1"
+
 static func generate(_branch_name, _floor_level):
 	OD.Math.fixed_chances(true)
+	var branch_id = max(0, _floor_level - 1)
+	if OD.Database.get_branch_info(branch_id) == null:
+		branch_id = 0
 	var entity_grid = EntityGrid.new()
-	entity_grid.init()
+	entity_grid.init(branch_id)
 	entity_grid.resize(1,1)	
 	
 	# Useful development rooms
@@ -43,5 +48,15 @@ static func generate(_branch_name, _floor_level):
 		entity_grid.add_child(debug_button)
 		room.free()
 		definition_index += 1
+	if FEATURED_NORTH_ROOM != "":
+		var north_room = Room.new()
+		north_room.init(FEATURED_NORTH_ROOM)
+		north_room.position = Vector2(0, -north_room.grid_height)
+		north_room.collision_rect.init(0, -north_room.grid_height, north_room.grid_width, north_room.grid_height)
+		entity_grid.insert(north_room.entity_grid, north_room.position)
+		var north_debug_button = north_room.get_debug_button()
+		north_debug_button.position = OD.Math.grid_to_pixel(north_room.position.x, north_room.position.y) + entity_grid.position - Vector2(32, 32)
+		entity_grid.add_child(north_debug_button)
+		north_room.free()
 	entity_grid.auto_tile_walls()
 	return entity_grid

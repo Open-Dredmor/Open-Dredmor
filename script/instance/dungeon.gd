@@ -17,9 +17,15 @@ var FLOOR_STRATEGY = {
 	CENTER_PACK = "center_pack"
 }
 
+var _active_strategy = FLOOR_STRATEGY.DEBUG_ROOMS
+
 func global_coordinates_to_grid(x, y):
-	var grid_x = floor((x - get_global_transform_with_canvas().origin.x + (OD.Assets.CELL_PIXEL_WIDTH / 2)) / OD.Assets.CELL_PIXEL_WIDTH)
-	var grid_y = floor((y - get_global_transform_with_canvas().origin.y + (OD.Assets.CELL_PIXEL_HEIGHT / 2)) / OD.Assets.CELL_PIXEL_HEIGHT)
+	var xform = get_global_transform_with_canvas()
+	var scale_vec = xform.get_scale()
+	var local_x = (x - xform.origin.x) / scale_vec.x
+	var local_y = (y - xform.origin.y) / scale_vec.y
+	var grid_x = floor((local_x + (OD.Assets.CELL_PIXEL_WIDTH / 2.0)) / OD.Assets.CELL_PIXEL_WIDTH)
+	var grid_y = floor((local_y + (OD.Assets.CELL_PIXEL_HEIGHT / 2.0)) / OD.Assets.CELL_PIXEL_HEIGHT)
 	return Vector2(grid_x, grid_y)
 func init():	
 	call_deferred("_build_ui")
@@ -32,8 +38,18 @@ func _input(ev):
 		if _target_cursor != null and _entity_grid != null and ! _target_cursor.is_selecting():
 			var grid_coords = global_coordinates_to_grid(ev.position.x, ev.position.y)
 			_entity_grid.move(grid_coords.x, grid_coords.y, _target_cursor)
-	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and _target_cursor != null:
+	if ev is InputEventMouseButton and ev.pressed and _target_cursor != null:
 		var grid_coords = global_coordinates_to_grid(ev.position.x, ev.position.y)
+		if ev.button_index == MOUSE_BUTTON_RIGHT and _active_strategy == FLOOR_STRATEGY.DEBUG_ROOMS:
+			OD.ActionQueue.clear()
+			_target_cursor.select(grid_coords.x, grid_coords.y)
+			_player.move_to(grid_coords.x, grid_coords.y)
+			_player.idle()
+			if _entity_grid != null:
+				_entity_grid.evaluate_scripts(_player.get_grid_position())
+			return
+		if ev.button_index != MOUSE_BUTTON_LEFT:
+			return
 		var door = _entity_grid.get_door_at(grid_coords.x, grid_coords.y) if _entity_grid != null else null
 		if door != null and not door.can_pass():
 			door.interact()
@@ -47,7 +63,7 @@ func _input(ev):
 		OD.ActionQueue.add(action)
 
 func _build_ui():
-	var strategy = FLOOR_STRATEGY.CONNECT_DOORS
+	var strategy = _active_strategy
 	_player = PlayerCharacter.new()	
 	_player.init()
 	var settings = OD.DungeonSettings.get_settings()

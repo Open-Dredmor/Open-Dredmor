@@ -75,6 +75,35 @@ func _input(ev):
 			drag_enabled = ev.pressed
 			if ev.pressed:
 				old_position = get_global_mouse_position()
+		elif ev.pressed and ev.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_zoom_at(1.15)
+		elif ev.pressed and ev.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_zoom_at(1.0 / 1.15)
+		elif ev.pressed and ev.button_index == MOUSE_BUTTON_MIDDLE:
+			_reset_zoom()
+
+func _zoom_at(zoom_factor):
+	if moveable_container == null:
+		return
+	var old_scale = moveable_container.scale.x
+	var new_scale = clamp(old_scale * zoom_factor, 0.25, 4.0)
+	if is_equal_approx(old_scale, new_scale):
+		return
+	var local_mouse = moveable_container.get_parent().get_local_mouse_position()
+	var ratio = new_scale / old_scale
+	moveable_container.position = local_mouse - (local_mouse - moveable_container.position) * ratio
+	moveable_container.scale = Vector2(new_scale, new_scale)
+
+func _reset_zoom():
+	if moveable_container == null:
+		return
+	var old_scale = moveable_container.scale.x
+	if is_equal_approx(old_scale, 1.0):
+		return
+	var local_mouse = moveable_container.get_parent().get_local_mouse_position()
+	var ratio = 1.0 / old_scale
+	moveable_container.position = local_mouse - (local_mouse - moveable_container.position) * ratio
+	moveable_container.scale = Vector2.ONE
 
 func _physics_process(_delta):
 	if old_position != null and drag_enabled:

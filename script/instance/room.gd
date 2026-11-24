@@ -89,11 +89,12 @@ func init(room_database_name):
 							script_location._coordinate[int(action.x)] = {}
 						script_location._coordinate[int(action.x)][int(action.y)] = action				
 			
-	# Build room rows,cols one tile at a time
+	var at_positions = {}
 	for ii in range(grid_height):
 		var row = _definition.row[ii].text
 		for jj in range(grid_width):
 			var tile_character = row[jj]
+			at_positions[tile_character] = Vector2i(jj, ii)
 			var added_tile = false
 			for layer_name in layer_names:
 				added_tile = added_tile || add_tile_if_match(jj, ii, tile_character, layer_name)			
@@ -101,7 +102,7 @@ func init(room_database_name):
 			var has_wall = false
 			var sprite_path = null
 			var	entity_name = null
-			if script_location.has(ii) and script_location[ii].has(jj):				
+			if script_location._coordinate.has(jj) and script_location._coordinate[jj].has(ii):
 				added_tile = true
 				has_floor = true
 			if script_location.has(tile_character):
@@ -200,6 +201,33 @@ func init(room_database_name):
 			if entity_name != null:
 				entity_grid.add_tile(jj, ii, entity_name, sprite_path)
 
+	if _definition.has("script"):
+		var room_scripts = OD.DataStructure.arrayify(_definition.script)
+		for script_node in room_scripts:
+			var parsed_conditions = []
+			if script_node.has("condition"):
+				for cond in OD.DataStructure.arrayify(script_node.condition):
+					var cond_copy = cond.duplicate()
+					if cond_copy.has("at") and at_positions.has(cond_copy.at):
+						cond_copy.grid_pos = at_positions[cond_copy.at]
+					elif cond_copy.has("x") and cond_copy.has("y"):
+						cond_copy.grid_pos = Vector2i(int(cond_copy.x), int(cond_copy.y))
+					parsed_conditions.append(cond_copy)
+			var parsed_actions = []
+			if script_node.has("action"):
+				for act in OD.DataStructure.arrayify(script_node.action):
+					var act_copy = act.duplicate()
+					if act_copy.has("at") and at_positions.has(act_copy.at):
+						act_copy.grid_pos = at_positions[act_copy.at]
+					elif act_copy.has("x") and act_copy.has("y"):
+						act_copy.grid_pos = Vector2i(int(act_copy.x), int(act_copy.y))
+					parsed_actions.append(act_copy)
+			entity_grid.add_room_script({
+				repeat = int(script_node.repeat) if script_node.has("repeat") else 1,
+				conditions = parsed_conditions,
+				actions = parsed_actions
+			})
+
 func prep_tile_data(layer_name):
 	var result = {
 		_coordinate = {}
@@ -246,8 +274,11 @@ func customblocker_tile_handler(item, x, y):
 		animation = OD.Load.animation(item.png)
 	if animation != null:
 		entity_grid.add_animation(x, y, "customblocker", animation)
-		if not item.has("passable") or int(item.passable) == 0:
+		var is_blocker = not item.has("passable") or int(item.passable) == 0
+		if is_blocker:
 			entity_grid.mark_blocker(x, y)
+		if item.has("id"):
+			entity_grid.register_named_entity(item.id, animation, "customblocker", x, y, is_blocker)
 
 func customengraving_tile_handler(item, x, y):
 	var animation = null
@@ -257,6 +288,8 @@ func customengraving_tile_handler(item, x, y):
 		animation = OD.Load.animation(item.png)
 	if animation != null:
 		entity_grid.add_animation(x, y, "customengraving", animation)
+		if item.has("id"):
+			entity_grid.register_named_entity(item.id, animation, "customengraving", x, y, false)
 
 func element_tile_handler(item, x, y):
 	var asset = OD.Assets.element(item.type)
