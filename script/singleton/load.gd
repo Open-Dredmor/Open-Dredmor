@@ -13,7 +13,15 @@ func exists(relative_path, internal=false):
 func resolve(relative_path, internal = false):
 	if internal:
 		return "res://asset/" + relative_path
-	return OD.Settings.dredmor_install_dir() + relative_path
+	var install_dir = OD.Settings.dredmor_install_dir()
+	var direct_path = install_dir + relative_path
+	if FileAccess.file_exists(direct_path):
+		return direct_path
+	for pack_prefix in OD.Database.get_active_pack_prefixes():
+		var pack_path = install_dir + pack_prefix + relative_path
+		if FileAccess.file_exists(pack_path):
+			return pack_path
+	return direct_path
 
 func image(relative_path, internal=false):
 	if cache.has(relative_path):

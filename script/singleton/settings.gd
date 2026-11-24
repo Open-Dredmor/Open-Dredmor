@@ -22,8 +22,16 @@ func change(section, key, value):
 	_settings.set_value(section, key, value)
 	_settings.save(settings_path)
 	cached_install_dir = null
+	_cached_content_packs = null
 
 var cached_install_dir = null
+var _cached_content_packs = null
+
+const EXPANSION_INFO = {
+	"expansion": "Realm of the Diggle Gods",
+	"expansion2": "You Have To Name The Expansion Pack",
+	"expansion3": "Conquest of the Wizardlands"
+}
 
 const REQUIRED_DREDMOR_FILES = [
 	"game/itemDB.xml",
@@ -65,6 +73,43 @@ func dredmor_install_dir():
 		if dir != null and dir != "":
 			cached_install_dir = normalize_dir_path(dir)
 	return cached_install_dir
+
+func get_available_content_packs():
+	if _cached_content_packs != null:
+		return _cached_content_packs
+	_cached_content_packs = []
+	var install_dir = dredmor_install_dir()
+	if install_dir == null or install_dir == "":
+		return _cached_content_packs
+	for expansion_id in EXPANSION_INFO.keys():
+		if DirAccess.dir_exists_absolute(install_dir + expansion_id + "/game"):
+			_cached_content_packs.append({
+				id = expansion_id,
+				name = EXPANSION_INFO[expansion_id],
+				prefix = expansion_id + "/",
+				data_subdir = "game/",
+				kind = "expansion"
+			})
+	var mods_root = install_dir + "mods/"
+	if DirAccess.dir_exists_absolute(mods_root):
+		var dir_access = DirAccess.open(mods_root)
+		if dir_access != null:
+			dir_access.list_dir_begin()
+			var entry = dir_access.get_next()
+			while entry != "":
+				if dir_access.current_is_dir() and not entry.begins_with("."):
+					var prefix = "mods/" + entry + "/"
+					var data_subdir = "mod/" if DirAccess.dir_exists_absolute(install_dir + prefix + "mod") else "game/"
+					_cached_content_packs.append({
+						id = "mod:" + entry,
+						name = entry,
+						prefix = prefix,
+						data_subdir = data_subdir,
+						kind = "mod"
+					})
+				entry = dir_access.get_next()
+			dir_access.list_dir_end()
+	return _cached_content_packs
 	
 func audio_enabled():
 	var result = _settings.get_value("game","audio_enabled")

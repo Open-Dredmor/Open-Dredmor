@@ -2,38 +2,153 @@ extends Node
 
 var cache = null
 var result_cache = null
+var packs = null
+var _active_pack_ids = []
+var _active_pack_prefixes = []
+
+func _empty_pack_data():
+	return {
+		branches = [],
+		crafts = [],
+		items = [],
+		magic_box_rooms_db = {},
+		monsters = [],
+		quest_item_db = {},
+		rooms = [],
+		sound_db = {},
+		speech_db = {},
+		skills = [],
+		spell_db = {},
+		template_db = {},
+		text = {},
+		tutorial_db = {},
+		tweak_db = {},
+		encrusts = [],
+		wizard_rooms = []
+	}
+
+func _load_pack_data(base_path):
+	var pack_data = _empty_pack_data()
+	if OD.Load.exists(base_path + "branchDB.xml"):
+		var parsed = OD.Load.xml(base_path + "branchDB.xml")
+		if parsed.has("branchDB") and parsed.branchDB.has("branch"):
+			pack_data.branches = OD.DataStructure.arrayify(parsed.branchDB.branch)
+	if OD.Load.exists(base_path + "craftDB.xml"):
+		var parsed = OD.Load.xml(base_path + "craftDB.xml")
+		if parsed.has("craftDB") and parsed.craftDB.has("craft"):
+			pack_data.crafts = OD.DataStructure.arrayify(parsed.craftDB.craft)
+	if OD.Load.exists(base_path + "itemDB.xml"):
+		var parsed = OD.Load.xml(base_path + "itemDB.xml")
+		if parsed.has("itemDB") and parsed.itemDB.has("item"):
+			pack_data.items = OD.DataStructure.arrayify(parsed.itemDB.item)
+	if OD.Load.exists(base_path + "magicBoxRooms.xml"):
+		pack_data.magic_box_rooms_db = OD.Load.xml(base_path + "magicBoxRooms.xml")
+	if OD.Load.exists(base_path + "monDB.xml"):
+		var parsed = OD.Load.xml(base_path + "monDB.xml")
+		if parsed.has("monDB") and parsed.monDB.has("monster"):
+			pack_data.monsters = OD.DataStructure.arrayify(parsed.monDB.monster)
+	if OD.Load.exists(base_path + "quests.xml"):
+		pack_data.quest_item_db = OD.Load.xml(base_path + "quests.xml")
+	if OD.Load.exists(base_path + "rooms.xml"):
+		var parsed = OD.Load.xml(base_path + "rooms.xml")
+		if parsed.has("roomdb") and parsed.roomdb.has("room"):
+			pack_data.rooms = OD.DataStructure.arrayify(parsed.roomdb.room)
+	if OD.Load.exists(base_path + "soundfx.xml"):
+		pack_data.sound_db = OD.Load.xml(base_path + "soundfx.xml")
+	if OD.Load.exists(base_path + "speech.xml"):
+		pack_data.speech_db = OD.Load.xml(base_path + "speech.xml")
+	if OD.Load.exists(base_path + "skillDB.xml"):
+		var parsed = OD.Load.xml(base_path + "skillDB.xml")
+		if parsed.has("skillDB") and parsed.skillDB.has("skill"):
+			pack_data.skills = OD.DataStructure.arrayify(parsed.skillDB.skill)
+	if OD.Load.exists(base_path + "spellDB.xml"):
+		pack_data.spell_db = OD.Load.xml(base_path + "spellDB.xml")
+	if OD.Load.exists(base_path + "manTemplateDB.xml"):
+		pack_data.template_db = OD.Load.xml(base_path + "manTemplateDB.xml")
+	if OD.Load.exists(base_path + "text.xml"):
+		var parsed = OD.Load.xml(base_path + "text.xml")
+		if parsed.has("text"):
+			pack_data.text = parsed.text
+	if OD.Load.exists(base_path + "tutorial.xml"):
+		pack_data.tutorial_db = OD.Load.xml(base_path + "tutorial.xml")
+	if OD.Load.exists(base_path + "tweakDB.xml"):
+		pack_data.tweak_db = OD.Load.xml(base_path + "tweakDB.xml")
+	if OD.Load.exists(base_path + "encrustDB.xml"):
+		var parsed = OD.Load.xml(base_path + "encrustDB.xml")
+		if parsed.has("encrustDB") and parsed.encrustDB.has("encrust"):
+			pack_data.encrusts = OD.DataStructure.arrayify(parsed.encrustDB.encrust)
+	if OD.Load.exists(base_path + "wizardRoomDB.xml"):
+		var parsed = OD.Load.xml(base_path + "wizardRoomDB.xml")
+		if parsed.has("wizardRoomDB") and parsed.wizardRoomDB.has("room"):
+			pack_data.wizard_rooms = OD.DataStructure.arrayify(parsed.wizardRoomDB.room)
+	return pack_data
+
+func _append_pack_into_cache(pack_data):
+	cache.branches += pack_data.branches
+	cache.crafts += pack_data.crafts
+	cache.items += pack_data.items
+	cache.monsters += pack_data.monsters
+	cache.rooms += pack_data.rooms
+	cache.skills += pack_data.skills
+	cache.encrusts += pack_data.encrusts
+	cache.wizard_rooms += pack_data.wizard_rooms
+	cache.magic_box_rooms_db = OD.DataStructure.merge(cache.magic_box_rooms_db, pack_data.magic_box_rooms_db)
+	cache.quest_item_db = OD.DataStructure.merge(cache.quest_item_db, pack_data.quest_item_db)
+	cache.sound_db = OD.DataStructure.merge(cache.sound_db, pack_data.sound_db)
+	cache.speech_db = OD.DataStructure.merge(cache.speech_db, pack_data.speech_db)
+	cache.spell_db = OD.DataStructure.merge(cache.spell_db, pack_data.spell_db)
+	cache.template_db = OD.DataStructure.merge(cache.template_db, pack_data.template_db)
+	cache.text = OD.DataStructure.merge(cache.text, pack_data.text)
+	cache.tutorial_db = OD.DataStructure.merge(cache.tutorial_db, pack_data.tutorial_db)
+	cache.tweak_db = OD.DataStructure.merge(cache.tweak_db, pack_data.tweak_db)
+
+func set_active_packs(pack_ids = []):
+	if packs == null:
+		ingest()
+	_active_pack_ids = pack_ids.duplicate()
+	_active_pack_prefixes = []
+	OD.DungeonSettings.set_active_packs(_active_pack_ids)
+	cache = _empty_pack_data()
+	_append_pack_into_cache(packs["vanilla"])
+	var available_by_id = {}
+	for pack_info in OD.Settings.get_available_content_packs():
+		available_by_id[pack_info.id] = pack_info
+	for pack_id in _active_pack_ids:
+		if packs.has(pack_id):
+			_append_pack_into_cache(packs[pack_id])
+		if available_by_id.has(pack_id):
+			_active_pack_prefixes.append(available_by_id[pack_id].prefix)
+	result_cache = null
+	_build_loot_info()
+	_build_craft_info()
+	_build_monster_info()
+
+func get_available_packs():
+	return OD.Settings.get_available_content_packs()
+
+func get_active_packs():
+	return _active_pack_ids
+
+func get_active_pack_prefixes():
+	return _active_pack_prefixes
 
 func ingest():
-	if cache == null:		
-		# This loads vanilla datasets. Additional thought needed on how to manage the expansions
-		cache = {}
+	if packs == null:
+		packs = {}
 		print("Ingesting vanilla game data")
 		# monDB.xml explains that branches are a feature scrapped during development
 		# However, the expansions have them...so what could they be?
 		# They seem like tilemap definitions.
-		cache.branches = OD.Load.xml("game/branchDB.xml").branchDB.branch
-		cache.crafts = OD.Load.xml("game/craftDB.xml").craftDB.craft
-		cache.items = OD.Load.xml("game/itemDB.xml").itemDB.item
-		cache.magic_box_rooms_db = OD.Load.xml("game/magicBoxRooms.xml")
 		## manual.xml was next to empty, consider it a placeholder
-		cache.monsters = OD.Load.xml("game/monDB.xml").monDB.monster		
-		cache.quest_item_db = OD.Load.xml("game/quests.xml")
-#		## rooms.dat might not be used. Not sure.
-		cache.rooms = OD.Load.xml("game/rooms.xml").roomdb.room
-		#precompute_room_info()
-#		# scrolls.xml didn't seem to be used
-		cache.sound_db = OD.Load.xml("game/soundfx.xml")
-		cache.speech_db = OD.Load.xml("game/speech.xml")
-		cache.skills = OD.Load.xml("game/skillDB.xml").skillDB.skill
-		cache.spell_db = OD.Load.xml("game/spellDB.xml")
-		cache.template_db = OD.Load.xml("game/manTemplateDB.xml")
-		cache.text = OD.Load.xml("game/text.xml").text
-		cache.tutorial_db = OD.Load.xml("game/tutorial.xml")
-		cache.tweak_db = OD.Load.xml("game/tweakDB.xml")
-		
-		_build_loot_info()
-		_build_craft_info()
-		_build_monster_info()
+		## rooms.dat might not be used. Not sure.
+		# scrolls.xml didn't seem to be used
+		packs["vanilla"] = _load_pack_data("game/")
+
+		for pack_info in OD.Settings.get_available_content_packs():
+			print("Ingesting content pack [" + pack_info.id + "] from " + pack_info.prefix)
+			packs[pack_info.id] = _load_pack_data(pack_info.prefix + pack_info.data_subdir)
+
+		set_active_packs(OD.DungeonSettings.get_active_packs())
 
 func cache_result(key,result):
 	if result_cache == null:
@@ -174,7 +289,7 @@ func _build_loot_info():
 		loot._find_by_name[item.name] = item
 		for prop in prop_driven_loot:
 			if item.has(prop):
-				if prop == 'weapon' and int(item.type) == OD.GameDataKind.WEAPON.BOLT:
+				if prop == 'weapon' and item.has('type') and int(item.type) == OD.GameDataKind.WEAPON.BOLT:
 					loot.bolts.append(item)
 				else:
 					loot[prop].append(item)
@@ -208,6 +323,8 @@ func _build_craft_info():
 		list = []
 	}
 	for craft in cache.crafts:
+		if not craft.has('tool') or not craft.has('input'):
+			continue
 		# TODO I don't know if this is correct or not, but it will do for a best guess at the moment
 		var kind = 'reagent' if craft.tool.tag == 'still' or craft.tool.tag == 'alchemy' else 'component'		
 		var inputs = OD.DataStructure.arrayify(craft.input)

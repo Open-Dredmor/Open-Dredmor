@@ -8,7 +8,7 @@ Foundational work to reliably validate the user's *Dungeons of Dredmor* installa
   - *Current state*: [scene/Bootstrap/bootstrap.gd](../scene/Bootstrap/bootstrap.gd) accepts any directory selected in `FileDialog`.
   - *Done when*: Selection checks for required vanilla files (e.g., `game/itemDB.xml`, `game/skillDB.xml`, `game/monDB.xml`, `game/rooms.xml`), displays a clear error if invalid, and only saves/proceeds on a valid install.
 
-- [ ] **Expansion & mod data discovery**
+- [x] **Expansion & mod data discovery**
   - *Current state*: [script/singleton/database.gd](../script/singleton/database.gd) only loads `game/*.xml`.
   - *Done when*: `OD.Database` detects installed expansions (`expansion/`, `expansion2/`, `expansion3/`) and optional mod folders, and merges their `skillDB`, `itemDB`, `monDB`, `craftDB`, `spellDB`, `rooms`, `branchDB`, `soundfx`, `speech`, and `text` records without breaking vanilla lookups.
 

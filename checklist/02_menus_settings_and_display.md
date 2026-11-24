@@ -20,6 +20,10 @@ Pre-game flow, responsive UI scaling across window sizes, and preserving player 
   - *Current state*: [script/scene/main_menu.gd](../script/scene/main_menu.gd) has stubbed `Load Game` and `High Scores` buttons; expansion subtitles in [script/singleton/resource.gd](../script/singleton/resource.gd) are unused.
   - *Done when*: `Load Game` opens a saved-game picker (when saves exist), `High Scores` opens a high-scores screen, and expansion subtitles render when matching backgrounds are shown.
 
+- [ ] **Expansion & mod selection when starting a run**
+  - *Current state*: [script/singleton/database.gd](../script/singleton/database.gd) loads packs in isolation and defaults to vanilla-only; `OD.DungeonSettings` stores `active_packs`, and no menu UI exposes pack toggles yet.
+  - *Done when*: Starting a new run lets the player toggle discovered expansions/mods (`OD.Database.get_available_packs()`), calls `OD.Database.set_active_packs(...)`, and persists `active_packs` in `OD.DungeonSettings` (and future save files).
+
 - [ ] **Skills Menu: "Last Selection" & skill metadata**
   - *Current state*: [script/scene/skills_menu.gd](../script/scene/skills_menu.gd) has `last_selection_button` assets loaded in [script/singleton/assets.gd](../script/singleton/assets.gd) but never adds the button or persists last-used skills.
   - *Done when*: Selecting skills persists the last 7 skill IDs to user settings, the "Last" button restores them, and skill archetype/category info is shown.
