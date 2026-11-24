@@ -12,12 +12,19 @@ func _button_textures(lookup,internal=false):
 
 func main_menu():	
 	var paths = OD.Resources.paths.main_menu
-	var background_images = []
-	for file in paths.backgrounds:
-		background_images.append(OD.Load.image(file))
+	var background_entries = []
+	for entry in paths.backgrounds:
+		if OD.Load.exists(entry.image):
+			var subtitle_texture = null
+			if entry.subtitle != null and OD.Load.exists(entry.subtitle):
+				subtitle_texture = OD.Load.image(entry.subtitle)
+			background_entries.append({
+				image = OD.Load.image(entry.image),
+				subtitle = subtitle_texture
+			})
 	
 	var textures = {		
-		backgrounds = background_images,
+		backgrounds = background_entries,
 		title = OD.Load.image(paths.title),
 		chrome = OD.Load.image(paths.chrome),
 		new_game_button = _button_textures(paths.button.new_game),
@@ -34,6 +41,33 @@ func main_menu():
 	return {
 		textures = textures,
 		music = music
+	}
+
+func load_game_menu():
+	var paths = OD.Resources.paths.load_game_menu
+	return {
+		textures = {
+			header_background = OD.Load.image(OD.Resources.paths.shared.header_background),
+			back_button = _button_textures(OD.Resources.paths.shared.button.back),
+			done_button = _button_textures(OD.Resources.paths.shared.button.done),
+			load_header = OD.Load.image(paths.header),
+			info_panel = OD.Load.image(paths.info_panel),
+			delete_button = _button_textures(paths.delete_button)
+		},
+		fonts = {
+			default = OD.Load.font(OD.Resources.paths.shared.font.default)
+		}
+	}
+
+func high_scores_menu():
+	return {
+		textures = {
+			header_background = OD.Load.image(OD.Resources.paths.shared.header_background),
+			back_button = _button_textures(OD.Resources.paths.shared.button.back)
+		},
+		fonts = {
+			default = OD.Load.font(OD.Resources.paths.shared.font.default)
+		}
 	}
 	
 func difficulty_menu():

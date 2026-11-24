@@ -5,11 +5,20 @@ static func init_container():
 
 var assets = null
 var background = null
+var subtitle_rect = null
 var background_image_index = 0
 
 func load_background_image():		
-	background.texture = assets.textures.backgrounds[background_image_index]
+	var entry = assets.textures.backgrounds[background_image_index]
+	background.texture = entry.image
 	background.size = Vector2(background.texture.get_width(), background.texture.get_height())
+	if subtitle_rect != null:
+		if entry.subtitle != null:
+			subtitle_rect.texture = entry.subtitle
+			subtitle_rect.size = Vector2(entry.subtitle.get_width(), entry.subtitle.get_height())
+			subtitle_rect.visible = true
+		else:
+			subtitle_rect.visible = false
 
 func _ready():
 	call_deferred("_build_gui")
@@ -27,6 +36,13 @@ func _build_gui():
 	title.anchor_left = .01
 	title.anchor_top = .01
 	container.add_child(title)
+
+	subtitle_rect = TextureRect.new()
+	subtitle_rect.anchor_left = .015
+	subtitle_rect.anchor_top = .01
+	subtitle_rect.offset_top = assets.textures.title.get_height() + 8
+	subtitle_rect.visible = false
+	container.add_child(subtitle_rect)
 	
 	var menu_chrome = TextureRect.new()
 	menu_chrome.texture = assets.textures.chrome
@@ -80,12 +96,10 @@ func _on_NewGameButton_pressed():
 	OD.Scenes.goto(OD.Scenes.DIFFICULTY_MENU)
 	
 func _on_LoadGameButton_pressed():
-	# TODO Implement
-	print("Load game not yet implemented")
+	OD.Scenes.goto(OD.Scenes.LOAD_GAME_MENU)
 
 func _on_HighScoresButton_pressed():
-	# TODO Implement
-	print("High scores not yet implemented")
+	OD.Scenes.goto(OD.Scenes.HIGH_SCORES_MENU)
 
 func _on_SettingsButton_pressed():
 	OD.Scenes.goto(OD.Scenes.SETTINGS_MENU)

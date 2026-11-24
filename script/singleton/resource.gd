@@ -10,18 +10,12 @@ func _button_paths(start):
 var paths = {
 	main_menu = {
 		backgrounds = [
-			"ui/dredmor_main_big_org.png",
-			"expansion/ui/dredmor_main_big.png",
-			"expansion2/ui/dredmor_main_big.png",
-			"expansion3/ui/dredmor_main_big.png"
+			{ image = "ui/dredmor_main_big_org.png", subtitle = null },
+			{ image = "expansion/ui/dredmor_main_big.png", subtitle = "expansion/ui/rotdg_title_small2.png" },
+			{ image = "expansion2/ui/dredmor_main_big.png", subtitle = null },
+			{ image = "expansion3/ui/dredmor_main_big.png", subtitle = "expansion3/ui/cotw_title.png" }
 		],
 		title = "ui/menus/main_titletext.png",
-		subtitles = [
-			# Vanilla has no subtitle
-			"expansion/ui/rotdg_title_small2.png",
-			# At first glance, the second expansion subtitle isn't baked
-			"expansion3/ui/cotw_title.png"
-		],
 		chrome = "ui/menus/main_menubg.png",		
 		button = {
 			new_game = _button_paths("ui/menus/main_newgame"),
@@ -32,6 +26,11 @@ var paths = {
 			cycle_background = _button_paths("ui/menus/main_bg_button"),			
 		},
 		music = "tunes/finaltitle.ogg",
+	},
+	load_game_menu = {
+		header = "ui/menus/title_loadgame.png",
+		info_panel = "ui/menus/panel_loadgameinfo.png",
+		delete_button = _button_paths("ui/menus/loadgame_delete")
 	},
 	difficulty_menu = {
 		options_form = "ui/menus/panel_choosedifficulty107.png",

@@ -16,7 +16,7 @@ Pre-game flow, responsive UI scaling across window sizes, and preserving player 
   - *Current state*: [script/singleton/scenes.gd](../script/singleton/scenes.gd) sets `FIRST_SCENE = GAME` for debugging, skipping `PRELOAD_ASSETS` and `MAIN_MENU`.
   - *Done when*: `FIRST_SCENE` defaults to `PRELOAD_ASSETS` (with a debug toggle/flag if desired) so players enter Main Menu → Difficulty → Skills → Character → Intro → Game.
 
-- [ ] **Main Menu missing features**
+- [x] **Main Menu missing features**
   - *Current state*: [script/scene/main_menu.gd](../script/scene/main_menu.gd) has stubbed `Load Game` and `High Scores` buttons; expansion subtitles in [script/singleton/resource.gd](../script/singleton/resource.gd) are unused.
   - *Done when*: `Load Game` opens a saved-game picker (when saves exist), `High Scores` opens a high-scores screen, and expansion subtitles render when matching backgrounds are shown.
 

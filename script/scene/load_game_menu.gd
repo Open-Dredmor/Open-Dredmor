@@ -1,0 +1,160 @@
+extends Control
+
+static func init_container():
+	return Control.new()
+
+const SAVES_DIR = "user://saves/"
+
+var _saves = []
+var _selected_index = -1
+var _save_list = null
+var _details_label = null
+var _load_button = null
+var _delete_button = null
+
+func _ready():
+	call_deferred("_build_gui")
+
+func _build_gui():
+	var assets = OD.Assets.load_game_menu()
+	var container = get_node("/root/Container")
+	container.set_size(OD.Settings.display_size())
+
+	var header_background = TextureRect.new()
+	header_background.texture = assets.textures.header_background
+	header_background.stretch_mode = TextureRect.STRETCH_TILE
+	header_background.size = Vector2(OD.Settings.display_size().x, header_background.texture.get_height())
+	container.add_child(header_background)
+
+	var back_button = OD.Chrome.button(assets.textures.back_button)
+	back_button.anchor_left = 0
+	back_button.anchor_top = 0
+	back_button.offset_left = 0
+	back_button.offset_top = 0
+	back_button.pressed.connect(_on_BackButton_pressed)
+	container.add_child(back_button)
+
+	var header_text = TextureRect.new()
+	header_text.texture = assets.textures.load_header
+	header_text.anchor_left = 0.5
+	header_text.offset_left = -(header_text.texture.get_width() / 2)
+	container.add_child(header_text)
+
+	_load_button = OD.Chrome.button(assets.textures.done_button)
+	_load_button.anchor_left = 1
+	_load_button.anchor_top = 0
+	_load_button.offset_left = -_load_button.texture_normal.get_width()
+	_load_button.offset_top = 0
+	_load_button.visible = false
+	_load_button.pressed.connect(_on_LoadButton_pressed)
+	container.add_child(_load_button)
+
+	var content_row = HBoxContainer.new()
+	content_row.anchor_left = 0.1
+	content_row.anchor_top = 0.22
+	content_row.anchor_right = 0.9
+	content_row.anchor_bottom = 0.88
+	content_row.add_theme_constant_override("separation", 32)
+	container.add_child(content_row)
+
+	_save_list = ItemList.new()
+	_save_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_save_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_save_list.add_theme_font_override("font", assets.fonts.default)
+	_save_list.add_theme_font_size_override("font_size", 24)
+	_save_list.item_selected.connect(_on_save_selected)
+	content_row.add_child(_save_list)
+
+	var info_panel = TextureRect.new()
+	info_panel.texture = assets.textures.info_panel
+	info_panel.custom_minimum_size = Vector2(info_panel.texture.get_width(), info_panel.texture.get_height())
+	content_row.add_child(info_panel)
+
+	var info_vbox = VBoxContainer.new()
+	info_vbox.anchor_right = 1.0
+	info_vbox.anchor_bottom = 1.0
+	info_vbox.offset_left = 24
+	info_vbox.offset_top = 24
+	info_vbox.offset_right = -24
+	info_vbox.offset_bottom = -24
+	info_vbox.add_theme_constant_override("separation", 16)
+	info_panel.add_child(info_vbox)
+
+	_details_label = Label.new()
+	_details_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_details_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_details_label.add_theme_font_override("font", assets.fonts.default)
+	_details_label.add_theme_font_size_override("font_size", 22)
+	_details_label.add_theme_color_override("font_color", Color(0, 0, 0))
+	info_vbox.add_child(_details_label)
+
+	_delete_button = OD.Chrome.button(assets.textures.delete_button)
+	_delete_button.visible = false
+	_delete_button.pressed.connect(_on_DeleteButton_pressed)
+	info_vbox.add_child(_delete_button)
+
+	_refresh_saves()
+
+func _refresh_saves():
+	_saves = []
+	_selected_index = -1
+	_save_list.clear()
+	if DirAccess.dir_exists_absolute(SAVES_DIR):
+		var dir = DirAccess.open(SAVES_DIR)
+		if dir != null:
+			dir.list_dir_begin()
+			var file_name = dir.get_next()
+			while file_name != "":
+				if not dir.current_is_dir() and file_name.ends_with(".json"):
+					_saves.append(_read_save_summary(SAVES_DIR + file_name, file_name))
+				file_name = dir.get_next()
+			dir.list_dir_end()
+	for save_entry in _saves:
+		_save_list.add_item(save_entry.label)
+	if _saves.size() > 0:
+		_save_list.select(0)
+		_on_save_selected(0)
+	else:
+		_load_button.visible = false
+		_delete_button.visible = false
+		_details_label.text = "No saved games found in " + SAVES_DIR
+
+func _read_save_summary(path, file_name):
+	var summary = {
+		path = path,
+		file_name = file_name,
+		label = file_name.get_basename(),
+		details = "Save file: " + file_name
+	}
+	var file = FileAccess.open(path, FileAccess.READ)
+	if file != null:
+		var parsed = JSON.parse_string(file.get_as_text())
+		if typeof(parsed) == TYPE_DICTIONARY:
+			var char_name = parsed.get("name", file_name.get_basename())
+			var floor_num = parsed.get("floor", 1)
+			var difficulty = parsed.get("difficulty", "")
+			summary.label = str(char_name) + " (Floor " + str(floor_num) + ")"
+			summary.details = "Character: " + str(char_name) + "\nFloor: " + str(floor_num) + "\nDifficulty: " + str(difficulty) + "\nFile: " + file_name
+	return summary
+
+func _on_save_selected(index):
+	if index < 0 or index >= _saves.size():
+		return
+	_selected_index = index
+	_details_label.text = _saves[index].details
+	_load_button.visible = true
+	_delete_button.visible = true
+
+func _on_DeleteButton_pressed():
+	if _selected_index < 0 or _selected_index >= _saves.size():
+		return
+	DirAccess.remove_absolute(_saves[_selected_index].path)
+	_refresh_saves()
+
+func _on_LoadButton_pressed():
+	if _selected_index < 0 or _selected_index >= _saves.size():
+		return
+	OD.Scenes.goto(OD.Scenes.GAME)
+
+func _on_BackButton_pressed():
+	OD.Scenes.goto(OD.Scenes.MAIN_MENU)
