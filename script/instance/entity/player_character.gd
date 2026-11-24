@@ -58,6 +58,8 @@ func init():
 	for group in [animations.move, animations.idle]:
 		for direction in group.values():
 			direction.visible = false
+			if direction.is_tall():
+				direction.position.y -= OD.Assets.CELL_PIXEL_HEIGHT / 2.0
 			add_child(direction)
 	current_animation = animations.idle.down
 	current_animation.visible = true
