@@ -20,7 +20,7 @@ Foundational work to reliably validate the user's *Dungeons of Dredmor* installa
   - *Current state*: [script/singleton/load.gd](../script/singleton/load.gd) (`xml`) stores `NODE_TEXT` in a flat `result['data_nodes']` array with a `length() > 4` workaround, which breaks or misaligns text nodes on general XML files.
   - *Done when*: Text content is attached directly to its owning element node (e.g., `node.text`) and `.xml` sprite animations + room `<row>`/`<script>`/`<text>` data parse cleanly without the `data_nodes` workaround.
 
-- [ ] **Palette-swapped sprite loading (`.pal`)**
+- [x] **Palette-swapped sprite loading (`.pal`)**
   - *Current state*: Commented-out stub in [script/scene/sprite_test.gd](../script/scene/sprite_test.gd).
   - *Done when*: `OD.Load` can parse `.pal` files and apply palette swaps to `.spr` sprites (needed for monster/hero variants).
 

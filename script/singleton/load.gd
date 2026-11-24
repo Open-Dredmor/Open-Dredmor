@@ -142,12 +142,12 @@ func split_animation(relative_paths):
 		animation.add_texture_frame(image(path), DEFAULT_ANIMATION_FRAME_RATE_MILLISECONDS)
 	return animation
 
-func animation(relative_path):
+func animation(relative_path, palette_path = null):
 	var parts = relative_path.split('.')
 	var extension = parts[parts.size()-1]
 	match extension:
 		"spr":
-			return _pro_motion_sprites(relative_path)
+			return _pro_motion_sprites(relative_path, palette_path)
 		"xml":
 			return _xml_sprites(relative_path)
 		"png":
@@ -159,9 +159,34 @@ func animation(relative_path):
 			print("No handler for animation " + relative_path)
 			OD.Scenes.quit()
 
+func _parse_color_table(color_table_bytes):
+	var color_table = {}
+	var color_table_index = 0
+	var lookup_index = 0
+	while color_table_index + 2 < color_table_bytes.size():
+		color_table[lookup_index] = [
+			color_table_bytes[color_table_index],
+			color_table_bytes[color_table_index + 1],
+			color_table_bytes[color_table_index + 2]
+		]
+		color_table_index += 3
+		lookup_index += 1
+	return color_table
+
+func sprite_palette(relative_path):
+	if cache.has(relative_path):
+		return cache[relative_path]
+	var absolute_path = resolve(relative_path)
+	var file = FileAccess.open(absolute_path, FileAccess.READ)
+	_handle_err(absolute_path, FileAccess.get_open_error() if file == null else OK)
+	var color_table_bytes = file.get_buffer(256 * 3)
+	var color_table = _parse_color_table(color_table_bytes)
+	cache[relative_path] = color_table
+	return color_table
+
 # Pro Motion SPR spec
 # https://www.cosmigo.com/promotion/docs/onlinehelp/TechnicalInfos.htm
-func _pro_motion_sprites(relative_path):
+func _pro_motion_sprites(relative_path, palette_path = null):
 	var absolute_path = resolve(relative_path)
 	var file = FileAccess.open(absolute_path, FileAccess.READ)
 	_handle_err(absolute_path, FileAccess.get_open_error() if file == null else OK)	
@@ -171,21 +196,12 @@ func _pro_motion_sprites(relative_path):
 	var height = read_int(file, 2)
 	var frames = []
 	var _trans_chunk = null
+	var override_palette = sprite_palette(palette_path) if palette_path != null and palette_path != "" else null
 	#print("Width "+str(width)+", Height: "+str(height)+", Size: "+str(width*height)+", frames: "+str(frame_count))
 	for _ii in range(frame_count):
 		var delay_milliseconds = read_int(file, 2)
 		var color_table_bytes = file.get_buffer(256*3)
-		var color_table = {}
-		var color_table_index = 0
-		var lookup_index = 0
-		while color_table_index + 2 < color_table_bytes.size():
-			color_table[lookup_index] = [
-				color_table_bytes[color_table_index],
-				color_table_bytes[color_table_index+1],
-				color_table_bytes[color_table_index+2]
-			]
-			color_table_index += 3
-			lookup_index += 1
+		var color_table = override_palette if override_palette != null else _parse_color_table(color_table_bytes)
 		var image_data = file.get_buffer(width * height)
 		frames.append({
 			delay_milliseconds = delay_milliseconds,

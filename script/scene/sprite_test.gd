@@ -34,4 +34,8 @@ func _load_sprite():
 	body.add_child(tileset_animation)
 	tileset_animation.play()
 
-	#var _sprite_palette = OD.Load.sprite_palette("sprites/hero/ghost.pal")
+	var ghost_sprite = OD.Load.animation("sprites/hero/hero_atk_axe_d.spr", "sprites/hero/ghost.pal")
+	ghost_sprite.name = "GhostPaletteSprite"
+	ghost_sprite.position = Vector2(500, 300)
+	body.add_child(ghost_sprite)
+	ghost_sprite.play()

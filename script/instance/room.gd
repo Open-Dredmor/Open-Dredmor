@@ -305,7 +305,8 @@ func monster_tile_handler(item, x, y):
 	if monster == null:
 		OD.Log.warn("Unhandled monster tile type [" + item.name + "]")
 		return
-	var animation = OD.Load.animation(monster.idleSprite.down)
+	var palette_path = monster.palette.name if monster.has('palette') and monster.palette.has('name') else null
+	var animation = OD.Load.animation(monster.idleSprite.down, palette_path)
 	entity_grid.add_animation(x, y, 'monster', animation)
 			
 func horde_tile_handler(item, x, y):
@@ -315,7 +316,8 @@ func horde_tile_handler(item, x, y):
 	if monster == null:
 		OD.Log.warn("Unhandled horde tile type [" + item.name + "]")
 		return
-	var animation = OD.Load.animation(monster.idleSprite.down)
+	var palette_path = monster.palette.name if monster.has('palette') and monster.palette.has('name') else null
+	var animation = OD.Load.animation(monster.idleSprite.down, palette_path)
 	entity_grid.add_animation(x, y, 'horde', animation)
 
 func pedestal_tile_handler(_item, x, y):
