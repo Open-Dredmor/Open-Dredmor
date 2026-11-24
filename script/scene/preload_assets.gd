@@ -40,29 +40,29 @@ func _build_gui():
 	var columns = HBoxContainer.new()
 	columns.anchor_bottom = 1
 	columns.anchor_right = 1
-	columns.alignment = BoxContainer.ALIGN_CENTER
+	columns.alignment = BoxContainer.ALIGNMENT_CENTER
 	container.add_child(columns)
 	
 	var stack = VBoxContainer.new()
 	stack.anchor_bottom = 1
 	stack.anchor_right = 1
-	stack.alignment = BoxContainer.ALIGN_CENTER
-	stack.margin_left = 50
-	stack.margin_right = -50
+	stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	stack.offset_left = 50
+	stack.offset_right = -50
 	columns.add_child(stack)
 	
 	var loading_label = Label.new()
 	loading_label.text = "Loading..."
-	loading_label.align = Label.ALIGN_CENTER
+	loading_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	stack.add_child(loading_label)
 	
 	_progress_label = Label.new()
-	_progress_label.rect_min_size = Vector2(400,100)
-	_progress_label.align = Label.ALIGN_CENTER
+	_progress_label.custom_minimum_size = Vector2(400,100)
+	_progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	stack.add_child(_progress_label)
 	
 	_progress_bar = ProgressBar.new()
-	_progress_bar.rect_min_size = Vector2(400,100)
+	_progress_bar.custom_minimum_size = Vector2(400,100)
 	stack.add_child(_progress_bar)
 	
 	_gui_ready = true		

@@ -35,7 +35,7 @@ func bootstrap_again():
 	var last_scene = root.get_node("Container")
 	root.remove_child(last_scene)
 	last_scene.call_deferred("free")
-	return get_tree().change_scene("res://scene/Bootstrap/Bootstrap.tscn")
+	return get_tree().change_scene_to_file("res://scene/Bootstrap/Bootstrap.tscn")
 
 func _load_scene(scene_path):
 	var root = get_node('/root')	

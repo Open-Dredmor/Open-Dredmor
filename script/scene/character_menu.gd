@@ -35,11 +35,11 @@ func _build_gui():
 	horizontal_container.anchor_top = 0
 	horizontal_container.anchor_right = 1
 	horizontal_container.anchor_bottom = 1
-	horizontal_container.alignment = BoxContainer.ALIGN_CENTER
+	horizontal_container.alignment = BoxContainer.ALIGNMENT_CENTER
 	container.add_child(horizontal_container)
 	
 	var hero_container = VBoxContainer.new()
-	hero_container.alignment = BoxContainer.ALIGN_CENTER
+	hero_container.alignment = BoxContainer.ALIGNMENT_CENTER
 	hero_container.name = 'HeroContainer'
 	horizontal_container.add_child(hero_container)
 	
@@ -56,13 +56,14 @@ func _build_gui():
 	name_edit.anchor_bottom = .7
 	name_edit.anchor_right = .8
 	name_edit.placeholder_text = "Enter a name (up to 14)"
-	name_edit.placeholder_alpha = .3
 	name_edit.max_length = 14
-	name_edit.add_font_override("font",assets.fonts.name_edit)
-	name_edit.add_color_override("font_color", Color(0,0,0))
-	name_edit.add_stylebox_override("focus", name_edit_style)
-	name_edit.add_stylebox_override("normal", name_edit_style)
-	name_edit.connect("text_changed", self, "_on_NameEdit_changed")
+	name_edit.add_theme_font_override("font", assets.fonts.name_edit)
+	name_edit.add_theme_font_size_override("font_size", assets.font_sizes.name_edit)
+	name_edit.add_theme_color_override("font_color", Color(0,0,0))
+	name_edit.add_theme_color_override("font_placeholder_color", Color(0,0,0,.3))
+	name_edit.add_theme_stylebox_override("focus", name_edit_style)
+	name_edit.add_theme_stylebox_override("normal", name_edit_style)
+	name_edit.text_changed.connect(_on_NameEdit_changed)
 	choose_name_background.add_child(name_edit)
 	
 	var choose_hero_background = TextureRect.new()
@@ -74,41 +75,41 @@ func _build_gui():
 	_select_hero_button.name = "SelectHeroButton"
 	_select_hero_button.anchor_left = .265
 	_select_hero_button.anchor_top = .4
-	_select_hero_button.connect("pressed", self, "_select_hero", ['hero'])
+	_select_hero_button.pressed.connect(_select_hero.bind('hero'))
 	choose_hero_background.add_child(_select_hero_button)
 	_select_heroine_button = OD.Chrome.highlight_on_hover_button(assets.textures.heroine_portrait)	
 	_select_heroine_button.name = "SelectHeroineButton"
 	_select_heroine_button.anchor_left = .57
 	_select_heroine_button.anchor_top = .4
-	_select_heroine_button.connect("pressed", self, "_select_hero", ['heroine'])
+	_select_heroine_button.pressed.connect(_select_hero.bind('heroine'))
 	choose_hero_background.add_child(_select_heroine_button)
 
 	var header_background = TextureRect.new()
 	header_background.texture = assets.textures.header_background
 	header_background.stretch_mode = TextureRect.STRETCH_TILE
-	header_background.rect_size = Vector2(OD.Settings.display_size().x, header_background.texture.get_height())
+	header_background.size = Vector2(OD.Settings.display_size().x, header_background.texture.get_height())
 	container.add_child(header_background)
 	
 	var back_button = OD.Chrome.button(assets.textures.back_button)
 	back_button.anchor_left = 0
 	back_button.anchor_top = 0
-	back_button.margin_left = 0
-	back_button.margin_top = 0
-	back_button.connect("pressed",self,"_on_BackButton_pressed")
+	back_button.offset_left = 0
+	back_button.offset_top = 0
+	back_button.pressed.connect(_on_BackButton_pressed)
 	container.add_child(back_button)
 	
 	var header_text = TextureRect.new()
 	header_text.texture = assets.textures.character_header
 	header_text.anchor_left = .5
-	header_text.margin_left = - (header_text.texture.get_width()/2)
+	header_text.offset_left = - (header_text.texture.get_width()/2)
 	container.add_child(header_text)	
 	
 	_done_button = OD.Chrome.button(assets.textures.done_button)
 	_done_button.anchor_left = 1
 	_done_button.anchor_top = 0
-	_done_button.margin_left = -_done_button.texture_normal.get_width()
-	_done_button.margin_top = 0
-	_done_button.connect("pressed",self,"_on_DoneButton_pressed")
+	_done_button.offset_left = -_done_button.texture_normal.get_width()
+	_done_button.offset_top = 0
+	_done_button.pressed.connect(_on_DoneButton_pressed)
 	_done_button.visible = false
 	container.add_child(_done_button)
 
@@ -120,7 +121,7 @@ func _on_BackButton_pressed():
 
 func _on_NameEdit_changed(new_text):
 	_character_name = new_text
-	OD.DungeonSettings.set_name(new_text)
+	OD.DungeonSettings.set_character_name(new_text)
 
 func _select_hero(selection):
 	_selected_hero = selection

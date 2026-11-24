@@ -9,7 +9,7 @@ func _ready():
 func _build_gui():
 	add_child(_update_timer)	
 	_update_timer.set_wait_time(OD.DungeonSettings.get_settings().seconds_per_action)
-	_update_timer.connect("timeout", self, "_on_UpdateTimer_timeout")
+	_update_timer.timeout.connect(_on_UpdateTimer_timeout)
 	_update_timer.start()
 
 func _on_UpdateTimer_timeout():
@@ -18,7 +18,7 @@ func _on_UpdateTimer_timeout():
 		var action = _actions[ii]
 		action.update()
 		if action.is_complete():
-			_actions.remove(ii)
+			_actions.remove_at(ii)
 		else:
 			ii += 1
 

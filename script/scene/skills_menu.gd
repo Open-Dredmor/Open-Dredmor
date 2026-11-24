@@ -37,29 +37,29 @@ func _build_gui():
 	var header_background = TextureRect.new()
 	header_background.texture = assets.textures.header_background
 	header_background.stretch_mode = TextureRect.STRETCH_TILE
-	header_background.rect_size = Vector2(OD.Settings.display_size().x, header_background.texture.get_height())
+	header_background.size = Vector2(OD.Settings.display_size().x, header_background.texture.get_height())
 	_container.add_child(header_background)
 	
 	var back_button = OD.Chrome.button(assets.textures.back_button)
 	back_button.anchor_left = 0
 	back_button.anchor_top = 0
-	back_button.margin_left = 0
-	back_button.margin_top = 0
-	back_button.connect("pressed",self,"_on_BackButton_pressed")
+	back_button.offset_left = 0
+	back_button.offset_top = 0
+	back_button.pressed.connect(_on_BackButton_pressed)
 	_container.add_child(back_button)
 	
 	var header_text = TextureRect.new()
 	header_text.texture = assets.textures.skills_header
 	header_text.anchor_left = .5
-	header_text.margin_left = - (header_text.texture.get_width()/2)
+	header_text.offset_left = - (header_text.texture.get_width()/2)
 	_container.add_child(header_text)	
 	
 	_done_button = OD.Chrome.button(assets.textures.done_button)
 	_done_button.anchor_left = 1
 	_done_button.anchor_top = 0
-	_done_button.margin_left = -_done_button.texture_normal.get_width()
-	_done_button.margin_top = 0
-	_done_button.connect("pressed",self,"_on_DoneButton_pressed")
+	_done_button.offset_left = -_done_button.texture_normal.get_width()
+	_done_button.offset_top = 0
+	_done_button.pressed.connect(_on_DoneButton_pressed)
 	_container.add_child(_done_button)	
 			
 	var skills_container = VBoxContainer.new()
@@ -80,12 +80,12 @@ func _build_gui():
 		skills_selector.add_child(skill_border)
 		
 		var pick_skill_button = OD.Chrome.highlight_on_hover_button(skill.icon)
-		pick_skill_button.connect("pressed", self, "_select_skill",[skill])
-		pick_skill_button.connect("mouse_entered", self, "_describe_skill", [skill])	
-		pick_skill_button.connect("mouse_exited", self, "_describe_skill", [null])	
+		pick_skill_button.pressed.connect(_select_skill.bind(skill))
+		pick_skill_button.mouse_entered.connect(_describe_skill.bind(skill))	
+		pick_skill_button.mouse_exited.connect(_describe_skill.bind(null))	
 		pick_skill_button.name = "PickSkillButton#" + skill.id
-		pick_skill_button.margin_top = 5
-		pick_skill_button.margin_left = 5
+		pick_skill_button.offset_top = 5
+		pick_skill_button.offset_left = 5
 		skill_border.add_child(pick_skill_button)
 			
 	var selected_skills_background = TextureRect.new()
@@ -97,15 +97,15 @@ func _build_gui():
 	selected_skills_container.name = "SelectedSkillsContainer"
 	selected_skills_container.anchor_left = 0.025
 	selected_skills_container.anchor_top = 0.2
-	selected_skills_container.set("custom_constants/separation", 24)
+	selected_skills_container.add_theme_constant_override("separation", 24)
 	selected_skills_background.add_child(selected_skills_container)	
 	
 	var random_selection_button = OD.Chrome.button(assets.textures.random_selection_button)
 	random_selection_button.anchor_left = 0.838
 	random_selection_button.anchor_top = 0.55
-	random_selection_button.connect("pressed", self, "_on_RandomSelectionButton_pressed")
-	random_selection_button.connect("mouse_entered", self, "_describe_skill",["_random"])
-	random_selection_button.connect("mouse_exited", self, "_describe_skill",[null])
+	random_selection_button.pressed.connect(_on_RandomSelectionButton_pressed)
+	random_selection_button.mouse_entered.connect(_describe_skill.bind("_random"))
+	random_selection_button.mouse_exited.connect(_describe_skill.bind(null))
 	selected_skills_background.add_child(random_selection_button)				
 	
 	var selected_skill_info_background = TextureRect.new()
@@ -116,22 +116,23 @@ func _build_gui():
 	info_text_container.name = "InfoTextContainer"
 	info_text_container.anchor_right = 1
 	info_text_container.anchor_bottom = 1
-	info_text_container.margin_top = 10
-	info_text_container.margin_left = 10
-	info_text_container.margin_right = -30
-	info_text_container.margin_bottom = -30
+	info_text_container.offset_top = 10
+	info_text_container.offset_left = 10
+	info_text_container.offset_right = -30
+	info_text_container.offset_bottom = -30
 	selected_skill_info_background.add_child(info_text_container)
 	
 	# Skill info uses the Dredmor asset font "Austin.ttf"
 	_info_header = Label.new()
 	_info_header.name = "InfoHeader"
-	_info_header.add_font_override("font", assets.fonts.info_header)
-	_info_header.add_color_override("font_color", Color(0,0,0))
-	_info_header.valign = Label.VALIGN_CENTER
-	_info_header.align = Label.ALIGN_CENTER
+	_info_header.add_theme_font_override("font", assets.fonts.info_header)
+	_info_header.add_theme_font_size_override("font_size", assets.font_sizes.info_header)
+	_info_header.add_theme_color_override("font_color", Color(0,0,0))
+	_info_header.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_info_header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_info_header.anchor_right = 1
 	_info_header.anchor_bottom = 1
-	_info_header.autowrap = true
+	_info_header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_info_header.size_flags_stretch_ratio = 1.2
 	_info_header.size_flags_horizontal = SIZE_FILL | SIZE_EXPAND
 	_info_header.size_flags_vertical = SIZE_FILL | SIZE_EXPAND
@@ -139,13 +140,14 @@ func _build_gui():
 	
 	_info_details = Label.new()
 	_info_details.name = "InfoDetails"
-	_info_details.add_font_override("font", assets.fonts.info_details)
-	_info_details.add_color_override("font_color", Color(0,0,0))
-	_info_details.valign = Label.VALIGN_CENTER
-	_info_details.align = Label.ALIGN_CENTER
+	_info_details.add_theme_font_override("font", assets.fonts.info_details)
+	_info_details.add_theme_font_size_override("font_size", assets.font_sizes.info_details)
+	_info_details.add_theme_color_override("font_color", Color(0,0,0))
+	_info_details.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_info_details.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_info_details.anchor_right = 1
 	_info_details.anchor_bottom = 1
-	_info_details.autowrap = true
+	_info_details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_info_details.size_flags_stretch_ratio = 2.8
 	_info_details.size_flags_horizontal = SIZE_FILL | SIZE_EXPAND
 	_info_details.size_flags_vertical = SIZE_FILL | SIZE_EXPAND
@@ -195,9 +197,9 @@ func _select_skill(skill):
 			var selected_skill_button = TextureButton.new()
 			selected_skill_button.texture_normal = selected_skill.icon
 			selected_skill_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-			selected_skill_button.connect("pressed", self, "_select_skill", [selected_skill])
-			selected_skill_button.connect("mouse_entered", self, "_describe_skill", [selected_skill])	
-			selected_skill_button.connect("mouse_exited", self, "_describe_skill", [null])	
+			selected_skill_button.pressed.connect(_select_skill.bind(selected_skill))
+			selected_skill_button.mouse_entered.connect(_describe_skill.bind(selected_skill))	
+			selected_skill_button.mouse_exited.connect(_describe_skill.bind(null))	
 			selected_skills_container.add_child(selected_skill_button)
 
 func _on_DoneButton_pressed():

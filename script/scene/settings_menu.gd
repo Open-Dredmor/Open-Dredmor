@@ -25,7 +25,7 @@ func _build_gui():
 	audio_enabled_container.add_child(audio_enabled_label)
 	
 	audio_enabled_checkbox = CheckBox.new()
-	audio_enabled_checkbox.pressed = OD.Settings.audio_enabled()
+	audio_enabled_checkbox.button_pressed = OD.Settings.audio_enabled()
 	audio_enabled_container.add_child(audio_enabled_checkbox)
 
 	var choose_container = HBoxContainer.new()
@@ -33,14 +33,14 @@ func _build_gui():
 
 	var cancel_button = Button.new()
 	cancel_button.text = "Cancel"
-	cancel_button.rect_min_size = Vector2(200,100)
-	cancel_button.connect("pressed",self,"_on_CancelButton_pressed")
+	cancel_button.custom_minimum_size = Vector2(200,100)
+	cancel_button.pressed.connect(_on_CancelButton_pressed)
 	choose_container.add_child(cancel_button)
 	
 	var save_button = Button.new()
 	save_button.text = "Save"
-	save_button.rect_min_size = Vector2(200,100)
-	save_button.connect("pressed",self,"_on_SaveButton_pressed")
+	save_button.custom_minimum_size = Vector2(200,100)
+	save_button.pressed.connect(_on_SaveButton_pressed)
 	choose_container.add_child(save_button)
 	
 	var actions = VBoxContainer.new()
@@ -48,8 +48,8 @@ func _build_gui():
 	
 	var forget_installation_dir_button = Button.new()
 	forget_installation_dir_button.text = "Forget Installation Directory"
-	forget_installation_dir_button.rect_min_size = Vector2(400,200)
-	forget_installation_dir_button.connect("pressed",self,"_on_ForgetInstallationDirButton_pressed")
+	forget_installation_dir_button.custom_minimum_size = Vector2(400,200)
+	forget_installation_dir_button.pressed.connect(_on_ForgetInstallationDirButton_pressed)
 	actions.add_child(forget_installation_dir_button)
 
 func _persist_settings():

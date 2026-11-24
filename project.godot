@@ -6,77 +6,18 @@
 ;   [section] ; section goes between []
 ;   param=value ; assign values to parameters
 
-config_version=4
+config_version=5
 
-_global_script_classes=[ {
-"base": "Node",
-"class": "Actions",
-"language": "GDScript",
-"path": "res://script/instance/action/actions.gd"
-}, {
-"base": "Node2D",
-"class": "Dungeon",
-"language": "GDScript",
-"path": "res://script/instance/dungeon.gd"
-}, {
-"base": "Node2D",
-"class": "EntityGrid",
-"language": "GDScript",
-"path": "res://script/instance/entity_grid.gd"
-}, {
-"base": "Node",
-"class": "MoveToLocationAction",
-"language": "GDScript",
-"path": "res://script/instance/action/move_to_location_action.gd"
-}, {
-"base": "Node2D",
-"class": "ODSpriteFrames",
-"language": "GDScript",
-"path": "res://script/instance/animation/od_sprite_frames.gd"
-}, {
-"base": "Node2D",
-"class": "ODTextureFrames",
-"language": "GDScript",
-"path": "res://script/instance/animation/od_texture_frames.gd"
-}, {
-"base": "Node2D",
-"class": "PlayerCharacter",
-"language": "GDScript",
-"path": "res://script/instance/entity/player_character.gd"
-}, {
-"base": "Node2D",
-"class": "Room",
-"language": "GDScript",
-"path": "res://script/instance/room.gd"
-}, {
-"base": "Node2D",
-"class": "TargetCursor",
-"language": "GDScript",
-"path": "res://script/instance/entity/target_cursor.gd"
-}, {
-"base": "Node",
-"class": "Tileset",
-"language": "GDScript",
-"path": "res://script/instance/tileset.gd"
-} ]
-_global_script_class_icons={
-"Actions": "",
-"Dungeon": "",
-"EntityGrid": "",
-"MoveToLocationAction": "",
-"ODSpriteFrames": "",
-"ODTextureFrames": "",
-"PlayerCharacter": "",
-"Room": "",
-"TargetCursor": "",
-"Tileset": ""
-}
+[animation]
+
+compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
 config/name="Open Dredmor"
 run/main_scene="res://scene/Bootstrap/Bootstrap.tscn"
-boot_splash/bg_color=Color( 0, 0, 0, 1 )
+config/features=PackedStringArray("4.7")
+boot_splash/bg_color=Color(0, 0, 0, 1)
 config/icon="res://icon.png"
 
 [autoload]
@@ -85,12 +26,12 @@ OD="*res://script/singleton/od.gd"
 
 [display]
 
-window/size/width=1680
-window/size/height=1050
+window/size/viewport_width=1680
+window/size/viewport_height=1050
 
 [rendering]
 
-2d/snapping/use_gpu_pixel_snap=true
-environment/default_clear_color=Color( 0, 0, 0, 1 )
-environment/default_environment="res://default_env.tres"
-quality/2d/use_pixel_snap=true
+environment/defaults/default_clear_color=Color(0, 0, 0, 1)
+2d/snap/snap_2d_transforms_to_pixel=true
+2d/snap/snap_2d_vertices_to_pixel=true
+environment/defaults/default_environment="res://default_env.tres"

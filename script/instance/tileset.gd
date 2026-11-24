@@ -32,7 +32,7 @@ func set_branch(branch_id):
 func get_tile(tile_name):
 	_tile_lookup[tile_name].shuffle()
 	var tile = _tile_lookup[tile_name][0]
-	var sprite = Sprite.new()
+	var sprite = Sprite2D.new()
 	sprite.region_enabled = true
 	sprite.region_rect = Rect2(tile.start_x, tile.start_y, tile.width, tile.height)
 	sprite.texture = _texture
@@ -48,11 +48,11 @@ func set_animation(name, start_x, start_y, cell_count, frame_rate_milliseconds):
 	
 func get_animation(name):
 	var definition = _animation_lookup[name]
-	var result = OD.Animation.new()
+	var result = OD.Animations.new()
 	result.init()
 	var delay_milliseconds = definition.frame_rate_milliseconds
 	for ii in range(definition.cell_count):
-		var sprite = Sprite.new()
+		var sprite = Sprite2D.new()
 		sprite.region_enabled = true
 		sprite.region_rect = Rect2(ii * OD.Assets.CELL_PIXEL_WIDTH, definition.start_y, OD.Assets.CELL_PIXEL_WIDTH, OD.Assets.CELL_PIXEL_HEIGHT)
 		sprite.texture = _texture

@@ -80,7 +80,7 @@ static func generate(_branch_name, floor_level):
 		room.seal_available_doors()
 		entity_grid.insert(room.entity_grid, room.position)
 		var debug_button = room.get_debug_button()
-		debug_button.rect_position = entity_grid.get_pixel_position(room.position.x, room.position.y) + entity_grid.position - Vector2(32,32)
+		debug_button.position = OD.Math.grid_to_pixel(room.position.x, room.position.y) + entity_grid.position - Vector2(32,32)
 		#print("x: "+str(debug_button.rect_position.x) + ", y:" + str(debug_button.rect_position.y))
 		entity_grid.add_child(debug_button)
 	return entity_grid

@@ -12,13 +12,13 @@ func _build_ui():
 	container.set_size(OD.Settings.display_size())
 	
 	var horizontal = HBoxContainer.new()
-	horizontal.alignment = BoxContainer.ALIGN_CENTER
+	horizontal.alignment = BoxContainer.ALIGNMENT_CENTER
 	horizontal.anchor_right = 1
 	horizontal.anchor_bottom = 1
 	container.add_child(horizontal)
 	
 	var vertical = VBoxContainer.new()
-	vertical.alignment = BoxContainer.ALIGN_CENTER
+	vertical.alignment = BoxContainer.ALIGNMENT_CENTER
 	vertical.anchor_right = 1
 	vertical.anchor_bottom = 1
 	horizontal.add_child(vertical)
@@ -28,7 +28,7 @@ func _build_ui():
 	vertical.add_child(info_graphic)
 	
 	var next_button = OD.Chrome.invisible_button()
-	next_button.connect("pressed",self,"_on_NextButton_pressed")	
+	next_button.pressed.connect(_on_NextButton_pressed)	
 	next_button.anchor_bottom = 1
 	next_button.anchor_right = 1
 	container.add_child(next_button)

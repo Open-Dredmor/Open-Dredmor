@@ -20,13 +20,13 @@ func _ready():
 		play()
 
 func init(step_only = false):
-	_sprite = Sprite.new()
+	_sprite = Sprite2D.new()
 	add_child(_sprite)
 	_step_only = step_only
 	if not _step_only:
 		_next_frame_timer = Timer.new()	
 		_next_frame_timer.autostart = true
-		_next_frame_timer.connect("timeout", self, "_on_NextFrameTimer_timeout")
+		_next_frame_timer.timeout.connect(_on_NextFrameTimer_timeout)
 		add_child(_next_frame_timer)	
 	_is_initialized = true
 
@@ -72,7 +72,7 @@ func _on_NextFrameTimer_timeout():
 	if is_inside_tree():
 		_frame_index = (_frame_index + 1) % _frames.size()
 		if _frame_index == 0:
-			emit_signal("animation_complete")
+			animation_complete.emit()
 		play()
 
 func is_tall():

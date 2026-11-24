@@ -22,11 +22,11 @@ func _build_ui():
 	var hbox = HBoxContainer.new()
 	hbox.anchor_left = .3
 	hbox.anchor_top = .2
-	hbox.alignment = BoxContainer.ALIGN_CENTER
+	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	hbox.name = "HBox"
 	centered_container.add_child(hbox)
 	var vbox = VBoxContainer.new()
-	vbox.alignment = BoxContainer.ALIGN_CENTER
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.name = "VBox"
 	hbox.add_child(vbox)
 	
@@ -53,7 +53,7 @@ func _dev_seed():
 	OD.DungeonSettings.set_permadeath(false)
 	OD.DungeonSettings.set_no_time_to_grind(false)
 	OD.DungeonSettings.set_hero("heroine")
-	OD.DungeonSettings.set_name("Eyebrows")
+	OD.DungeonSettings.set_character_name("Eyebrows")
 	OD.DungeonSettings.set_starting_skill_ids([0,1,2,3,4,5,6])
 
 var speed = 200
@@ -61,16 +61,16 @@ var drag_enabled = false
 var old_position
 func _input(ev):
 	if ev is InputEventKey and ev.is_pressed():
-		if ev.scancode == KEY_LEFT:
+		if ev.keycode == KEY_LEFT:
 			moveable_container.position.x += speed
-		if ev.scancode == KEY_RIGHT:
+		if ev.keycode == KEY_RIGHT:
 			moveable_container.position.x -= speed
-		if ev.scancode == KEY_UP:
+		if ev.keycode == KEY_UP:
 			moveable_container.position.y += speed
-		if ev.scancode == KEY_DOWN:
+		if ev.keycode == KEY_DOWN:
 			moveable_container.position.y -= speed
 	if ev is InputEventMouseButton:
-		if ev.button_index == BUTTON_LEFT:
+		if ev.button_index == MOUSE_BUTTON_LEFT:
 			drag_enabled = ev.pressed
 			if ev.pressed:
 				old_position = get_global_mouse_position()

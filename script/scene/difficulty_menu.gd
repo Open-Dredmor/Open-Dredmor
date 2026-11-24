@@ -23,50 +23,50 @@ func _build_gui():
 	var header_background = TextureRect.new()
 	header_background.texture = assets.textures.header_background
 	header_background.stretch_mode = TextureRect.STRETCH_TILE
-	header_background.rect_size = Vector2(OD.Settings.display_size().x, header_background.texture.get_height())
+	header_background.size = Vector2(OD.Settings.display_size().x, header_background.texture.get_height())
 	difficulty_menu.add_child(header_background)
 	
 	var back_button = OD.Chrome.button(assets.textures.back_button)
 	back_button.anchor_left = 0
 	back_button.anchor_top = 0
-	back_button.margin_left = 0
-	back_button.margin_top = 0
-	back_button.connect("pressed",self,"_on_BackButton_pressed")
+	back_button.offset_left = 0
+	back_button.offset_top = 0
+	back_button.pressed.connect(_on_BackButton_pressed)
 	difficulty_menu.add_child(back_button)
 	
 	var header_text = TextureRect.new()
 	header_text.texture = assets.textures.choose_header
 	header_text.anchor_left = .5
-	header_text.margin_left = - (header_text.texture.get_width()/2)
+	header_text.offset_left = - (header_text.texture.get_width()/2)
 	difficulty_menu.add_child(header_text)	
 	
 	var done_button = OD.Chrome.button(assets.textures.done_button)
 	done_button.anchor_left = 1
 	done_button.anchor_top = 0
-	done_button.margin_left = -done_button.texture_normal.get_width()
-	done_button.margin_top = 0
-	done_button.connect("pressed",self,"_on_DoneButton_pressed")
+	done_button.offset_left = -done_button.texture_normal.get_width()
+	done_button.offset_top = 0
+	done_button.pressed.connect(_on_DoneButton_pressed)
 	difficulty_menu.add_child(done_button)	
 	
 	var options_form = TextureRect.new()
 	options_form.texture = assets.textures.options_form
-	options_form.rect_min_size = Vector2(options_form.texture.get_width(), options_form.texture.get_height())
+	options_form.custom_minimum_size = Vector2(options_form.texture.get_width(), options_form.texture.get_height())
 	options_form.anchor_left = .5
 	options_form.anchor_top = .5
-	options_form.margin_left = -(options_form.texture.get_width()/2)	
-	options_form.margin_top = -(options_form.texture.get_height()/2)
+	options_form.offset_left = -(options_form.texture.get_width()/2)	
+	options_form.offset_top = -(options_form.texture.get_height()/2)
 	difficulty_menu.add_child(options_form)		
 		
 	_easy_checkmark = TextureRect.new()
 	_easy_checkmark.texture = assets.textures.checkmark_large
 	_easy_checkmark.anchor_top = .175
 	_easy_checkmark.anchor_left = .245
-	_easy_checkmark.margin_left = -(_easy_checkmark.texture.get_width()/2)
-	_easy_checkmark.margin_top = -(_easy_checkmark.texture.get_height()/2)
+	_easy_checkmark.offset_left = -(_easy_checkmark.texture.get_width()/2)
+	_easy_checkmark.offset_top = -(_easy_checkmark.texture.get_height()/2)
 	options_form.add_child(_easy_checkmark)
 		
 	var easy_button = OD.Chrome.invisible_button()
-	easy_button.connect("pressed",self,"_on_EasyDifficultyButton_pressed")	
+	easy_button.pressed.connect(_on_EasyDifficultyButton_pressed)	
 	easy_button.set_size(Vector2(options_form.texture.get_width() * .7,50))
 	easy_button.anchor_top = .12
 	easy_button.anchor_left = .15
@@ -76,12 +76,12 @@ func _build_gui():
 	_medium_checkmark.texture = assets.textures.checkmark_large
 	_medium_checkmark.anchor_top = .285
 	_medium_checkmark.anchor_left = .245
-	_medium_checkmark.margin_left = -(_medium_checkmark.texture.get_width()/2)
-	_medium_checkmark.margin_top = -(_medium_checkmark.texture.get_height()/2)
+	_medium_checkmark.offset_left = -(_medium_checkmark.texture.get_width()/2)
+	_medium_checkmark.offset_top = -(_medium_checkmark.texture.get_height()/2)
 	options_form.add_child(_medium_checkmark)
 	
 	var medium_button = OD.Chrome.invisible_button()	
-	medium_button.connect("pressed",self,"_on_MediumDifficultyButton_pressed")	
+	medium_button.pressed.connect(_on_MediumDifficultyButton_pressed)	
 	medium_button.set_size(Vector2(options_form.texture.get_width() * .7,60))
 	medium_button.anchor_top = .22
 	medium_button.anchor_left = .15
@@ -91,12 +91,12 @@ func _build_gui():
 	_hard_checkmark.texture = assets.textures.checkmark_large
 	_hard_checkmark.anchor_top = .39
 	_hard_checkmark.anchor_left = .245
-	_hard_checkmark.margin_left = -(_hard_checkmark.texture.get_width()/2)
-	_hard_checkmark.margin_top = -(_hard_checkmark.texture.get_height()/2)
+	_hard_checkmark.offset_left = -(_hard_checkmark.texture.get_width()/2)
+	_hard_checkmark.offset_top = -(_hard_checkmark.texture.get_height()/2)
 	options_form.add_child(_hard_checkmark)
 	
 	var hard_button = OD.Chrome.invisible_button()
-	hard_button.connect("pressed",self,"_on_HardDifficultyButton_pressed")	
+	hard_button.pressed.connect(_on_HardDifficultyButton_pressed)	
 	hard_button.set_size(Vector2(options_form.texture.get_width() * .7,70))
 	hard_button.anchor_top = .34
 	hard_button.anchor_left = .15
@@ -106,12 +106,12 @@ func _build_gui():
 	_permadeath_checkmark.texture = assets.textures.checkmark_small
 	_permadeath_checkmark.anchor_top = .55
 	_permadeath_checkmark.anchor_left = .22
-	_permadeath_checkmark.margin_left = -(_permadeath_checkmark.texture.get_width()/2)
-	_permadeath_checkmark.margin_top = -(_permadeath_checkmark.texture.get_height()/2)
+	_permadeath_checkmark.offset_left = -(_permadeath_checkmark.texture.get_width()/2)
+	_permadeath_checkmark.offset_top = -(_permadeath_checkmark.texture.get_height()/2)
 	options_form.add_child(_permadeath_checkmark)
 	
 	var permadeath_button = OD.Chrome.invisible_button()
-	permadeath_button.connect("pressed",self,"_on_PermadeathButton_pressed")	
+	permadeath_button.pressed.connect(_on_PermadeathButton_pressed)	
 	permadeath_button.set_size(Vector2(options_form.texture.get_width() * .7,60))
 	permadeath_button.anchor_top = .50
 	permadeath_button.anchor_left = .15
@@ -121,12 +121,12 @@ func _build_gui():
 	_no_time_to_grind_checkmark.texture = assets.textures.checkmark_small
 	_no_time_to_grind_checkmark.anchor_top = .71
 	_no_time_to_grind_checkmark.anchor_left = .22
-	_no_time_to_grind_checkmark.margin_left = -(_no_time_to_grind_checkmark.texture.get_width()/2)
-	_no_time_to_grind_checkmark.margin_top = -(_no_time_to_grind_checkmark.texture.get_height()/2)
+	_no_time_to_grind_checkmark.offset_left = -(_no_time_to_grind_checkmark.texture.get_width()/2)
+	_no_time_to_grind_checkmark.offset_top = -(_no_time_to_grind_checkmark.texture.get_height()/2)
 	options_form.add_child(_no_time_to_grind_checkmark)
 	
 	var no_time_to_grind_button = OD.Chrome.invisible_button()
-	no_time_to_grind_button.connect("pressed",self,"_on_NoTimeToGrindButton_pressed")	
+	no_time_to_grind_button.pressed.connect(_on_NoTimeToGrindButton_pressed)	
 	no_time_to_grind_button.set_size(Vector2(options_form.texture.get_width() * .7,60))
 	no_time_to_grind_button.anchor_top = .65
 	no_time_to_grind_button.anchor_left = .15

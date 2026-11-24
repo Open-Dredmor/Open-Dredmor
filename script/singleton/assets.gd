@@ -11,7 +11,7 @@ func _button_textures(lookup,internal=false):
 	return images
 
 func main_menu():	
-	var paths = OD.Resource.paths.main_menu
+	var paths = OD.Resources.paths.main_menu
 	var background_images = []
 	for file in paths.backgrounds:
 		background_images.append(OD.Load.image(file))
@@ -37,26 +37,26 @@ func main_menu():
 	}
 	
 func difficulty_menu():
-	var paths = OD.Resource.paths.difficulty_menu
+	var paths = OD.Resources.paths.difficulty_menu
 	var textures = {
 		options_form = OD.Load.image(paths.options_form),
 		checkmark_large = OD.Load.image(paths.checkmark_large),
 		checkmark_small = OD.Load.image(paths.checkmark_small),
-		done_button = _button_textures(OD.Resource.paths.shared.button.done),
-		back_button = _button_textures(OD.Resource.paths.shared.button.back),
+		done_button = _button_textures(OD.Resources.paths.shared.button.done),
+		back_button = _button_textures(OD.Resources.paths.shared.button.back),
 		choose_header = OD.Load.image(paths.choose_header),
-		header_background = OD.Load.image(OD.Resource.paths.shared.header_background)
+		header_background = OD.Load.image(OD.Resources.paths.shared.header_background)
 	}
 	return {
 		textures = textures
 	}
 
 func skills_menu():
-	var paths = OD.Resource.paths.skills_menu
+	var paths = OD.Resources.paths.skills_menu
 	var textures = {
-		done_button = _button_textures(OD.Resource.paths.shared.button.done),
-		back_button = _button_textures(OD.Resource.paths.shared.button.back),
-		header_background = OD.Load.image(OD.Resource.paths.shared.header_background),
+		done_button = _button_textures(OD.Resources.paths.shared.button.done),
+		back_button = _button_textures(OD.Resources.paths.shared.button.back),
+		header_background = OD.Load.image(OD.Resources.paths.shared.header_background),
 		skills_header = OD.Load.image(paths.skills_header),
 		skill_button_border = OD.Load.image(paths.skill_button_border),
 		selected_skills_background = OD.Load.image(paths.selected_skills_background),
@@ -65,20 +65,25 @@ func skills_menu():
 		random_selection_button = _button_textures(paths.random_selection)
 	}
 	var fonts = {
-		info_header = OD.Load.font(OD.Resource.paths.shared.font.default, 25),
-		info_details = OD.Load.font(OD.Resource.paths.shared.font.default, 20),
+		info_header = OD.Load.font(OD.Resources.paths.shared.font.default),
+		info_details = OD.Load.font(OD.Resources.paths.shared.font.default),
+	}
+	var font_sizes = {
+		info_header = 25,
+		info_details = 20,
 	}
 	return {
 		textures = textures,
-		fonts = fonts
+		fonts = fonts,
+		font_sizes = font_sizes
 	}
 
 func character_menu():
-	var paths = OD.Resource.paths.character_menu
+	var paths = OD.Resources.paths.character_menu
 	var textures = {
-		done_button = _button_textures(OD.Resource.paths.shared.button.done),
-		back_button = _button_textures(OD.Resource.paths.shared.button.back),
-		header_background = OD.Load.image(OD.Resource.paths.shared.header_background),
+		done_button = _button_textures(OD.Resources.paths.shared.button.done),
+		back_button = _button_textures(OD.Resources.paths.shared.button.back),
+		header_background = OD.Load.image(OD.Resources.paths.shared.header_background),
 		character_header = OD.Load.image(paths.character_header),
 		choose_name_background = OD.Load.image(paths.choose_name_background),
 		choose_hero_background = OD.Load.image(paths.choose_hero_background),
@@ -87,16 +92,20 @@ func character_menu():
 	}
 	
 	var fonts = {
-		name_edit = OD.Load.font(OD.Resource.paths.shared.font.default, 25)
+		name_edit = OD.Load.font(OD.Resources.paths.shared.font.default)
+	}
+	var font_sizes = {
+		name_edit = 25
 	}
 	
 	return {
 		textures = textures,
-		fonts = fonts
+		fonts = fonts,
+		font_sizes = font_sizes
 	}
 	
 func intro():
-	var paths = OD.Resource.paths.intro
+	var paths = OD.Resources.paths.intro
 	return {
 		textures = {
 			primary = OD.Load.image(paths.primary),
@@ -106,7 +115,7 @@ func intro():
 	}
 
 func game():
-	var paths = OD.Resource.paths.game
+	var paths = OD.Resources.paths.game
 	return {
 		music = {
 			default = OD.Load.audio(paths.music)
@@ -115,24 +124,24 @@ func game():
 
 func elements():
 	var result = {
-		anvil = OD.Load.animation(OD.Resource.paths.element.anvil),
-		bookshelf = OD.Load.animation(OD.Resource.paths.element.bookshelf),
-		dredmor_statue = OD.Load.animation(OD.Resource.paths.element.dredmor_statue),
-		lever = OD.Load.animation(OD.Resource.paths.element.lever),
-		lutefisk_statue = OD.Load.animation(OD.Resource.paths.element.lutefisk_statue),
+		anvil = OD.Load.animation(OD.Resources.paths.element.anvil),
+		bookshelf = OD.Load.animation(OD.Resources.paths.element.bookshelf),
+		dredmor_statue = OD.Load.animation(OD.Resources.paths.element.dredmor_statue),
+		lever = OD.Load.animation(OD.Resources.paths.element.lever),
+		lutefisk_statue = OD.Load.animation(OD.Resources.paths.element.lutefisk_statue),
 		statues = [],
 		vendor = {
-			bolt = OD.Load.split_animation(OD.Resource.paths.element.vendor.bolt),
-			craft = OD.Load.split_animation(OD.Resource.paths.element.vendor.craft),
-			drink = OD.Load.split_animation(OD.Resource.paths.element.vendor.drink),
-			food = OD.Load.split_animation(OD.Resource.paths.element.vendor.food),
-			thrown = OD.Load.split_animation(OD.Resource.paths.element.vendor.thrown)		
+			bolt = OD.Load.split_animation(OD.Resources.paths.element.vendor.bolt),
+			craft = OD.Load.split_animation(OD.Resources.paths.element.vendor.craft),
+			drink = OD.Load.split_animation(OD.Resources.paths.element.vendor.drink),
+			food = OD.Load.split_animation(OD.Resources.paths.element.vendor.food),
+			thrown = OD.Load.split_animation(OD.Resources.paths.element.vendor.thrown)		
 		},
 		
 	}
 	result.lever.set_step_only(true)
 	result.bookshelf.set_step_only(true)
-	for statue in OD.Resource.paths.element.statues:
+	for statue in OD.Resources.paths.element.statues:
 		result.statues.append(OD.Load.animation(statue))
 	return result
 
@@ -141,7 +150,7 @@ var _tilesets = null
 func tilesets():
 	if _tilesets != null:
 		return _tilesets
-	var paths = OD.Resource.paths.tileset
+	var paths = OD.Resources.paths.tileset
 	_tilesets = {
 		basic = Tileset.new(),
 		liquids = Tileset.new()

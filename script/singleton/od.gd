@@ -1,7 +1,7 @@
 extends Node
 
 var ActionQueue
-var Animation
+var Animations
 var Assets
 var Actions
 var Audio
@@ -15,7 +15,7 @@ var Load
 var Log
 var Math
 var Rect
-var Resource
+var Resources
 var Scenes
 var Settings
 
@@ -34,7 +34,7 @@ func reset():
 	Actions = load('res://script/instance/action/actions.gd').new()
 	Actions.name = 'actions'
 	add_child(Actions)
-	Animation = load('res://script/instance/animation/animation.gd')
+	Animations = load('res://script/instance/animation/animation.gd')
 	Assets = _singleton('assets')
 	Audio = _singleton('audio')
 	Chrome = _singleton('chrome')
@@ -46,5 +46,5 @@ func reset():
 	Log = _singleton('log')
 	Math = _singleton('math')
 	Rect = load('res://script/instance/rect.gd')
-	Resource = _singleton('resource')
+	Resources = _singleton('resource')
 	Scenes = _singleton('scenes')	

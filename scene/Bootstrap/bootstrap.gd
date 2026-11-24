@@ -24,32 +24,30 @@ func _build_gui():
 		bootstrap.set_size(OD.Settings.display_size())
 		
 		var container = VBoxContainer.new()
-		container.alignment = BoxContainer.ALIGN_CENTER
+		container.alignment = BoxContainer.ALIGNMENT_CENTER
 		container.anchor_top = .33
 		container.anchor_left = .33
 		bootstrap.add_child(container)
 		
 		var picker_info = Label.new()
 		picker_info.text = "Please select the directory where Dungeons of Dredmor is installed."
-		picker_info.rect_min_size = Vector2(600,300)
+		picker_info.custom_minimum_size = Vector2(600,300)
 		container.add_child(picker_info)
 		
 		var choose_button = Button.new()
 		choose_button.text = "Choose..."
-		choose_button.connect("pressed", self, "_on_ChooseButton_pressed")
+		choose_button.pressed.connect(_on_ChooseButton_pressed)
 		container.add_child(choose_button)
 		
 		directory_picker = FileDialog.new()
 		directory_picker.access = FileDialog.ACCESS_FILESYSTEM
-		directory_picker.mode = FileDialog.MODE_OPEN_DIR
-		directory_picker.rect_min_size = Vector2(800,800)
-		directory_picker.anchor_top = .1
-		directory_picker.anchor_left = .1
-		directory_picker.connect("dir_selected", self, "_on_DirectoryPicker_dir_selected")
+		directory_picker.file_mode = FileDialog.FILE_MODE_OPEN_DIR
+		directory_picker.size = Vector2i(800,800)
+		directory_picker.dir_selected.connect(_on_DirectoryPicker_dir_selected)
 		bootstrap.add_child(directory_picker)		
 	
 func _on_ChooseButton_pressed():
-	directory_picker.popup()
+	directory_picker.popup_centered()
 	pass
 
 func _on_DirectoryPicker_dir_selected(dir):

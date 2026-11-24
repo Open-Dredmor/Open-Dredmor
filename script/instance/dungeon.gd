@@ -26,7 +26,7 @@ func init():
 
 func _input(ev):
 	if ev is InputEventKey and ev.is_pressed():
-		if ev.scancode == KEY_SPACE and not ev.echo:
+		if ev.keycode == KEY_SPACE and not ev.echo:
 			OD.Scenes.goto(OD.Scenes.GAME)
 	if ev is InputEventMouseMotion:
 		if _target_cursor != null and _entity_grid != null and ! _target_cursor.is_selecting():

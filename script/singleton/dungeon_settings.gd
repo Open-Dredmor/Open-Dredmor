@@ -29,8 +29,8 @@ func set_permadeath(enabled):
 func set_no_time_to_grind(enabled):
 	_settings.no_time_to_grind = enabled
 
-func set_name(name):
-	_settings.name = name
+func set_character_name(character_name):
+	_settings.name = character_name
 
 func set_hero(hero):
 	_settings.hero = hero

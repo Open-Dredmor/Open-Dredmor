@@ -55,9 +55,9 @@ func init(room_database_name):
 	debug_button = OD.Chrome.invisible_button()
 	var hover_button_style = StyleBoxFlat.new()
 	hover_button_style.bg_color = Color(.5,.5,0,.3)
-	debug_button.add_stylebox_override("hover",hover_button_style)
-	debug_button.rect_size = Vector2((grid_width + 1) * OD.Assets.CELL_PIXEL_WIDTH, (grid_height + 1) * OD.Assets.CELL_PIXEL_HEIGHT)
-	debug_button.connect("pressed", self, "debug_info")
+	debug_button.add_theme_stylebox_override("hover",hover_button_style)
+	debug_button.size = Vector2((grid_width + 1) * OD.Assets.CELL_PIXEL_WIDTH, (grid_height + 1) * OD.Assets.CELL_PIXEL_HEIGHT)
+	debug_button.pressed.connect(debug_info)
 
 	name_details = OD.Database.create_room_name()
 	name_details.database_id = room_database_name
@@ -282,9 +282,9 @@ func loot_tile_handler(item, x, y):
 	var sprite = null
 	if item.type == 'zorkmids':
 		# TODO Base the amount and size on the current floor
-		sprite = OD.Load.animation(OD.DataStructure.choose(OD.Resource.paths.loot.zorkmids))
+		sprite = OD.Load.animation(OD.DataStructure.choose(OD.Resources.paths.loot.zorkmids))
 	elif item.type == 'misc': # misc is always lockpicks
-		sprite = OD.Load.animation(OD.Resource.paths.loot.lockpick)
+		sprite = OD.Load.animation(OD.Resources.paths.loot.lockpick)
 	else:
 		var loot = OD.Database.get_loot(item.type, item.subtype if item.has('subtype') else null)		
 		if loot == null:
@@ -319,7 +319,7 @@ func horde_tile_handler(item, x, y):
 	entity_grid.add_animation(x, y, 'horde', animation)
 
 func pedestal_tile_handler(_item, x, y):
-	var animation = OD.Load.animation(OD.Resource.paths.pedestal)
+	var animation = OD.Load.animation(OD.Resources.paths.pedestal)
 	entity_grid.add_animation(x, y, 'pedestal', animation)
 
 func custombreakable_tile_handler(item, x, y):
@@ -330,19 +330,19 @@ func trap_tile_handler(item, x, y):
 	# TODO All of these graphics are placeholders
 	var animation = null
 	if not item.has('name'):
-		animation = OD.Load.animation(OD.DataStructure.choose(OD.Resource.paths.traps))
+		animation = OD.Load.animation(OD.DataStructure.choose(OD.Resources.paths.traps))
 	else:
 		match item.name:
 			"Gargoyle Arrow Trap":
-				animation = OD.Load.animation(OD.Resource.paths.traps[0])
+				animation = OD.Load.animation(OD.Resources.paths.traps[0])
 			"Gargoyle Acid Bolt Trap":
-				animation = OD.Load.animation(OD.Resource.paths.traps[1])
+				animation = OD.Load.animation(OD.Resources.paths.traps[1])
 			"Robo Bolt Trigger":
-				animation = OD.Load.animation(OD.Resource.paths.traps[2])
+				animation = OD.Load.animation(OD.Resources.paths.traps[2])
 			"Scalding Steam Mine":
-				animation = OD.Load.animation(OD.Resource.paths.traps[3])
+				animation = OD.Load.animation(OD.Resources.paths.traps[3])
 			"Shoddy Dwarven IED":
-				animation = OD.Load.animation(OD.Resource.paths.traps[4])
+				animation = OD.Load.animation(OD.Resources.paths.traps[4])
 			_:
 				OD.Log.warn("Unhandled trap [" + item.name + "]")
 	entity_grid.add_animation(x, y, 'trap', animation)
@@ -375,7 +375,7 @@ func claim_door(x, y, kind):
 			kill_index = index
 			break
 		index += 1
-	_doors[kind].remove(kill_index)
+	_doors[kind].remove_at(kill_index)
 	# TODO Add the door and remove surrounding walls
 
 func seal_available_doors():

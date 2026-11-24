@@ -44,16 +44,16 @@ func idle():
 
 func init():
 	animations.move = {
-		left = OD.Load.animation(OD.Resource.paths.player.hero.move.left),
-		right = OD.Load.animation(OD.Resource.paths.player.hero.move.right),
-		up = OD.Load.animation(OD.Resource.paths.player.hero.move.up),
-		down = OD.Load.animation(OD.Resource.paths.player.hero.move.down)
+		left = OD.Load.animation(OD.Resources.paths.player.hero.move.left),
+		right = OD.Load.animation(OD.Resources.paths.player.hero.move.right),
+		up = OD.Load.animation(OD.Resources.paths.player.hero.move.up),
+		down = OD.Load.animation(OD.Resources.paths.player.hero.move.down)
 	}
 	animations.idle = {
-		left = OD.Load.animation(OD.Resource.paths.player.hero.idle.left),
-		right = OD.Load.animation(OD.Resource.paths.player.hero.idle.right),
-		up = OD.Load.animation(OD.Resource.paths.player.hero.idle.up),
-		down = OD.Load.animation(OD.Resource.paths.player.hero.idle.down)
+		left = OD.Load.animation(OD.Resources.paths.player.hero.idle.left),
+		right = OD.Load.animation(OD.Resources.paths.player.hero.idle.right),
+		up = OD.Load.animation(OD.Resources.paths.player.hero.idle.up),
+		down = OD.Load.animation(OD.Resources.paths.player.hero.idle.down)
 	}
 	current_animation = animations.idle.down
 	add_child(current_animation)

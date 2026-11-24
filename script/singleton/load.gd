@@ -8,8 +8,7 @@ func clear_cache():
 	cache = {}
 
 func exists(relative_path, internal=false):
-	var file = File.new()
-	return file.file_exists(resolve(relative_path, internal))
+	return FileAccess.file_exists(resolve(relative_path, internal))
 
 func resolve(relative_path, internal = false):
 	if internal:
@@ -22,37 +21,33 @@ func image(relative_path, internal=false):
 	if internal:
 		var absolute_path = resolve(relative_path, true)
 		var stream_texture = load(absolute_path)
-		var image_texture = ImageTexture.new()
-		var img = stream_texture.get_data()
-		image_texture.create_from_image(img)
+		var img = stream_texture.get_image()
+		var image_texture = ImageTexture.create_from_image(img)
 		cache[relative_path] = image_texture
 		return image_texture
 	else:
 		var img = Image.new()	
 		var absolute_path = resolve(relative_path)
 		_handle_err(absolute_path, img.load(absolute_path))
-		var texture = ImageTexture.new()
-		texture.create_from_image(img)
+		var texture = ImageTexture.create_from_image(img)
 		cache[relative_path] = texture
 		return texture
 	
 func audio(relative_path):
 	if cache.has(relative_path):
 		return cache[relative_path]
-	var file = File.new()
 	var absolute_path = resolve(relative_path)
-	_handle_err(absolute_path, file.open(absolute_path, File.READ))
-	var bytes = file.get_buffer(file.get_len())
-	var stream = AudioStreamOGGVorbis.new()
+	var stream = AudioStreamOggVorbis.load_from_file(absolute_path)
+	if stream == null:
+		_handle_err(absolute_path, ERR_CANT_OPEN)
 	stream.loop = true
-	stream.data = bytes
 	cache[relative_path] = stream
 	return stream
 	
 func xml(relative_path):	
 	var absolute_path = resolve(relative_path)
-	var file = File.new()
-	_handle_err(absolute_path, file.open(absolute_path, File.READ))
+	var file = FileAccess.open(absolute_path, FileAccess.READ)
+	_handle_err(absolute_path, FileAccess.get_open_error() if file == null else OK)
 	var xml_content = file.get_as_text()
 	# Strip out all comments, otherwise godot can crash without any error
 	# https://github.com/godotengine/godot/issues/40415
@@ -61,7 +56,7 @@ func xml(relative_path):
 	reg_ex.compile(expression)
 	xml_content = reg_ex.sub(xml_content, "", true)
 	var xml_parser = XMLParser.new()
-	xml_parser.open_buffer(xml_content.to_utf8())
+	xml_parser.open_buffer(xml_content.to_utf8_buffer())
 	var result = {}
 	var manual_close_nodes = {}
 	var reading = true
@@ -129,15 +124,14 @@ func xml(relative_path):
 			reading = false	
 	return result
 
-func font(relative_path, size):
-	var slug = relative_path + str(size)
-	if cache.has(slug):
-		return cache[slug]
-	var font = DynamicFont.new()
-	font.size = size
-	font.font_data = load(resolve(relative_path))
-	cache[slug] = font
-	return font
+func font(relative_path):
+	if cache.has(relative_path):
+		return cache[relative_path]
+	var font_file = FontFile.new()
+	var absolute_path = resolve(relative_path)
+	_handle_err(absolute_path, font_file.load_dynamic_font(absolute_path))
+	cache[relative_path] = font_file
+	return font_file
 
 func read_int(file, byte_count):
 	var result = 0
@@ -148,7 +142,7 @@ func read_int(file, byte_count):
 
 func png_sprite(relative_path, start, end, delay_milliseconds):
 	if not '.png' in relative_path and not '.spr' in relative_path:
-		var animation = OD.Animation.new()
+		var animation = OD.Animations.new()
 		animation.init()
 		var ii = start
 		while ii < end:
@@ -158,7 +152,7 @@ func png_sprite(relative_path, start, end, delay_milliseconds):
 	return null
 
 func split_animation(relative_paths):
-	var animation = OD.Animation.new()
+	var animation = OD.Animations.new()
 	animation.init()
 	for path in relative_paths:
 		animation.add_texture_frame(image(path), DEFAULT_ANIMATION_FRAME_RATE_MILLISECONDS)
@@ -173,7 +167,7 @@ func animation(relative_path):
 		"xml":
 			return _xml_sprites(relative_path)
 		"png":
-			var animation = OD.Animation.new()
+			var animation = OD.Animations.new()
 			animation.init()
 			animation.add_texture_frame(image(relative_path), 0)
 			return animation
@@ -185,8 +179,8 @@ func animation(relative_path):
 # https://www.cosmigo.com/promotion/docs/onlinehelp/TechnicalInfos.htm
 func _pro_motion_sprites(relative_path):
 	var absolute_path = resolve(relative_path)
-	var file = File.new()
-	_handle_err(absolute_path, file.open(absolute_path, File.READ))	
+	var file = FileAccess.open(absolute_path, FileAccess.READ)
+	_handle_err(absolute_path, FileAccess.get_open_error() if file == null else OK)	
 	var _header = file.get_buffer(3).get_string_from_ascii()
 	var frame_count = read_int(file, 2)
 	var width = read_int(file, 2)
@@ -215,32 +209,30 @@ func _pro_motion_sprites(relative_path):
 			image_data = image_data
 		})
 	# TODO Apply this transparency information to the frame textures
-	if file.get_len() > file.get_position():
+	if file.get_length() > file.get_position():
 			var _trans_header = file.get_buffer(6).get_string_from_ascii()
 			_trans_chunk = file.get_buffer(width*height)
 			#print("trans_chunk size: "+str(trans_chunk.size()))
 		
-	var animation = OD.Animation.new()
+	var animation = OD.Animations.new()
 	animation.init()
 	for frame in frames:
-		var image_texture = ImageTexture.new()
-		var img = Image.new()
-		var pixels = PoolByteArray()
+		var pixels = PackedByteArray()
 		# 156, 154, 156 -> Grey background
 		# color_table ignore index = 0
 		for jj in range(frame.image_data.size()):
 			pixels.append_array(frame.color_table[frame.image_data[jj]])
 			pixels.append(0 if frame.image_data[jj] == 0 else 255) # Set alpha to 0 if transparent lookup
 				
-		img.create_from_data(width, height, false, Image.FORMAT_RGBA8, pixels)
-		image_texture.create_from_image(img)
+		var img = Image.create_from_data(width, height, false, Image.FORMAT_RGBA8, pixels)
+		var image_texture = ImageTexture.create_from_image(img)
 		animation.add_texture_frame(image_texture, frame.delay_milliseconds)
 	
 	return animation
 
 func _xml_sprites(relative_path):
 	var document = xml(relative_path)
-	var animation = OD.Animation.new()
+	var animation = OD.Animations.new()
 	animation.init()
 	var image_count = document.data_nodes.size()
 	var path_parts = relative_path.split('/')
