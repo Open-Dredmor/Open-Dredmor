@@ -32,9 +32,16 @@ var _doors = {
 
 var tilesets
 var name_details
-var debug_button
+var debug_button = null
 
 func get_debug_button():
+	if debug_button == null:
+		debug_button = OD.Chrome.invisible_button()
+		var hover_button_style = StyleBoxFlat.new()
+		hover_button_style.bg_color = Color(.5,.5,0,.3)
+		debug_button.add_theme_stylebox_override("hover",hover_button_style)
+		debug_button.size = Vector2((grid_width + 1) * OD.Assets.CELL_PIXEL_WIDTH, (grid_height + 1) * OD.Assets.CELL_PIXEL_HEIGHT)
+		debug_button.pressed.connect(debug_info)
 	return debug_button
 
 func debug_info():
@@ -53,12 +60,6 @@ func init(room_database_name):
 	# Count the strings lengths instead of trusting the reported values
 	grid_width = _definition.row[0].text.length()
 	grid_height = _definition.row.size()
-	debug_button = OD.Chrome.invisible_button()
-	var hover_button_style = StyleBoxFlat.new()
-	hover_button_style.bg_color = Color(.5,.5,0,.3)
-	debug_button.add_theme_stylebox_override("hover",hover_button_style)
-	debug_button.size = Vector2((grid_width + 1) * OD.Assets.CELL_PIXEL_WIDTH, (grid_height + 1) * OD.Assets.CELL_PIXEL_HEIGHT)
-	debug_button.pressed.connect(debug_info)
 
 	name_details = OD.Database.create_room_name()
 	name_details.database_id = room_name_str

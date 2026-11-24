@@ -357,9 +357,6 @@ static func generate(_branch_name, floor_level):
 					orientation = orientation,
 					locked = is_locked
 				})
-		var debug_button = room.get_debug_button()
-		debug_button.position = OD.Math.grid_to_pixel(room.position.x, room.position.y) + entity_grid.position - Vector2(32, 32)
-		entity_grid.add_child(debug_button)
 		room.free()
 
 	for door_info in pending_doors:
