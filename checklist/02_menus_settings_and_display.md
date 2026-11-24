@@ -4,7 +4,7 @@ Pre-game flow, responsive UI scaling across window sizes, and preserving player 
 
 ---
 
-- [ ] **Support arbitrary window sizes & responsive UI**
+- [x] **Support arbitrary window sizes & responsive UI**
   - *Current state*: [project.godot](../project.godot) hardcodes `1680x1050` with no viewport stretch settings; menus read `OD.Settings.display_size()` once on `_build_gui()` and use fixed pixel sizes/offsets.
   - *Done when*: Stretch mode/aspect is configured in `project.godot` (and/or responsive anchors/containers are used on resize) so all menus and the game viewport scale cleanly across arbitrary window sizes and aspect ratios without clipping or off-screen elements.
 

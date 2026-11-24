@@ -28,6 +28,7 @@ func _init_global_state():
 
 func _build_gui():
 		var bootstrap = get_node("/root/Container")
+		bootstrap.set_anchors_preset(Control.PRESET_FULL_RECT)
 		bootstrap.set_size(OD.Settings.display_size())
 		
 		var container = VBoxContainer.new()

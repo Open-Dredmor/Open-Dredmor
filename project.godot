@@ -28,6 +28,8 @@ OD="*res://script/singleton/od.gd"
 
 window/size/viewport_width=1680
 window/size/viewport_height=1050
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
 
 [rendering]
 
