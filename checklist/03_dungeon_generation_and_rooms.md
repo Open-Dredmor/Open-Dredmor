@@ -45,3 +45,21 @@ Fast floor layout generation, branch tilesets, interactive room elements, traps,
 - [x] **Multi-floor progression & Stairs**
   - *Current state*: [script/instance/dungeon.gd](../script/instance/dungeon.gd) has an unused `floors = []` array and only generates floor 1.
   - *Done when*: Stepping on/activating Stairs Down/Up generates or restores the target floor state, places the player at the corresponding stairs, and persists visited floors until save/quit.
+
+- [ ] **Procedural floor props, blockers & interactive spawns**
+  - *Current state*: [script/instance/room.gd](../script/instance/room.gd) only spawns blockers and interactive elements explicitly authored in `<room>` XML tags, leaving most rooms empty.
+  - *Done when*: Post-generation populates rooms and floors using [tweakDB.xml](../airef/steam-install/game/tweakDB.xml) rules (respecting `noblockers` room flags):
+    - Random decorative/destructible blockers (`minimum blockers`, `blocker number a`, `blocker number b`).
+    - Procedural interactive elements (`dispenser chance`, `fountain chance`, `uberchest chance`, `evilchest chance`, `anvil chance`, `bbq chance`, `freezer chance`, `num shelves per level`, `dredmor statues per level`, `num lutefisk statues`, `num quest statues`, `max wizard graffitis`).
+
+- [ ] **Teleporters & Wizard Portals**
+  - *Current state*: None.
+  - *Done when*: Floors spawn linked teleporter pads (`number of teleporters` from [tweakDB.xml](../airef/steam-install/game/tweakDB.xml)) that warp the player between destinations, and Wizard Portals connect to pocket dimensions (`wizardRoomDB.xml` / `magicBoxRooms.xml`).
+
+- [ ] **Wall decorations, floor decals & lakes (`genLakes`)**
+  - *Current state*: [script/instance/entity_grid.gd](../script/instance/entity_grid.gd) renders basic walls and floors without `branchDB.xml` `wallDecor`, floor mess decals, or procedural lakes.
+  - *Done when*: Floors apply branch `wallDecor` sprites along walls, scatter floor mess/dirt decals, and carve branch-appropriate liquid pools (water, lava, ice, goo) when `genLakes="1"` is set in `branchDB.xml`.
+
+- [ ] **Procedural floor loot, reagents & random traps**
+  - *Current state*: Only room-authored `<loot>` and `<trap>` tags are spawned.
+  - *Done when*: Post-generation scatters random treasures (`minimum number of treasures`, `maximum additional treasures`), crafting reagents/mushrooms (`number of reagents per level`), zorkmids/food (`zorkmids per level`, `minimum food per level`), and random traps (`num traps per level`) on valid empty floor cells while respecting `notreasure` and `notraps` room flags.
