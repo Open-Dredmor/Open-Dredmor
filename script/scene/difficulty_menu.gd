@@ -15,7 +15,6 @@ func _ready():
 	call_deferred("_build_gui")
 	
 func _build_gui():
-	OD.DungeonSettings.reset()
 	var assets = OD.Assets.difficulty_menu()
 	var difficulty_menu = get_node("/root/Container")
 	difficulty_menu.set_size(OD.Settings.display_size())
@@ -132,7 +131,10 @@ func _build_gui():
 	no_time_to_grind_button.anchor_left = .15
 	options_form.add_child(no_time_to_grind_button)	
 	
-	_select_difficulty(OD.DungeonSettings.get_settings().difficulty)
+	var settings = OD.DungeonSettings.get_settings()
+	_permadeath_enabled = settings.permadeath
+	_no_time_to_grind_enabled = settings.no_time_to_grind
+	_select_difficulty(settings.difficulty)
 	_permadeath_checkmark.visible = _permadeath_enabled
 	_no_time_to_grind_checkmark.visible = _no_time_to_grind_enabled
 

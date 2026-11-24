@@ -26,7 +26,6 @@ func _process(_delta):
 		_done_button.visible = _selected_skills.keys().size() == MAX_SKILL_SELECTION
 	
 func _build_gui():
-	OD.DungeonSettings.reset()
 	var assets = OD.Assets.skills_menu()
 	_container = get_node("/root/Container")
 	_container.set_size(OD.Settings.display_size())
@@ -153,10 +152,16 @@ func _build_gui():
 	_info_details.size_flags_vertical = SIZE_FILL | SIZE_EXPAND
 	info_text_container.add_child(_info_details)
 
+	var saved_skill_ids = OD.DungeonSettings.get_settings().starting_skill_ids
+	for skill in _skills:
+		if saved_skill_ids.has(skill.id):
+			_select_skill(skill)
+
 func _remove_selected_skill_buttons():
 	var parent = _get_selected_skills_container()
 	for child in parent.get_children():
 		parent.remove_child(child)
+		child.queue_free()
 	
 func _get_selected_skills_container():
 	var parent_path = "/root/Container/SkillsContainer/SelectedSkillsBackground/SelectedSkillsContainer"
@@ -178,7 +183,6 @@ func _describe_skill(skill):
 		_info_details.text = skill.description
 
 func _select_skill(skill):
-	print(skill)
 	_remove_selected_skill_buttons()
 	var skill_panel_button = _get_skill_panel_button(skill.id)	
 	if _selected_skills.has(skill.id):		
@@ -203,11 +207,11 @@ func _select_skill(skill):
 			selected_skills_container.add_child(selected_skill_button)
 
 func _on_DoneButton_pressed():
-	OD.Scenes.goto(OD.Scenes.CHARACTER_MENU)
 	OD.DungeonSettings.set_starting_skill_ids(_selected_skills.keys())
-	pass
+	OD.Scenes.goto(OD.Scenes.CHARACTER_MENU)
 
 func _on_BackButton_pressed():
+	OD.DungeonSettings.set_starting_skill_ids(_selected_skills.keys())
 	OD.Scenes.goto(OD.Scenes.DIFFICULTY_MENU)
 
 func _on_RandomSelectionButton_pressed():

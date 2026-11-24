@@ -9,16 +9,18 @@ enum Difficulty {
 }
 
 func reset():
+	var preserved_packs = _settings.active_packs.duplicate() if _settings != null and _settings.has("active_packs") else []
 	_settings = {
 		difficulty = Difficulty.Medium,
 		no_time_to_grind = false,
 		permadeath = false,
-		hero = 'hero',
-		name = "Name",
+		hero = null,
+		name = "",
+		starting_skill_ids = [],
 		player_start_x = 4,
 		player_start_y = 3,
 		seconds_per_action = .5,
-		active_packs = []
+		active_packs = preserved_packs
 	}
 
 func set_difficulty(difficulty):

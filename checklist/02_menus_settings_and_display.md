@@ -8,7 +8,7 @@ Pre-game flow, responsive UI scaling across window sizes, and preserving player 
   - *Current state*: [project.godot](../project.godot) hardcodes `1680x1050` with no viewport stretch settings; menus read `OD.Settings.display_size()` once on `_build_gui()` and use fixed pixel sizes/offsets.
   - *Done when*: Stretch mode/aspect is configured in `project.godot` (and/or responsive anchors/containers are used on resize) so all menus and the game viewport scale cleanly across arbitrary window sizes and aspect ratios without clipping or off-screen elements.
 
-- [ ] **Interstitial data management across menu navigation**
+- [x] **Interstitial data management across menu navigation**
   - *Current state*: [script/scene/skills_menu.gd](../script/scene/skills_menu.gd) calls `OD.DungeonSettings.reset()` in `_build_gui()`, wiping previously selected difficulty/skills/character state; hitting **Back** from [script/scene/character_menu.gd](../script/scene/character_menu.gd) or [script/scene/skills_menu.gd](../script/scene/skills_menu.gd) loses prior selections.
   - *Done when*: `OD.DungeonSettings` is only reset when starting a fresh New Game from Main Menu (or explicitly), and Difficulty, Skills, and Character menus initialize their UI controls from existing `OD.DungeonSettings` state so Back/Forward navigation preserves all selections.
 

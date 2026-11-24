@@ -16,7 +16,7 @@ func _ready():
 	
 func _process(_delta):
 	if _done_button != null:
-		_done_button.visible = _selected_hero != null and _character_name != null
+		_done_button.visible = _selected_hero != null and _character_name != null and _character_name.strip_edges() != ""
 	if _selected_hero != null:
 		if _selected_hero == "hero":
 			OD.Chrome.highlight(_select_hero_button)
@@ -112,6 +112,13 @@ func _build_gui():
 	_done_button.pressed.connect(_on_DoneButton_pressed)
 	_done_button.visible = false
 	container.add_child(_done_button)
+
+	var settings = OD.DungeonSettings.get_settings()
+	if settings.hero != null and settings.hero != "":
+		_selected_hero = settings.hero
+	if settings.name != null and settings.name != "":
+		_character_name = settings.name
+		name_edit.text = _character_name
 
 func _on_DoneButton_pressed():
 	OD.Scenes.goto(OD.Scenes.INTRO_ONE)

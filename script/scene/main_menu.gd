@@ -76,6 +76,7 @@ func _build_gui():
 	load_background_image()	
 
 func _on_NewGameButton_pressed():
+	OD.DungeonSettings.reset()
 	OD.Scenes.goto(OD.Scenes.DIFFICULTY_MENU)
 	
 func _on_LoadGameButton_pressed():
