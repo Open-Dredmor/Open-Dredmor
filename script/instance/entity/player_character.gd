@@ -13,7 +13,7 @@ var last_delta_y = 0
 
 func update_animation(delta_x, delta_y):
 	if last_delta_x != delta_x or last_delta_y != delta_y:
-		remove_child(current_animation)
+		current_animation.visible = false
 		if delta_x != 0:
 			if delta_x < 0:
 				current_animation = animations.move.left
@@ -24,12 +24,12 @@ func update_animation(delta_x, delta_y):
 				current_animation = animations.move.up
 			else:
 				current_animation = animations.move.down
-		add_child(current_animation)
+		current_animation.visible = true
 		last_delta_x = delta_x
 		last_delta_y = delta_y
 
 func idle():
-	remove_child(current_animation)
+	current_animation.visible = false
 	if last_delta_x != 0:
 		if last_delta_x < 0:
 			current_animation = animations.idle.left
@@ -40,7 +40,7 @@ func idle():
 			current_animation = animations.idle.up
 		else:
 			current_animation = animations.idle.down
-	add_child(current_animation)
+	current_animation.visible = true
 
 func init():
 	animations.move = {
@@ -55,5 +55,9 @@ func init():
 		up = OD.Load.animation(OD.Resources.paths.player.hero.idle.up),
 		down = OD.Load.animation(OD.Resources.paths.player.hero.idle.down)
 	}
+	for group in [animations.move, animations.idle]:
+		for direction in group.values():
+			direction.visible = false
+			add_child(direction)
 	current_animation = animations.idle.down
-	add_child(current_animation)
+	current_animation.visible = true

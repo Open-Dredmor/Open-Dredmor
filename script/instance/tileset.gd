@@ -1,4 +1,4 @@
-extends Node
+extends RefCounted
 
 # https://docs.godotengine.org/en/3.2/tutorials/2d/using_tilemaps.html
 
@@ -52,9 +52,9 @@ func get_animation(name):
 	result.init()
 	var delay_milliseconds = definition.frame_rate_milliseconds
 	for ii in range(definition.cell_count):
-		var sprite = Sprite2D.new()
-		sprite.region_enabled = true
-		sprite.region_rect = Rect2(ii * OD.Assets.CELL_PIXEL_WIDTH, definition.start_y, OD.Assets.CELL_PIXEL_WIDTH, OD.Assets.CELL_PIXEL_HEIGHT)
-		sprite.texture = _texture
-		result.add_sprite_frame(sprite, delay_milliseconds)
+		var frame_data = {
+			region_rect = Rect2(ii * OD.Assets.CELL_PIXEL_WIDTH, definition.start_y, OD.Assets.CELL_PIXEL_WIDTH, OD.Assets.CELL_PIXEL_HEIGHT),
+			texture = _texture
+		}
+		result.add_sprite_frame(frame_data, delay_milliseconds)
 	return result

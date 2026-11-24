@@ -33,6 +33,7 @@ static func generate(_branch_name, floor_level):
 		for jj in cols:
 			var possible_doors = room_grid[ii][jj].possible_doors()
 			if possible_doors.size() == 0:
+				room_grid[ii][jj].free()
 				room_grid[ii][jj] = null
 				continue
 			var available_doors = []
@@ -52,6 +53,7 @@ static func generate(_branch_name, floor_level):
 						if jj < cols:
 							pass
 			if available_doors.size() == 0:
+				room_grid[ii][jj].free()
 				room_grid[ii][jj] = null
 				continue
 			
@@ -123,4 +125,9 @@ static func generate(_branch_name, floor_level):
 		debug_button.position = OD.Math.grid_to_pixel(room.position.x, room.position.y) + entity_grid.position - Vector2(32,32)
 		#print("x: "+str(debug_button.rect_position.x) + ", y:" + str(debug_button.rect_position.y))
 		entity_grid.add_child(debug_button)
+		room.free()
+	for row_rooms in room_grid:
+		for grid_room in row_rooms:
+			if grid_room != null:
+				grid_room.free()
 	return entity_grid

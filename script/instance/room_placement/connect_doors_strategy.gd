@@ -36,6 +36,7 @@ static func generate(_branch_name, floor_level):
 		room.init(room_name)
 		if not room.has_available_doors():
 			OD.Log.warn("Could not find a path to room " + room_name)
+			room.free()
 			continue
 		var target_door = room.get_door(target_door_kind)
 		if target_door != null:
@@ -73,6 +74,10 @@ static func generate(_branch_name, floor_level):
 				source_room.claim_door(source_door.x, source_door.y, source_door.kind)			
 				rooms.append(room)
 				rooms_count -= 1
+			else:
+				room.free()
+		else:
+			room.free()
 			
 	entity_grid.init()
 	entity_grid.resize(1,1)
@@ -83,4 +88,5 @@ static func generate(_branch_name, floor_level):
 		debug_button.position = OD.Math.grid_to_pixel(room.position.x, room.position.y) + entity_grid.position - Vector2(32,32)
 		#print("x: "+str(debug_button.rect_position.x) + ", y:" + str(debug_button.rect_position.y))
 		entity_grid.add_child(debug_button)
+		room.free()
 	return entity_grid

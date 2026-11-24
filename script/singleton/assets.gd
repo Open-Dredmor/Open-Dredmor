@@ -145,6 +145,38 @@ func elements():
 		result.statues.append(OD.Load.animation(statue))
 	return result
 
+func element(element_type):
+	var element_paths = OD.Resources.paths.element
+	match element_type:
+		"anvil":
+			return OD.Load.animation(element_paths.anvil)
+		"boltvending":
+			return OD.Load.split_animation(element_paths.vendor.bolt)
+		"bookshelf":
+			var bookshelf_anim = OD.Load.animation(element_paths.bookshelf)
+			bookshelf_anim.set_step_only(true)
+			return bookshelf_anim
+		"craftvending":
+			return OD.Load.split_animation(element_paths.vendor.craft)
+		"dredmorstatue":
+			return OD.Load.animation(element_paths.dredmor_statue)
+		"drinkvending":
+			return OD.Load.split_animation(element_paths.vendor.drink)
+		"foodvending":
+			return OD.Load.split_animation(element_paths.vendor.food)
+		"lever":
+			var lever_anim = OD.Load.animation(element_paths.lever)
+			lever_anim.set_step_only(true)
+			return lever_anim
+		"lutefiskstatue":
+			return OD.Load.animation(element_paths.lutefisk_statue)
+		"statue":
+			return OD.Load.animation(OD.DataStructure.choose(element_paths.statues))
+		"thrownvending":
+			return OD.Load.split_animation(element_paths.vendor.thrown)
+		_:
+			return null
+
 var _tilesets = null
 
 func tilesets():

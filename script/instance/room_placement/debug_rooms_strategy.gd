@@ -41,5 +41,6 @@ static func generate(_branch_name, _floor_level):
 		debug_button.position = OD.Math.grid_to_pixel(room.position.x, room.position.y) + entity_grid.position - Vector2(32,32)
 		#print("x: "+str(debug_button.rect_position.x) + ", y:" + str(debug_button.rect_position.y))
 		entity_grid.add_child(debug_button)
+		room.free()
 		definition_index += 1
 	return entity_grid

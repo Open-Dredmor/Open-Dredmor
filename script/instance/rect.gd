@@ -1,4 +1,4 @@
-extends Node
+extends RefCounted
 
 var x1
 var x2

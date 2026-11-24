@@ -14,7 +14,7 @@ var SKILLS_MENU = "skills_menu"
 var SPRITE_TEST = "sprite_test"
 
 # For debugging specific levels or gameplay features
-var FIRST_SCENE = AUDIO_TEST
+var FIRST_SCENE = GAME
 
 # For experiencing the game as a player would see it
 #var FIRST_SCENE = PRELOAD_ASSETS
@@ -45,8 +45,7 @@ func _load_scene(scene_path):
 	last_scene.call_deferred("free")
 
 	var scene_script = load(scene_path)
-	var current_scene_logic = scene_script.new()
-	var current_container = current_scene_logic.init_container()
+	var current_container = scene_script.init_container()
 	current_container.name = "Container"
 	current_container.set_script(scene_script)
 	root.add_child(current_container)

@@ -82,4 +82,5 @@ func set_step_only(step_only):
 	_step_only = step_only
 	if _next_frame_timer != null:
 		remove_child(_next_frame_timer)
+		_next_frame_timer.queue_free()
 		_next_frame_timer = null

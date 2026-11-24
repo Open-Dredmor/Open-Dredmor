@@ -247,34 +247,10 @@ func customengraving_tile_handler(item, x, y):
 		entity_grid.add_animation(x, y, "customengraving", animation)
 
 func element_tile_handler(item, x, y):
-	var assets = OD.Assets.elements()
-	var asset = null
-	match item.type:
-		"anvil":
-			asset = assets.anvil
-		"boltvending":
-			asset = assets.vendor.bolt
-		"bookshelf":
-			asset = assets.bookshelf
-		"craftvending":
-			asset = assets.vendor.craft
-		"dredmorstatue":
-			asset = assets.dredmor_statue
-		"drinkvending":
-			asset = assets.vendor.drink
-		"foodvending":
-			asset = assets.vendor.food
-		"lever":
-			asset = assets.lever
-		"lutefiskstatue":
-			asset = assets.lutefisk_statue
-		"statue":
-			asset = OD.DataStructure.choose(assets.statues)
-		"thrownvending":
-			asset = assets.vendor.thrown
-		_:
-			OD.Log.warn("Unhandled element tile type [" + item.type + "]")
-	if asset != null:
+	var asset = OD.Assets.element(item.type)
+	if asset == null:
+		OD.Log.warn("Unhandled element tile type [" + item.type + "]")
+	else:
 		entity_grid.add_animation(x, y, "element", asset)
 
 func loot_tile_handler(item, x, y):
