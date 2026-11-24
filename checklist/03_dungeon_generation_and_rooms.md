@@ -52,7 +52,7 @@ Fast floor layout generation, branch tilesets, interactive room elements, traps,
     - Random decorative/destructible blockers (`minimum blockers`, `blocker number a`, `blocker number b`).
     - Procedural interactive elements (`dispenser chance`, `fountain chance`, `uberchest chance`, `evilchest chance`, `anvil chance`, `bbq chance`, `freezer chance`, `num shelves per level`, `dredmor statues per level`, `num lutefisk statues`, `num quest statues`, `max wizard graffitis`).
 
-- [ ] **Teleporters & Wizard Portals**
+- [x] **Teleporters & Wizard Portals**
   - *Current state*: None.
   - *Done when*: Floors spawn linked teleporter pads (`number of teleporters` from [tweakDB.xml](../airef/steam-install/game/tweakDB.xml)) that warp the player between destinations, and Wizard Portals connect to pocket dimensions (`wizardRoomDB.xml` / `magicBoxRooms.xml`).
 

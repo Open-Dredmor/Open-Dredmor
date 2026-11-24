@@ -74,6 +74,13 @@ var paths = {
 	},
 	pedestal = "dungeon/pedestal_empty.spr",
 	shop_pedestal = "dungeon/store_pedestal.png",
+	teleporters = [
+		{ prefix = "dungeon/portalA/portalA", frames = 8, rate = 120 },
+		{ prefix = "dungeon/portalB/portalB", frames = 5, rate = 140 },
+		{ prefix = "dungeon/portalC/portalC", frames = 4, rate = 150 },
+		{ prefix = "dungeon/portalD/portalD", frames = 8, rate = 120 },
+		{ prefix = "dungeon/portalE/portalE", frames = 5, rate = 140 }
+	],
 	props = {
 		destructible = [
 			{ sprite = "dungeon/barrelA.png", name = "Barrel" },
@@ -112,8 +119,11 @@ var paths = {
 		freezer = "dungeon/minifridge.spr",
 		lever = "dungeon/lever1.spr",
 		lutefisk_statue = "dungeon/shrine_lutefisk_god.png",
+		portal = "dungeon/portal.spr",
 		quest_statue = "dungeon/statue_quest.spr",
 		uberchest = "dungeon/uberchest.spr",
+		wizardcontrols = "dungeon/magic_slipgate_controls_on.png",
+		wizardportal = "dungeon/portal/portal",
 		wizard_graffiti = "dungeon/wizard_graffitiA/wizard_graffitiA",
 		statues = [
 			'dungeon/statue_book.spr',

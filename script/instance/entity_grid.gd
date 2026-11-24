@@ -11,6 +11,7 @@ const ShopManagerScript = preload("res://script/instance/shop_manager.gd")
 signal script_ticker(message)
 signal script_spell_cast(spell_name, grid_pos)
 signal trap_triggered(trap_result, grid_pos)
+signal teleporter_stepped(teleporter_info, grid_pos)
 
 var layers = {
 	list = [],
@@ -66,6 +67,7 @@ var _blocker_cells = {}
 var _doors_by_cell = {}
 var _elements_by_cell = {}
 var _traps_by_cell = {}
+var _teleporters_by_cell = {}
 var _stairs_by_cell = {}
 var _named_entities = {}
 var _room_scripts = []
@@ -452,6 +454,23 @@ func get_stairs_at(grid_x, grid_y):
 		return _stairs_by_cell[cell_key]
 	return null
 
+func add_teleporter(grid_x, grid_y, channel, target_cell, animation):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	var pixel_pos = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
+	add_animation(pixel_pos.x, pixel_pos.y, "floor_decoration", animation)
+	_teleporters_by_cell[cell_key] = {
+		channel = channel,
+		target_cell = Vector2i(int(target_cell.x), int(target_cell.y)),
+		node = animation
+	}
+	return _teleporters_by_cell[cell_key]
+
+func get_teleporter_at(grid_x, grid_y):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	if _teleporters_by_cell.has(cell_key):
+		return _teleporters_by_cell[cell_key]
+	return null
+
 func add_trap(grid_x, grid_y, trap_def):
 	var cell_key = Vector2i(int(grid_x), int(grid_y))
 	var trap = TrapScript.new()
@@ -476,6 +495,9 @@ func on_player_step(player_pos):
 	if shop_manager != null:
 		shop_manager.on_player_moved(player_pos, self)
 		shop_manager.step_hostile_actors(self, player_pos)
+	var teleporter = get_teleporter_at(player_pos.x, player_pos.y)
+	if teleporter != null:
+		teleporter_stepped.emit(teleporter, Vector2i(int(player_pos.x), int(player_pos.y)))
 
 func get_trap_at(grid_x, grid_y):
 	var cell_key = Vector2i(int(grid_x), int(grid_y))

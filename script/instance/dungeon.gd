@@ -4,6 +4,7 @@ class_name Dungeon
 
 const ElementDialogScript = preload("res://script/instance/ui/element_dialog.gd")
 const ShopDialogScript = preload("res://script/instance/ui/shop_dialog.gd")
+const PocketDimensionScript = preload("res://script/instance/room_placement/pocket_dimension.gd")
 
 signal floor_changed(floor_level, branch_name)
 
@@ -29,6 +30,9 @@ var _lutefisk_ref = { value = 10 }
 var _player_bag = []
 var _interaction_dialog = null
 var _pending_interaction = null
+var _in_pocket_dimension = false
+var _pocket_dimensions = {}
+var _saved_main_return_cell = null
 
 func global_coordinates_to_grid(x, y):
 	var xform = get_global_transform_with_canvas()
@@ -201,6 +205,7 @@ func _execute_interaction(interaction):
 
 func _connect_grid_signals(grid):
 	grid.trap_triggered.connect(_on_trap_triggered)
+	grid.teleporter_stepped.connect(_on_teleporter_stepped)
 	grid.shop_manager.shop_alert.connect(_on_shop_alert)
 	grid.shop_manager.hostile_attack.connect(_on_hostile_attack)
 
@@ -285,6 +290,69 @@ func _on_trap_triggered(trap_result, grid_pos):
 	_spawn_spell_vfx(trap_result.casts_spell, grid_pos)
 	_spawn_floating_text(grid_pos, trap_result.trap_name + "!", Color(1.0, 0.35, 0.25))
 
+func _on_teleporter_stepped(teleporter_info, _grid_pos):
+	if teleporter_info == null or not teleporter_info.has("target_cell"):
+		return
+	var dest = teleporter_info.target_cell
+	_pending_interaction = null
+	OD.ActionQueue.clear()
+	_player.move_to(dest.x, dest.y)
+	_player.idle()
+	_target_cursor.select(dest.x, dest.y)
+	_entity_grid.update_trap_visibility(dest)
+	OD.Audio.play_sfx("teleport")
+	_spawn_floating_text(dest, "Teleported!", Color(0.55, 0.85, 1.0))
+
+func _toggle_pocket_dimension(_portal_pos):
+	_pending_interaction = null
+	OD.ActionQueue.clear()
+	_close_element_dialog()
+	if _player.get_parent() != null:
+		_player.get_parent().remove_child(_player)
+	if _target_cursor.get_parent() != null:
+		_target_cursor.get_parent().remove_child(_target_cursor)
+	if _entity_grid != null and _entity_grid.get_parent() == self:
+		remove_child(_entity_grid)
+	var target_grid = null
+	var spawn_cell = null
+	var label_text = ""
+	var branch_label = _branch_name
+	if _in_pocket_dimension:
+		_in_pocket_dimension = false
+		target_grid = floors[_floor_level - 1]
+		spawn_cell = _saved_main_return_cell if _saved_main_return_cell != null else _resolve_floor_spawn_cell(target_grid, "down")
+		label_text = "Returned to Floor " + str(_floor_level)
+	else:
+		var player_pos = _player.get_grid_position()
+		_saved_main_return_cell = Vector2i(int(player_pos.x), int(player_pos.y))
+		var pocket_key = "floor_" + str(_floor_level)
+		if not _pocket_dimensions.has(pocket_key):
+			var pocket_grid = PocketDimensionScript.generate(_floor_level)
+			if pocket_grid == null:
+				add_child(_entity_grid)
+				_entity_grid.add_entity(player_pos.x, player_pos.y, _player)
+				_entity_grid.add_entity(player_pos.x, player_pos.y, _target_cursor)
+				return
+			pocket_grid.name = "PocketDimension-F" + str(_floor_level)
+			_connect_grid_signals(pocket_grid)
+			_pocket_dimensions[pocket_key] = pocket_grid
+		_in_pocket_dimension = true
+		target_grid = _pocket_dimensions[pocket_key]
+		spawn_cell = target_grid.player_spawn_cell
+		label_text = "The Pocket Dimension"
+		branch_label = "The Pocket Dimension"
+	_entity_grid = target_grid
+	add_child(_entity_grid)
+	if _entity_grid._grid_center != null:
+		OD.Math.set_grid_center(_entity_grid._grid_center.x, _entity_grid._grid_center.y)
+	_entity_grid.add_entity(spawn_cell.x, spawn_cell.y, _player)
+	_player.idle()
+	_entity_grid.add_entity(spawn_cell.x, spawn_cell.y, _target_cursor)
+	_entity_grid.update_trap_visibility(_player.get_grid_position())
+	OD.Audio.play_sfx("portal")
+	_spawn_floating_text(spawn_cell, label_text, Color(0.75, 0.55, 1.0))
+	floor_changed.emit(_floor_level, branch_label)
+
 func _handle_trap_disarm(trap):
 	var disarm_res = trap.attempt_disarm()
 	var pos = trap.get_grid_position()
@@ -350,6 +418,9 @@ func _close_element_dialog():
 		_interaction_dialog = null
 
 func _handle_element_interaction(element, grid_coords):
+	if element.element_type == "wizardportal" or element.element_type == "portal":
+		_toggle_pocket_dimension(grid_coords)
+		return
 	_close_element_dialog()
 	_interaction_dialog = ElementDialogScript.new()
 	add_child(_interaction_dialog)

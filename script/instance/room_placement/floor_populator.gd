@@ -56,6 +56,8 @@ static func _is_cell_eligible(entity_grid, cell, used_cells):
 		return false
 	if entity_grid.get_element_at(cell.x, cell.y) != null:
 		return false
+	if entity_grid.get_teleporter_at(cell.x, cell.y) != null:
+		return false
 	if entity_grid.player_spawn_cell != null and cell == entity_grid.player_spawn_cell:
 		return false
 	if _is_adjacent_to_door(entity_grid, cell):
@@ -105,6 +107,35 @@ static func _spawn_blocker_prop(entity_grid, cell):
 				return true
 	return false
 
+static func _create_teleporter_anim(channel):
+	var pad_configs = OD.Resources.paths.teleporters
+	if pad_configs.is_empty():
+		return null
+	var cfg = pad_configs[channel % pad_configs.size()]
+	if OD.Load.exists(cfg.prefix + "0000.png"):
+		return OD.Load.png_sprite(cfg.prefix, 0, cfg.frames, cfg.rate)
+	return null
+
+static func _populate_teleporters(entity_grid, all_eligible_cells, used_cells):
+	var num_teleporters = max(0, int(OD.Database.get_tweak("number of teleporters", 5)))
+	for channel in range(num_teleporters):
+		if all_eligible_cells.size() < 2:
+			break
+		var cell_a = _take_random_cell(all_eligible_cells, used_cells)
+		var cell_b = _take_random_cell(all_eligible_cells, used_cells)
+		if cell_a == null or cell_b == null:
+			break
+		var anim_a = _create_teleporter_anim(channel)
+		var anim_b = _create_teleporter_anim(channel)
+		if anim_a != null and anim_b != null:
+			entity_grid.add_teleporter(cell_a.x, cell_a.y, channel, cell_b, anim_a)
+			entity_grid.add_teleporter(cell_b.x, cell_b.y, channel, cell_a, anim_b)
+
+static func _populate_wizard_portal(entity_grid, all_eligible_cells, used_cells):
+	var portal_cell = _take_random_cell(all_eligible_cells, used_cells)
+	if portal_cell != null:
+		_spawn_element(entity_grid, portal_cell, "wizardportal")
+
 static func populate(entity_grid, placements, _floor_level, no_grind = false):
 	var used_cells = {}
 	var eligible_rooms = []
@@ -112,7 +143,7 @@ static func populate(entity_grid, placements, _floor_level, no_grind = false):
 
 	for placement in placements:
 		var layout = placement.layout
-		if layout.shop or layout.special or layout.zoo or layout.noblockers:
+		if layout.shop or layout.zoo or layout.noblockers or layout.name == "Starting Room":
 			continue
 		var room_cells = []
 		for local_cell in layout.floor_cells:
@@ -167,3 +198,6 @@ static func populate(entity_grid, placements, _floor_level, no_grind = false):
 		if cell == null:
 			break
 		_spawn_blocker_prop(entity_grid, cell)
+
+	_populate_teleporters(entity_grid, all_eligible_cells, used_cells)
+	_populate_wizard_portal(entity_grid, all_eligible_cells, used_cells)

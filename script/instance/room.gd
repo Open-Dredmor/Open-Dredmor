@@ -307,6 +307,8 @@ func element_tile_handler(item, x, y):
 		entity_grid.add_element(x, y, item.type, asset)
 
 func loot_tile_handler(item, x, y):
+	if not item.has("type"):
+		return
 	# TODO Loot should have a sparkling effect
 	var sprite = null
 	if item.type == 'zorkmids':

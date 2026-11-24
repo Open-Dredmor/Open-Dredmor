@@ -83,8 +83,10 @@ func _load_pack_data(base_path):
 			pack_data.encrusts = OD.DataStructure.arrayify(parsed.encrustDB.encrust)
 	if OD.Load.exists(base_path + "wizardRoomDB.xml"):
 		var parsed = OD.Load.xml(base_path + "wizardRoomDB.xml")
-		if parsed.has("wizardRoomDB") and parsed.wizardRoomDB.has("room"):
-			pack_data.wizard_rooms = OD.DataStructure.arrayify(parsed.wizardRoomDB.room)
+		for root_key in ["roomDB", "roomdb", "wizardRoomDB"]:
+			if parsed.has(root_key) and parsed[root_key].has("room"):
+				pack_data.wizard_rooms = OD.DataStructure.arrayify(parsed[root_key].room)
+				break
 	return pack_data
 
 func _append_pack_into_cache(pack_data):
@@ -233,10 +235,25 @@ func get_room_within(floor_level, max_width, max_height):
 				rooms.append(room)
 	return OD.DataStructure.choose(rooms, 1).name
 
-func get_room(room_name):	
-	for room in cache.rooms:
-		if room.name == room_name:
+func _find_room_in_list(room_list, room_name):
+	for room in room_list:
+		if typeof(room) == TYPE_DICTIONARY and room.get("name", "") == room_name:
 			return room
+	return null
+
+func get_room(room_name):
+	var found = _find_room_in_list(cache.rooms, room_name)
+	if found != null:
+		return found
+	found = _find_room_in_list(cache.wizard_rooms, room_name)
+	if found != null:
+		return found
+	if cache.magic_box_rooms_db.has("roomdb") and cache.magic_box_rooms_db.roomdb.has("room"):
+		var box_rooms = OD.DataStructure.arrayify(cache.magic_box_rooms_db.roomdb.room)
+		found = _find_room_in_list(box_rooms, room_name)
+		if found != null:
+			return found
+	return null
 
 func create_room_name():
 	# DEBUG - Cake has a custom blocker
@@ -713,58 +730,87 @@ func get_all_branches():
 		return []
 	return result_cache["branch_info"].list
 
+func _parse_room_layout(room):
+	if typeof(room) != TYPE_DICTIONARY or not room.has("name") or not room.has("row"):
+		return null
+	var rows = OD.DataStructure.arrayify(room.row)
+	if rows.is_empty():
+		return null
+	var grid_width = rows[0].text.length()
+	var grid_height = rows.size()
+	var doors = { up = [], down = [], left = [], right = [] }
+	var floor_cells = []
+	for row_idx in range(grid_height):
+		var row_text = rows[row_idx].text
+		for col_idx in range(min(grid_width, row_text.length())):
+			var tile_char = row_text[col_idx]
+			if tile_char == ".":
+				floor_cells.append(Vector2i(col_idx, row_idx))
+			elif tile_char == "d":
+				if col_idx < grid_width / 2:
+					doors.left.append({ x = col_idx, y = row_idx, kind = "left" })
+				else:
+					doors.right.append({ x = col_idx, y = row_idx, kind = "right" })
+			elif tile_char == "D":
+				if row_idx < grid_height / 2:
+					doors.up.append({ x = col_idx, y = row_idx, kind = "up" })
+				else:
+					doors.down.append({ x = col_idx, y = row_idx, kind = "down" })
+	var flags = room.flags if room.has("flags") and typeof(room.flags) == TYPE_DICTIONARY else {}
+	return {
+		name = room.name,
+		width = grid_width,
+		height = grid_height,
+		min_level = int(flags.minLevel) if flags.has("minLevel") else 0,
+		max_level = int(flags.maxLevel) if flags.has("maxLevel") else 99,
+		special = flags.has("special") and int(flags.special) == 1,
+		shop = flags.has("shop") and int(flags.shop) == 1,
+		zoo = flags.has("zoo") and int(flags.zoo) == 1,
+		noblockers = flags.has("noblockers") and int(flags.noblockers) == 1,
+		notraps = flags.has("notraps") and int(flags.notraps) == 1,
+		notreasure = flags.has("notreasure") and int(flags.notreasure) == 1,
+		nomonsters = flags.has("nomonsters") and int(flags.nomonsters) == 1,
+		genhint = flags.get("genhint", ""),
+		doors = doors,
+		floor_cells = floor_cells
+	}
+
 func _build_room_layouts():
 	var by_name = {}
 	var layouts = []
 	for room in cache.rooms:
-		if typeof(room) != TYPE_DICTIONARY or not room.has("name") or not room.has("row"):
+		var layout = _parse_room_layout(room)
+		if layout == null:
 			continue
-		var rows = OD.DataStructure.arrayify(room.row)
-		if rows.is_empty():
-			continue
-		var grid_width = rows[0].text.length()
-		var grid_height = rows.size()
-		var doors = { up = [], down = [], left = [], right = [] }
-		var floor_cells = []
-		for row_idx in range(grid_height):
-			var row_text = rows[row_idx].text
-			for col_idx in range(min(grid_width, row_text.length())):
-				var tile_char = row_text[col_idx]
-				if tile_char == ".":
-					floor_cells.append(Vector2i(col_idx, row_idx))
-				elif tile_char == "d":
-					if col_idx < grid_width / 2:
-						doors.left.append({ x = col_idx, y = row_idx, kind = "left" })
-					else:
-						doors.right.append({ x = col_idx, y = row_idx, kind = "right" })
-				elif tile_char == "D":
-					if row_idx < grid_height / 2:
-						doors.up.append({ x = col_idx, y = row_idx, kind = "up" })
-					else:
-						doors.down.append({ x = col_idx, y = row_idx, kind = "down" })
-		var flags = room.flags if room.has("flags") and typeof(room.flags) == TYPE_DICTIONARY else {}
-		var layout = {
-			name = room.name,
-			width = grid_width,
-			height = grid_height,
-			min_level = int(flags.minLevel) if flags.has("minLevel") else 0,
-			max_level = int(flags.maxLevel) if flags.has("maxLevel") else 99,
-			special = flags.has("special") and int(flags.special) == 1,
-			shop = flags.has("shop") and int(flags.shop) == 1,
-			zoo = flags.has("zoo") and int(flags.zoo) == 1,
-			noblockers = flags.has("noblockers") and int(flags.noblockers) == 1,
-			notraps = flags.has("notraps") and int(flags.notraps) == 1,
-			notreasure = flags.has("notreasure") and int(flags.notreasure) == 1,
-			nomonsters = flags.has("nomonsters") and int(flags.nomonsters) == 1,
-			doors = doors,
-			floor_cells = floor_cells
-		}
 		by_name[layout.name] = layout
 		layouts.append(layout)
+	var wizard_layouts = []
+	for wizard_room in cache.wizard_rooms:
+		var wizard_layout = _parse_room_layout(wizard_room)
+		if wizard_layout != null:
+			wizard_layouts.append(wizard_layout)
+	var magic_box_layouts = []
+	if cache.magic_box_rooms_db.has("roomdb") and cache.magic_box_rooms_db.roomdb.has("room"):
+		for box_room in OD.DataStructure.arrayify(cache.magic_box_rooms_db.roomdb.room):
+			var box_layout = _parse_room_layout(box_room)
+			if box_layout != null:
+				magic_box_layouts.append(box_layout)
 	cache_result("room_layouts", {
 		by_name = by_name,
-		list = layouts
+		list = layouts,
+		wizard_list = wizard_layouts,
+		magic_box_list = magic_box_layouts
 	})
+
+func get_wizard_room_layouts():
+	if result_cache == null or not result_cache.has("room_layouts"):
+		return []
+	return result_cache["room_layouts"].wizard_list
+
+func get_magic_box_layouts():
+	if result_cache == null or not result_cache.has("room_layouts"):
+		return []
+	return result_cache["room_layouts"].magic_box_list
 
 func get_room_layout(room_name):
 	if result_cache == null or not result_cache.has("room_layouts"):

@@ -214,6 +214,10 @@ func element(element_type):
 			return lever_anim
 		"lutefiskstatue":
 			return OD.Load.animation(element_paths.lutefisk_statue)
+		"portal":
+			if OD.Load.exists(element_paths.wizardportal + "0000.png"):
+				return OD.Load.png_sprite(element_paths.wizardportal, 0, 6, 140)
+			return OD.Load.animation(element_paths.portal)
 		"queststatue":
 			return OD.Load.animation(element_paths.quest_statue)
 		"statue":
@@ -222,6 +226,14 @@ func element(element_type):
 			return OD.Load.split_animation(element_paths.vendor.thrown)
 		"uberchest":
 			return OD.Load.animation(element_paths.uberchest)
+		"wizardcontrols":
+			if OD.Load.exists(element_paths.wizardcontrols):
+				return OD.Load.animation(element_paths.wizardcontrols)
+			return null
+		"wizardportal":
+			if OD.Load.exists(element_paths.wizardportal + "0000.png"):
+				return OD.Load.png_sprite(element_paths.wizardportal, 0, 6, 140)
+			return OD.Load.animation(element_paths.portal)
 		"wizard_graffiti":
 			if OD.Load.exists(element_paths.wizard_graffiti + "0000.png"):
 				return OD.Load.png_sprite(element_paths.wizard_graffiti, 0, 4, 200)

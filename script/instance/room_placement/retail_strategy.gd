@@ -216,15 +216,17 @@ static func generate(_branch_name, floor_level):
 	var eligible_layouts = OD.Database.get_room_layouts_for_floor(floor_index)
 	var tile_cache = _build_tile_cache(eligible_layouts)
 	var normal_layouts = []
-	var all_non_special = []
+	var all_floor_layouts = []
 	for layout in eligible_layouts:
 		if not tile_cache.has(layout.name):
 			continue
-		if layout.special:
+		if layout.name == "Starting Room":
 			continue
-		all_non_special.append(layout)
-		if not layout.shop and not layout.zoo:
+		all_floor_layouts.append(layout)
+		if not layout.shop and not layout.zoo and not layout.special:
 			normal_layouts.append(layout)
+	if normal_layouts.is_empty():
+		normal_layouts = all_floor_layouts
 
 	var start_layout = OD.Database.get_room_layout("Starting Room") if floor_level == 1 else null
 	if start_layout != null and not tile_cache.has(start_layout.name):
@@ -261,18 +263,19 @@ static func generate(_branch_name, floor_level):
 		elif not first_layout.floor_cells.is_empty():
 			player_spawn = Vector2i(start_x + first_layout.floor_cells[0].x, start_y + first_layout.floor_cells[0].y)
 
+		var max_shops = max(0, int(OD.Database.get_tweak("max shops", DEFAULT_MAX_SHOPS)))
 		while not open_doors.is_empty():
 			var source_door = open_doors.pop_front()
 			var target_kind = OPPOSITE_DOOR[source_door.kind]
 			for _attempt in range(MAX_DOOR_ATTEMPTS):
-				if all_non_special.is_empty():
+				if all_floor_layouts.is_empty():
 					break
-				var cand_layout = all_non_special[randi() % all_non_special.size()]
-				if cand_layout.shop and shops_placed >= DEFAULT_MAX_SHOPS:
+				var cand_layout = all_floor_layouts[randi() % all_floor_layouts.size()]
+				if cand_layout.shop and shops_placed >= max_shops:
 					continue
 				if cand_layout.zoo and zoos_placed >= 1:
 					continue
-				if (cand_layout.shop or cand_layout.zoo) and placed_unique.has(cand_layout.name):
+				if (cand_layout.shop or cand_layout.zoo or cand_layout.special) and placed_unique.has(cand_layout.name):
 					continue
 				var cand_data = tile_cache[cand_layout.name]
 				var matching_doors = cand_layout.doors[target_kind]
@@ -296,6 +299,8 @@ static func generate(_branch_name, floor_level):
 					placed_unique[cand_layout.name] = true
 				elif cand_layout.zoo:
 					zoos_placed += 1
+					placed_unique[cand_layout.name] = true
+				elif cand_layout.special:
 					placed_unique[cand_layout.name] = true
 				break
 
