@@ -4,7 +4,7 @@ Fast floor layout generation, branch tilesets, interactive room elements, traps,
 
 ---
 
-- [ ] **Improve dungeon floor generation algorithm & performance**
+- [x] **Improve dungeon floor generation algorithm & performance**
   - *Current state*: [script/instance/dungeon.gd](../script/instance/dungeon.gd) hardcodes `DEBUG_ROOMS` on floor 1; [connect_doors_strategy.gd](../script/instance/room_placement/connect_doors_strategy.gd) and [center_pack_strategy.gd](../script/instance/room_placement/center_pack_strategy.gd) are incomplete and instantiate full `Room` `Node2D`s (loading textures/animations) even for rejected placements, with `O(N^2)` collision retries.
   - *Done when*:
     - Layout/placement operates on lightweight room metadata/rects (bounding boxes + door coordinates) *before* instantiating `Room` nodes or loading sprites.

@@ -17,10 +17,10 @@ var SKILLS_MENU = "skills_menu"
 var SPRITE_TEST = "sprite_test"
 
 # For experiencing the game as a player would see it
-var FIRST_SCENE = PRELOAD_ASSETS
+#var FIRST_SCENE = PRELOAD_ASSETS
 
 # For debugging specific levels or gameplay features
-#var FIRST_SCENE = GAME
+var FIRST_SCENE = GAME
 
 func quit():
 	get_tree().quit()
@@ -42,6 +42,8 @@ func bootstrap_again():
 	return get_tree().change_scene_to_file("res://scene/Bootstrap/Bootstrap.tscn")
 
 func _load_scene(scene_path):
+	if OD.ActionQueue != null:
+		OD.ActionQueue.clear()
 	var root = get_node('/root')
 	var last_scene = root.get_node("Container")
 	root.remove_child(last_scene)

@@ -11,6 +11,9 @@ func init(entity, grid_destination):
 	_destination = grid_destination
 	
 func update():
+	if not is_instance_valid(_entity):
+		_action_complete = true
+		return
 	var diff = _entity.get_grid_position() - _destination
 	# TODO implement proper pathfinding and movement blocking
 	if diff.x != 0:

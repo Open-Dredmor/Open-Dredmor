@@ -131,6 +131,7 @@ func set_active_packs(pack_ids = []):
 	_build_spell_info()
 	_build_tweak_info()
 	_build_branch_info()
+	_build_room_layouts()
 	_build_monster_info()
 	_build_sound_info()
 
@@ -693,6 +694,70 @@ func get_all_branches():
 	if result_cache == null or not result_cache.has("branch_info"):
 		return []
 	return result_cache["branch_info"].list
+
+func _build_room_layouts():
+	var by_name = {}
+	var layouts = []
+	for room in cache.rooms:
+		if typeof(room) != TYPE_DICTIONARY or not room.has("name") or not room.has("row"):
+			continue
+		var rows = OD.DataStructure.arrayify(room.row)
+		if rows.is_empty():
+			continue
+		var grid_width = rows[0].text.length()
+		var grid_height = rows.size()
+		var doors = { up = [], down = [], left = [], right = [] }
+		var floor_cells = []
+		for row_idx in range(grid_height):
+			var row_text = rows[row_idx].text
+			for col_idx in range(min(grid_width, row_text.length())):
+				var tile_char = row_text[col_idx]
+				if tile_char == ".":
+					floor_cells.append(Vector2i(col_idx, row_idx))
+				elif tile_char == "d":
+					if col_idx < grid_width / 2:
+						doors.left.append({ x = col_idx, y = row_idx, kind = "left" })
+					else:
+						doors.right.append({ x = col_idx, y = row_idx, kind = "right" })
+				elif tile_char == "D":
+					if row_idx < grid_height / 2:
+						doors.up.append({ x = col_idx, y = row_idx, kind = "up" })
+					else:
+						doors.down.append({ x = col_idx, y = row_idx, kind = "down" })
+		var flags = room.flags if room.has("flags") and typeof(room.flags) == TYPE_DICTIONARY else {}
+		var layout = {
+			name = room.name,
+			width = grid_width,
+			height = grid_height,
+			min_level = int(flags.minLevel) if flags.has("minLevel") else 0,
+			max_level = int(flags.maxLevel) if flags.has("maxLevel") else 99,
+			special = flags.has("special") and int(flags.special) == 1,
+			shop = flags.has("shop") and int(flags.shop) == 1,
+			zoo = flags.has("zoo") and int(flags.zoo) == 1,
+			doors = doors,
+			floor_cells = floor_cells
+		}
+		by_name[layout.name] = layout
+		layouts.append(layout)
+	cache_result("room_layouts", {
+		by_name = by_name,
+		list = layouts
+	})
+
+func get_room_layout(room_name):
+	if result_cache == null or not result_cache.has("room_layouts"):
+		return null
+	var by_name = result_cache["room_layouts"].by_name
+	return by_name[room_name] if by_name.has(room_name) else null
+
+func get_room_layouts_for_floor(floor_index):
+	if result_cache == null or not result_cache.has("room_layouts"):
+		return []
+	var eligible = []
+	for layout in result_cache["room_layouts"].list:
+		if layout.min_level <= floor_index and layout.max_level >= floor_index:
+			eligible.append(layout)
+	return eligible
 
 func _build_sound_info():
 	var sounds = {}

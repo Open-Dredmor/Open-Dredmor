@@ -353,7 +353,8 @@ func claim_door(x, y, kind):
 			kill_index = index
 			break
 		index += 1
-	_doors[kind].remove_at(kill_index)
+	if kill_index != null:
+		_doors[kind].remove_at(kill_index)
 	# TODO Add the door and remove surrounding walls
 
 func seal_available_doors():

@@ -40,7 +40,7 @@ func _input(ev):
 		OD.ActionQueue.add(action)
 
 func _build_ui():
-	var strategy = FLOOR_STRATEGY.DEBUG_ROOMS	
+	var strategy = FLOOR_STRATEGY.CONNECT_DOORS
 	_player = PlayerCharacter.new()	
 	_player.init()
 	var settings = OD.DungeonSettings.get_settings()
