@@ -1,6 +1,7 @@
 extends Node
 
 var _settings = null
+var _packs_initialized = false
 
 enum Difficulty {
 	Easy,
@@ -9,7 +10,11 @@ enum Difficulty {
 }
 
 func reset():
-	var preserved_packs = _settings.active_packs.duplicate() if _settings != null and _settings.has("active_packs") else []
+	var default_packs = []
+	if OD.Settings != null and OD.Settings._settings != null:
+		for pack_info in OD.Settings.get_available_content_packs():
+			if pack_info.kind == "expansion":
+				default_packs.append(pack_info.id)
 	_settings = {
 		difficulty = Difficulty.Medium,
 		no_time_to_grind = false,
@@ -20,7 +25,7 @@ func reset():
 		player_start_x = 4,
 		player_start_y = 3,
 		seconds_per_action = .5,
-		active_packs = preserved_packs
+		active_packs = default_packs
 	}
 
 func set_difficulty(difficulty):
@@ -42,7 +47,11 @@ func set_starting_skill_ids(skills):
 	_settings.starting_skill_ids = skills
 
 func set_active_packs(pack_ids):
+	_packs_initialized = true
 	_settings.active_packs = pack_ids.duplicate()
+
+func has_initialized_packs():
+	return _packs_initialized
 
 func get_active_packs():
 	return _settings.active_packs

@@ -159,7 +159,13 @@ func ingest():
 			print("Ingesting content pack [" + pack_info.id + "] from " + pack_info.prefix)
 			packs[pack_info.id] = _load_pack_data(pack_info.prefix + pack_info.data_subdir)
 
-		set_active_packs(OD.DungeonSettings.get_active_packs())
+		var initial_packs = OD.DungeonSettings.get_active_packs()
+		if not OD.DungeonSettings.has_initialized_packs():
+			initial_packs = []
+			for pack_info in OD.Settings.get_available_content_packs():
+				if pack_info.kind == "expansion":
+					initial_packs.append(pack_info.id)
+		set_active_packs(initial_packs)
 
 func cache_result(key,result):
 	if result_cache == null:

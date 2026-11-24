@@ -10,6 +10,7 @@ var _no_time_to_grind_checkmark = null
 var _easy_checkmark = null
 var _medium_checkmark = null
 var _hard_checkmark = null
+var _selected_pack_ids = []
 
 func _ready():	
 	call_deferred("_build_gui")
@@ -134,13 +135,61 @@ func _build_gui():
 	var settings = OD.DungeonSettings.get_settings()
 	_permadeath_enabled = settings.permadeath
 	_no_time_to_grind_enabled = settings.no_time_to_grind
+	_selected_pack_ids = settings.active_packs.duplicate()
 	_select_difficulty(settings.difficulty)
 	_permadeath_checkmark.visible = _permadeath_enabled
 	_no_time_to_grind_checkmark.visible = _no_time_to_grind_enabled
 
+	_build_content_packs_panel(difficulty_menu)
+
+func _build_content_packs_panel(parent):
+	var panel = PanelContainer.new()
+	panel.anchor_left = 0.72
+	panel.anchor_top = 0.25
+	panel.custom_minimum_size = Vector2(360, 0)
+	parent.add_child(panel)
+
+	var margin = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_bottom", 16)
+	panel.add_child(margin)
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	margin.add_child(vbox)
+
+	var title_label = Label.new()
+	title_label.text = "Expansions & Mods"
+	vbox.add_child(title_label)
+
+	var available_packs = OD.Database.get_available_packs()
+	if available_packs.is_empty():
+		var empty_label = Label.new()
+		empty_label.text = "No expansions or mods found."
+		vbox.add_child(empty_label)
+		return
+
+	for pack_info in available_packs:
+		var checkbox = CheckBox.new()
+		var suffix = " [Mod]" if pack_info.kind == "mod" else ""
+		checkbox.text = pack_info.name + suffix
+		checkbox.button_pressed = _selected_pack_ids.has(pack_info.id)
+		checkbox.toggled.connect(_on_pack_toggled.bind(pack_info.id))
+		vbox.add_child(checkbox)
+
+func _on_pack_toggled(enabled, pack_id):
+	if enabled:
+		if not _selected_pack_ids.has(pack_id):
+			_selected_pack_ids.append(pack_id)
+	else:
+		_selected_pack_ids.erase(pack_id)
+	OD.DungeonSettings.set_active_packs(_selected_pack_ids)
+
 func _on_DoneButton_pressed():
+	OD.Database.set_active_packs(_selected_pack_ids)
 	OD.Scenes.goto(OD.Scenes.SKILLS_MENU)
-	pass
 
 func _on_BackButton_pressed():
 	OD.Scenes.goto(OD.Scenes.MAIN_MENU)
