@@ -12,7 +12,7 @@ Pre-game flow, responsive UI scaling across window sizes, and preserving player 
   - *Current state*: [script/scene/skills_menu.gd](../script/scene/skills_menu.gd) calls `OD.DungeonSettings.reset()` in `_build_gui()`, wiping previously selected difficulty/skills/character state; hitting **Back** from [script/scene/character_menu.gd](../script/scene/character_menu.gd) or [script/scene/skills_menu.gd](../script/scene/skills_menu.gd) loses prior selections.
   - *Done when*: `OD.DungeonSettings` is only reset when starting a fresh New Game from Main Menu (or explicitly), and Difficulty, Skills, and Character menus initialize their UI controls from existing `OD.DungeonSettings` state so Back/Forward navigation preserves all selections.
 
-- [ ] **Enable normal startup flow**
+- [x] **Enable normal startup flow**
   - *Current state*: [script/singleton/scenes.gd](../script/singleton/scenes.gd) sets `FIRST_SCENE = GAME` for debugging, skipping `PRELOAD_ASSETS` and `MAIN_MENU`.
   - *Done when*: `FIRST_SCENE` defaults to `PRELOAD_ASSETS` (with a debug toggle/flag if desired) so players enter Main Menu → Difficulty → Skills → Character → Intro → Game.
 

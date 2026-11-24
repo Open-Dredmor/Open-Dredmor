@@ -14,11 +14,11 @@ var SETTINGS_MENU = "settings_menu"
 var SKILLS_MENU = "skills_menu"
 var SPRITE_TEST = "sprite_test"
 
-# For debugging specific levels or gameplay features
+# For experiencing the game as a player would see it
 var FIRST_SCENE = PRELOAD_ASSETS
 
-# For experiencing the game as a player would see it
-#var FIRST_SCENE = PRELOAD_ASSETS
+# For debugging specific levels or gameplay features
+#var FIRST_SCENE = GAME
 
 func quit():
 	get_tree().quit()

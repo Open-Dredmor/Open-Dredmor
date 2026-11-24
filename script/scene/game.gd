@@ -10,7 +10,8 @@ func _ready():
 
 func _build_ui():
 	# TODO Remove unless testing
-	_dev_seed()
+	if OD.DungeonSettings.get_settings().hero == null:
+		_dev_seed()
 	
 	var assets = OD.Assets.game()	
 	var	container = OD.Scenes.container()
