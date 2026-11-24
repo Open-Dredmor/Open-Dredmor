@@ -5,7 +5,7 @@ Command decoupling, roguelike turn scheduling, grid collision/pathfinding, camer
 ---
 
 - [x] **Decouple command system from input system**
-  - *Current state*: [script/instance/dungeon.gd](../script/instance/dungeon.gd) (`_input`) and [script/scene/game.gd](../script/scene/game.gd) (`_input`) directly mutate positions or instantiate `MoveToLocationAction` inside input handlers.
+  - *Current state*: [script/instance/dungeon.gd](../script/instance/dungeon.gd) (`_input`) and [script/scene/game/game.gd](../script/scene/game/game.gd) (`_input`) directly mutate positions or instantiate `MoveToLocationAction` inside input handlers.
   - *Done when*: Player actions are represented as discrete Command objects/interfaces (e.g., `MoveCommand`, `AttackCommand`, `InteractCommand`, `CastSpellCommand`, `UseItemCommand`, `WaitCommand`), and an InputMapper translates keyboard/mouse/UI events into commands—allowing rebindable keys, click-to-act, and non-input sources (AI/macros/tests) to drive the same command pipeline.
 
 - [x] **True roguelike turn scheduler**
@@ -17,7 +17,7 @@ Command decoupling, roguelike turn scheduling, grid collision/pathfinding, camer
   - *Done when*: `EntityGrid` tracks walkability, opacity, and entity occupancy per cell; A* pathfinding routes around obstacles and stops on hazards/enemies; clicking a tile issues a pathing command that walks until arrival, interruption, or enemy spotted.
 
 - [x] **Keyboard controls & camera follow**
-  - *Current state*: [script/scene/game.gd](../script/scene/game.gd) pans the map with arrow keys and mouse drag; there is no player keyboard movement or camera centering on the player.
+  - *Current state*: [script/scene/game/game.gd](../script/scene/game/game.gd) pans the map with arrow keys and mouse drag; there is no player keyboard movement or camera centering on the player.
   - *Done when*: Player can move/attack via keyboard (WASD / arrows / numpad), wait a turn (`Space`), and the camera smoothly centers on the player (with optional manual pan/reset).
 
 - [x] **Line of Sight (FOV) & Fog of War**

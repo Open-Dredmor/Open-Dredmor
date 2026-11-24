@@ -5,7 +5,7 @@ Screen-fixed HUD, event log, minimap, modal windows, and combat feedback.
 ---
 
 - [ ] **Core HUD overlay**
-  - *Current state*: [script/scene/game.gd](../script/scene/game.gd) creates an empty `Control` named `GUI` inside `moveable_container` (which moves with the map rather than staying screen-fixed).
+  - *Current state*: [script/scene/game/game.gd](../script/scene/game/game.gd) creates an empty `Control` named `GUI` inside `moveable_container` (which moves with the map rather than staying screen-fixed).
   - *Done when*: A `CanvasLayer` HUD displays screen-fixed HP/MP bars/orbs, XP bar, Zorkmids, current floor & room name, active buffs, and clickable/hotkeyed skill & item belt/hotbar.
 
 - [ ] **Event / Combat Log**

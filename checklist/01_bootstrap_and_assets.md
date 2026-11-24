@@ -21,7 +21,7 @@ Foundational work to reliably validate the user's *Dungeons of Dredmor* installa
   - *Done when*: Text content is attached directly to its owning element node (e.g., `node.text`) and `.xml` sprite animations + room `<row>`/`<script>`/`<text>` data parse cleanly without the `data_nodes` workaround.
 
 - [x] **Palette-swapped sprite loading (`.pal`)**
-  - *Current state*: Commented-out stub in [script/scene/sprite_test.gd](../script/scene/sprite_test.gd).
+  - *Current state*: Commented-out stub in [script/scene/dev/sprite_test.gd](../script/scene/dev/sprite_test.gd).
   - *Done when*: `OD.Load` can parse `.pal` files and apply palette swaps to `.spr` sprites (needed for monster/hero variants).
 
 - [x] **Sound effects (SFX) loader & player**
