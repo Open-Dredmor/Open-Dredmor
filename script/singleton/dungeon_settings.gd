@@ -23,7 +23,7 @@ func reset():
 		name = "",
 		starting_skill_ids = [],
 		player_start_x = 4,
-		player_start_y = 3,
+		player_start_y = 6,
 		seconds_per_action = .5,
 		active_packs = default_packs
 	}

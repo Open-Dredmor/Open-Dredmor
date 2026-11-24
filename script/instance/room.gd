@@ -146,12 +146,15 @@ func init(room_database_name):
 						})	
 				"W":						
 					entity_name = "water"
+					entity_grid.mark_blocker(jj, ii)
 				"L":
 					entity_name = "lava"
+					entity_grid.mark_blocker(jj, ii)
 				"I":
 					entity_name = "ice"
 				"G":
 					entity_name = "goo"
+					entity_grid.mark_blocker(jj, ii)
 				"^":
 					has_floor = true
 					if name_details.flooring != null:
@@ -167,17 +170,20 @@ func init(room_database_name):
 					if name_details.statue != null:
 						entity_name = "floor_decoration"
 						sprite_path = name_details.statue
+						entity_grid.mark_blocker(jj, ii)
 				"S":
 					has_floor = true
 					entity_name = "monster"
 					# TODO Use the Brax monster instead of a sprite
 					sprite_path = "sprites/monster/brax/brax_run_d.spr"
+					entity_grid.mark_blocker(jj, ii)
 				"s": # Brax teleport location while shopping
 					has_floor = true
 				"i": # sales pedestal
 					has_floor = true
 					entity_name = "customblocker"
 					sprite_path = "dungeon/store_pedestal.png"
+					entity_grid.mark_blocker(jj, ii)
 				"X": # Invisible blocker
 					has_floor = true
 					entity_grid.mark_blocker(jj, ii)
@@ -240,6 +246,8 @@ func customblocker_tile_handler(item, x, y):
 		animation = OD.Load.animation(item.png)
 	if animation != null:
 		entity_grid.add_animation(x, y, "customblocker", animation)
+		if not item.has("passable") or int(item.passable) == 0:
+			entity_grid.mark_blocker(x, y)
 
 func customengraving_tile_handler(item, x, y):
 	var animation = null
@@ -256,6 +264,7 @@ func element_tile_handler(item, x, y):
 		OD.Log.warn("Unhandled element tile type [" + item.type + "]")
 	else:
 		entity_grid.add_animation(x, y, "element", asset)
+		entity_grid.mark_blocker(x, y)
 
 func loot_tile_handler(item, x, y):
 	# TODO Loot should have a sparkling effect
@@ -303,6 +312,7 @@ func horde_tile_handler(item, x, y):
 func pedestal_tile_handler(_item, x, y):
 	var animation = OD.Load.animation(OD.Resources.paths.pedestal)
 	entity_grid.add_animation(x, y, 'pedestal', animation)
+	entity_grid.mark_blocker(x, y)
 
 func custombreakable_tile_handler(item, x, y):
 	var animation = OD.Load.animation(item.png)

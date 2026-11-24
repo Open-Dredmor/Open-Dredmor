@@ -32,14 +32,18 @@ func _input(ev):
 		if _target_cursor != null and _entity_grid != null and ! _target_cursor.is_selecting():
 			var grid_coords = global_coordinates_to_grid(ev.position.x, ev.position.y)
 			_entity_grid.move(grid_coords.x, grid_coords.y, _target_cursor)
-	if ev is InputEventMouseButton and ev.pressed and _target_cursor != null:
+	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and _target_cursor != null:
 		var grid_coords = global_coordinates_to_grid(ev.position.x, ev.position.y)
 		var door = _entity_grid.get_door_at(grid_coords.x, grid_coords.y) if _entity_grid != null else null
-		if door != null:
+		if door != null and not door.can_pass():
 			door.interact()
+			return
+		if _entity_grid != null and not _entity_grid.is_walkable(grid_coords.x, grid_coords.y):
+			return
 		_target_cursor.select(grid_coords.x, grid_coords.y)
+		OD.ActionQueue.clear()
 		var action = OD.Actions.MoveToLocation.new()
-		action.init(_player, grid_coords)
+		action.init(_player, grid_coords, _entity_grid)
 		OD.ActionQueue.add(action)
 
 func _build_ui():
