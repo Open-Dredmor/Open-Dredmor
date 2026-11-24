@@ -88,33 +88,61 @@ func _dev_seed():
 	OD.DungeonSettings.set_character_name("Eyebrows")
 	OD.DungeonSettings.set_starting_skill_ids([0,1,2,3,4,5,6])
 
+const DRAG_THRESHOLD_PX = 6.0
+const CLICK_MAX_HOLD_MS = 160
+
 var speed = 200
 var drag_enabled = false
+var _is_dragging = false
+var _drag_start_pos = Vector2.ZERO
+var _drag_press_time_ms = 0
+var _total_pan_px = 0.0
 var old_position
+
 func _input(ev):
-	if _dungeon != null and is_instance_valid(_dungeon) and _dungeon.is_dialog_open():
-		drag_enabled = false
+	if _dungeon == null or not is_instance_valid(_dungeon):
 		return
-	if ev is InputEventKey and ev.is_pressed():
-		if ev.keycode == KEY_LEFT:
-			moveable_container.position.x += speed
-		if ev.keycode == KEY_RIGHT:
-			moveable_container.position.x -= speed
-		if ev.keycode == KEY_UP:
-			moveable_container.position.y += speed
-		if ev.keycode == KEY_DOWN:
-			moveable_container.position.y -= speed
-	if ev is InputEventMouseButton:
-		if ev.button_index == MOUSE_BUTTON_LEFT:
-			drag_enabled = ev.pressed
-			if ev.pressed:
-				old_position = get_global_mouse_position()
-		elif ev.pressed and ev.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_zoom_at(1.15)
-		elif ev.pressed and ev.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_zoom_at(1.0 / 1.15)
-		elif ev.pressed and ev.button_index == MOUSE_BUTTON_MIDDLE:
-			_reset_zoom()
+	if _dungeon.is_dialog_open():
+		drag_enabled = false
+		_is_dragging = false
+		_dungeon.handle_dungeon_input(ev)
+		return
+	var mapper = _dungeon.get_input_mapper()
+	var cam_action = mapper.translate_camera_input(ev) if mapper != null else null
+	if cam_action != null:
+		match cam_action.kind:
+			"pan":
+				moveable_container.position += cam_action.delta * speed
+				return
+			"center_camera":
+				_center_on_player()
+				return
+			"drag":
+				if cam_action.pressed:
+					drag_enabled = true
+					_is_dragging = false
+					_drag_start_pos = cam_action.position
+					_drag_press_time_ms = Time.get_ticks_msec()
+					_total_pan_px = 0.0
+					old_position = get_global_mouse_position()
+				else:
+					var held_ms = Time.get_ticks_msec() - _drag_press_time_ms
+					var was_drag = _is_dragging or _total_pan_px >= DRAG_THRESHOLD_PX or cam_action.position.distance_to(_drag_start_pos) >= DRAG_THRESHOLD_PX or held_ms >= CLICK_MAX_HOLD_MS
+					drag_enabled = false
+					_is_dragging = false
+					if not was_drag:
+						_dungeon.handle_dungeon_input(ev)
+				return
+			"drag_motion":
+				if drag_enabled and cam_action.position.distance_to(_drag_start_pos) >= DRAG_THRESHOLD_PX:
+					_is_dragging = true
+			"zoom":
+				_zoom_at(cam_action.factor)
+				return
+			"reset_zoom":
+				_reset_zoom()
+				return
+	_dungeon.handle_dungeon_input(ev)
 
 func _zoom_at(zoom_factor):
 	if moveable_container == null:
@@ -142,7 +170,11 @@ func _reset_zoom():
 func _physics_process(_delta):
 	if old_position != null and drag_enabled:
 		var new_position = get_global_mouse_position()
-		var delta_position = new_position - old_position;
-		moveable_container.position.x += delta_position.x
-		moveable_container.position.y += delta_position.y
-		old_position = new_position
+		var delta_position = new_position - old_position
+		if delta_position.length() > 0.0:
+			moveable_container.position.x += delta_position.x
+			moveable_container.position.y += delta_position.y
+			_total_pan_px += delta_position.length()
+			old_position = new_position
+		if _total_pan_px >= DRAG_THRESHOLD_PX or (Time.get_ticks_msec() - _drag_press_time_ms) >= CLICK_MAX_HOLD_MS:
+			_is_dragging = true

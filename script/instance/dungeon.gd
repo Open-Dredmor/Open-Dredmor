@@ -5,6 +5,8 @@ class_name Dungeon
 const ElementDialogScript = preload("res://script/instance/ui/element_dialog.gd")
 const ShopDialogScript = preload("res://script/instance/ui/shop_dialog.gd")
 const PocketDimensionScript = preload("res://script/instance/room_placement/pocket_dimension.gd")
+const CommandProcessorScript = preload("res://script/instance/command/command_processor.gd")
+const InputMapperScript = preload("res://script/instance/input/input_mapper.gd")
 
 signal floor_changed(floor_level, branch_name)
 
@@ -33,6 +35,74 @@ var _pending_interaction = null
 var _in_pocket_dimension = false
 var _pocket_dimensions = {}
 var _saved_main_return_cell = null
+var _command_processor = CommandProcessorScript.new()
+var _input_mapper = InputMapperScript.new()
+
+func get_command_processor():
+	return _command_processor
+
+func get_input_mapper():
+	return _input_mapper
+
+func clear_pending_interaction():
+	_pending_interaction = null
+
+func change_floor_to(direction):
+	_change_floor(direction)
+
+func _build_command_context():
+	var allow_debug_teleport = _active_strategy == FLOOR_STRATEGY.DEBUG_ROOMS or OD.DungeonSettings.get_settings().get("debug_teleport", false)
+	return {
+		dungeon = self,
+		entity_grid = _entity_grid,
+		player = _player,
+		target_cursor = _target_cursor,
+		allow_debug_teleport = allow_debug_teleport
+	}
+
+func submit_command(command):
+	return _command_processor.submit(command, _build_command_context())
+
+func execute_interact_command(command):
+	var kind = command.interaction_kind
+	var cell = command.target_cell
+	if kind == "stairs":
+		var stairs = _entity_grid.get_stairs_at(cell.x, cell.y)
+		if stairs == null:
+			return false
+		var current_pos = _player.get_grid_position()
+		if Vector2i(int(current_pos.x), int(current_pos.y)) == cell:
+			_change_floor(stairs.direction)
+		else:
+			_move_to_stairs(cell, stairs.direction)
+		return true
+	_interact_or_approach({ kind = kind, target_pos = cell })
+	return true
+
+func execute_attack_at(target_cell):
+	var keeper = _entity_grid.shop_manager.get_shopkeeper_at(target_cell.x, target_cell.y) if _entity_grid != null else null
+	if keeper != null and keeper.is_hostile:
+		_handle_shopkeeper_interaction(keeper, target_cell)
+		return true
+	var element = _entity_grid.get_element_at(target_cell.x, target_cell.y) if _entity_grid != null else null
+	if element != null and not element.is_broken and element.element_type == "custom_breakable":
+		_handle_element_interaction(element, target_cell)
+		return true
+	return false
+
+func execute_cast_spell(spell_name, target_cell):
+	if spell_name == "" or _entity_grid == null:
+		return false
+	_spawn_spell_vfx(spell_name, target_cell)
+	_spawn_floating_text(target_cell, "Cast " + spell_name, Color(0.65, 0.85, 1.0))
+	return true
+
+func execute_use_item(item_data, target_cell):
+	if item_data.is_empty() or _player == null:
+		return false
+	var pos = target_cell if target_cell != Vector2i.ZERO else Vector2i(int(_player.get_grid_position().x), int(_player.get_grid_position().y))
+	_spawn_floating_text(pos, "Used " + str(item_data.get("name", "Item")), Color(0.75, 0.95, 0.65))
+	return true
 
 func global_coordinates_to_grid(x, y):
 	var xform = get_global_transform_with_canvas()
@@ -45,81 +115,22 @@ func global_coordinates_to_grid(x, y):
 func init():	
 	call_deferred("_build_ui")
 
-func _input(ev):
+func handle_dungeon_input(ev):
 	if is_instance_valid(_interaction_dialog):
 		if ev is InputEventKey and ev.pressed and ev.keycode == KEY_ESCAPE:
 			_close_element_dialog()
 		return
-	if ev is InputEventKey and ev.is_pressed():
-		if ev.keycode == KEY_SPACE and not ev.echo:
-			OD.Scenes.goto(OD.Scenes.GAME)
-		elif not ev.echo and (ev.unicode == ord(">") or ev.unicode == ord("<")):
-			if _entity_grid != null and _player != null:
-				var player_pos = _player.get_grid_position()
-				var stairs = _entity_grid.get_stairs_at(player_pos.x, player_pos.y)
-				if stairs != null:
-					var wanted = "down" if ev.unicode == ord(">") else "up"
-					if stairs.direction == wanted:
-						_change_floor(wanted)
-						return
+	if ev is InputEventKey and ev.is_pressed() and not ev.echo and _input_mapper.is_action_key("restart_scene", ev.keycode):
+		OD.Scenes.goto(OD.Scenes.GAME)
+		return
 	if ev is InputEventMouseMotion:
 		if _target_cursor != null and _entity_grid != null and ! _target_cursor.is_selecting():
 			var grid_coords = global_coordinates_to_grid(ev.position.x, ev.position.y)
 			_entity_grid.move(grid_coords.x, grid_coords.y, _target_cursor)
-	if ev is InputEventMouseButton and ev.pressed and _target_cursor != null:
-		var grid_coords = global_coordinates_to_grid(ev.position.x, ev.position.y)
-		var allow_debug_teleport = _active_strategy == FLOOR_STRATEGY.DEBUG_ROOMS or OD.DungeonSettings.get_settings().get("debug_teleport", false)
-		if ev.button_index == MOUSE_BUTTON_RIGHT and allow_debug_teleport:
-			_pending_interaction = null
-			OD.ActionQueue.clear()
-			_target_cursor.select(grid_coords.x, grid_coords.y)
-			_player.move_to(grid_coords.x, grid_coords.y)
-			_player.idle()
-			if _entity_grid != null:
-				_entity_grid.on_player_step(_player.get_grid_position())
-				var debug_stairs = _entity_grid.get_stairs_at(grid_coords.x, grid_coords.y)
-				if debug_stairs != null:
-					_change_floor(debug_stairs.direction)
-			return
-		if ev.button_index != MOUSE_BUTTON_LEFT:
-			return
-		_pending_interaction = null
-		var shopkeeper = _entity_grid.shop_manager.get_shopkeeper_at(grid_coords.x, grid_coords.y) if _entity_grid != null else null
-		if shopkeeper != null:
-			_interact_or_approach({ kind = "shopkeeper", target_pos = Vector2i(int(grid_coords.x), int(grid_coords.y)) })
-			return
-		var shop_pedestal = _entity_grid.shop_manager.get_pedestal_at(grid_coords.x, grid_coords.y) if _entity_grid != null else null
-		if shop_pedestal != null:
-			_interact_or_approach({ kind = "shop_pedestal", target_pos = Vector2i(int(grid_coords.x), int(grid_coords.y)) })
-			return
-		var door = _entity_grid.get_door_at(grid_coords.x, grid_coords.y) if _entity_grid != null else null
-		if door != null and not door.can_pass():
-			_interact_or_approach({ kind = "door", target_pos = Vector2i(int(grid_coords.x), int(grid_coords.y)) })
-			return
-		var element = _entity_grid.get_element_at(grid_coords.x, grid_coords.y) if _entity_grid != null else null
-		if element != null and not element.is_broken:
-			_interact_or_approach({ kind = "element", target_pos = Vector2i(int(grid_coords.x), int(grid_coords.y)) })
-			return
-		var trap = _entity_grid.get_trap_at(grid_coords.x, grid_coords.y) if _entity_grid != null else null
-		if trap != null and trap.is_discovered and not trap.is_disarmed:
-			_interact_or_approach({ kind = "trap", target_pos = Vector2i(int(grid_coords.x), int(grid_coords.y)) })
-			return
-		var stairs = _entity_grid.get_stairs_at(grid_coords.x, grid_coords.y) if _entity_grid != null else null
-		if stairs != null:
-			var stairs_cell = Vector2i(int(grid_coords.x), int(grid_coords.y))
-			var current_pos = _player.get_grid_position()
-			if Vector2i(int(current_pos.x), int(current_pos.y)) == stairs_cell:
-				_change_floor(stairs.direction)
-			else:
-				_move_to_stairs(stairs_cell, stairs.direction)
-			return
-		if _entity_grid != null and not _entity_grid.is_walkable(grid_coords.x, grid_coords.y):
-			return
-		_target_cursor.select(grid_coords.x, grid_coords.y)
-		OD.ActionQueue.clear()
-		var action = OD.Actions.MoveToLocation.new()
-		action.init(_player, grid_coords, _entity_grid)
-		OD.ActionQueue.add(action)
+		return
+	var command = _input_mapper.translate_dungeon_input(ev, _build_command_context())
+	if command != null:
+		submit_command(command)
 
 func _is_adjacent(pos_a, pos_b):
 	return max(abs(int(pos_a.x) - int(pos_b.x)), abs(int(pos_a.y) - int(pos_b.y))) <= 1

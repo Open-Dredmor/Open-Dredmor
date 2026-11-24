@@ -4,7 +4,7 @@ Command decoupling, roguelike turn scheduling, grid collision/pathfinding, camer
 
 ---
 
-- [ ] **Decouple command system from input system**
+- [x] **Decouple command system from input system**
   - *Current state*: [script/instance/dungeon.gd](../script/instance/dungeon.gd) (`_input`) and [script/scene/game.gd](../script/scene/game.gd) (`_input`) directly mutate positions or instantiate `MoveToLocationAction` inside input handlers.
   - *Done when*: Player actions are represented as discrete Command objects/interfaces (e.g., `MoveCommand`, `AttackCommand`, `InteractCommand`, `CastSpellCommand`, `UseItemCommand`, `WaitCommand`), and an InputMapper translates keyboard/mouse/UI events into commands—allowing rebindable keys, click-to-act, and non-input sources (AI/macros/tests) to drive the same command pipeline.
 
