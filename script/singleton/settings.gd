@@ -25,13 +25,45 @@ func change(section, key, value):
 
 var cached_install_dir = null
 
+const REQUIRED_DREDMOR_FILES = [
+	"game/itemDB.xml",
+	"game/skillDB.xml",
+	"game/monDB.xml",
+	"game/rooms.xml",
+	"game/branchDB.xml",
+	"game/craftDB.xml",
+	"game/spellDB.xml",
+	"game/text.xml"
+]
+
+func normalize_dir_path(dir_path):
+	if dir_path == null or dir_path == "":
+		return ""
+	if dir_path[-1] != '/':
+		return dir_path + '/'
+	return dir_path
+
+func validate_dredmor_dir(dir_path):
+	var normalized = normalize_dir_path(dir_path)
+	var missing = []
+	if normalized == "" or not DirAccess.dir_exists_absolute(normalized):
+		return {
+			valid = false,
+			missing = REQUIRED_DREDMOR_FILES.duplicate()
+		}
+	for relative_path in REQUIRED_DREDMOR_FILES:
+		if not FileAccess.file_exists(normalized + relative_path):
+			missing.append(relative_path)
+	return {
+		valid = missing.is_empty(),
+		missing = missing
+	}
+
 func dredmor_install_dir():
 	if cached_install_dir == null:
 		var dir = _settings.get_value("open_dredmor", "dredmor_install_directory")
 		if dir != null and dir != "":
-			if dir[-1] != '/':
-				dir += '/'
-			cached_install_dir = dir
+			cached_install_dir = normalize_dir_path(dir)
 	return cached_install_dir
 	
 func audio_enabled():

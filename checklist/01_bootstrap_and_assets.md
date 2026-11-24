@@ -4,7 +4,7 @@ Foundational work to reliably validate the user's *Dungeons of Dredmor* installa
 
 ---
 
-- [ ] **Validate Dredmor installation directory**
+- [x] **Validate Dredmor installation directory**
   - *Current state*: [scene/Bootstrap/bootstrap.gd](../scene/Bootstrap/bootstrap.gd) accepts any directory selected in `FileDialog`.
   - *Done when*: Selection checks for required vanilla files (e.g., `game/itemDB.xml`, `game/skillDB.xml`, `game/monDB.xml`, `game/rooms.xml`), displays a clear error if invalid, and only saves/proceeds on a valid install.
 
