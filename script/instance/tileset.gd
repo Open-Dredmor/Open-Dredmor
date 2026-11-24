@@ -24,18 +24,56 @@ func set_branch(branch_id):
 			height = OD.Assets.CELL_PIXEL_HEIGHT
 		}
 		if tile.has("endx"):
-			entry.width = (int(tile.endx) - int(tile.startx)) * OD.Assets.CELL_PIXEL_WIDTH
+			entry.width = (int(tile.endx) - int(tile.startx) + 1) * OD.Assets.CELL_PIXEL_WIDTH
 		if tile.has("endy"):
-			entry.height = (int(tile.endy) - int(tile.starty)) * OD.Assets.CELL_PIXEL_HEIGHT
+			entry.height = (int(tile.endy) - int(tile.starty) + 1) * OD.Assets.CELL_PIXEL_HEIGHT
 		_tile_lookup[tile.name].append(entry)
 
+func has_tile(tile_name):
+	return _tile_lookup.has(tile_name) and not _tile_lookup[tile_name].is_empty()
+
+func get_wall_tile_name(has_north, has_south, has_west, has_east):
+	if not has_south:
+		if not has_west and not has_east:
+			return "wall_lr" if has_tile("wall_lr") else "wall"
+		if not has_west:
+			return "wall_l" if has_tile("wall_l") else "wall"
+		if not has_east:
+			return "wall_r" if has_tile("wall_r") else "wall"
+		return "wall"
+	if not has_north:
+		if not has_west and not has_east:
+			return "top_ud" if has_tile("top_ud") else "top_u"
+		if not has_west:
+			return "top_ul" if has_tile("top_ul") else "top_u"
+		if not has_east:
+			return "top_ur" if has_tile("top_ur") else "top_u"
+		return "top_u"
+	if not has_west and not has_east:
+		return "top_lr" if has_tile("top_lr") else "top_c"
+	if not has_west:
+		return "top_l" if has_tile("top_l") else "top_c"
+	if not has_east:
+		return "top_r" if has_tile("top_r") else "top_c"
+	return "top_c" if has_tile("top_c") else "wall"
+
+func get_wall_tile(has_north, has_south, has_west, has_east):
+	var tile_name = get_wall_tile_name(has_north, has_south, has_west, has_east)
+	if not has_tile(tile_name):
+		tile_name = "wall"
+	return get_tile(tile_name)
+
 func get_tile(tile_name):
-	_tile_lookup[tile_name].shuffle()
-	var tile = _tile_lookup[tile_name][0]
+	if not has_tile(tile_name):
+		return Sprite2D.new()
+	var options = _tile_lookup[tile_name]
+	var tile = options[randi() % options.size()]
 	var sprite = Sprite2D.new()
 	sprite.region_enabled = true
 	sprite.region_rect = Rect2(tile.start_x, tile.start_y, tile.width, tile.height)
 	sprite.texture = _texture
+	if tile.height > OD.Assets.CELL_PIXEL_HEIGHT:
+		sprite.offset.y = -float(tile.height - OD.Assets.CELL_PIXEL_HEIGHT) / 2.0
 	return sprite
 
 func set_animation(name, start_x, start_y, cell_count, frame_rate_milliseconds):

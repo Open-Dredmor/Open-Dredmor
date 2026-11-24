@@ -212,6 +212,7 @@ func element(element_type):
 			return null
 
 var _tilesets = null
+var _branch_tilesets = {}
 
 func tilesets():
 	if _tilesets != null:
@@ -233,3 +234,24 @@ func tilesets():
 	#_tilesets.liquids.set_animation('stars', 0,4,4)
 	
 	return _tilesets
+
+func tileset_for_branch(branch_id):
+	if _branch_tilesets.has(branch_id):
+		return _branch_tilesets[branch_id]
+	var base_tilesets = tilesets()
+	if branch_id == 0:
+		_branch_tilesets[branch_id] = base_tilesets
+		return base_tilesets
+	var branch_info = OD.Database.get_branch_info(branch_id)
+	if branch_info == null or branch_info.tileset == "" or not OD.Load.exists(branch_info.tileset):
+		_branch_tilesets[branch_id] = base_tilesets
+		return base_tilesets
+	var branch_tileset = Tileset.new()
+	branch_tileset.set_texture(OD.Load.image(branch_info.tileset))
+	branch_tileset.set_branch(branch_id)
+	var result = {
+		basic = branch_tileset,
+		liquids = base_tilesets.liquids
+	}
+	_branch_tilesets[branch_id] = result
+	return result

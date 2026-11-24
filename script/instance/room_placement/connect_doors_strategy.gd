@@ -165,8 +165,11 @@ static func generate(_branch_name, floor_level):
 			if frontier_doors.size() > 0:
 				frontier_doors.pop_back()
 
+	var branch_id = max(0, floor_level - 1)
+	if OD.Database.get_branch_info(branch_id) == null:
+		branch_id = 0
 	var entity_grid = EntityGrid.new()
-	entity_grid.init()
+	entity_grid.init(branch_id)
 	entity_grid.resize(1, 1)
 
 	var farthest_index = 0
@@ -202,4 +205,5 @@ static func generate(_branch_name, floor_level):
 		var down_px = OD.Math.grid_to_pixel(down_placement.x + down_cell.x, down_placement.y + down_cell.y)
 		entity_grid.add_animation(down_px.x, down_px.y, "element", stairs_down)
 
+	entity_grid.auto_tile_walls()
 	return entity_grid

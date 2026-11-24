@@ -114,6 +114,9 @@ func init(room_database_name):
 					has_wall = true
 				"!": # Destrucible wall
 					has_wall = true
+					entity_name = "wall_decoration"
+					sprite_path = "dungeon/zelda_crack.png"
+					entity_grid.mark_destructible(jj, ii)
 				# Doors between rooms are usually joined by either 3x2 or 2x3 floor tiles
 				"d": # TODO L/R door sprite
 					if jj < grid_width / 2:
@@ -177,6 +180,7 @@ func init(room_database_name):
 					sprite_path = "dungeon/store_pedestal.png"
 				"X": # Invisible blocker
 					has_floor = true
+					entity_grid.mark_blocker(jj, ii)
 				" ": # Empty space
 					pass
 				_:

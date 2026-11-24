@@ -43,4 +43,5 @@ static func generate(_branch_name, _floor_level):
 		entity_grid.add_child(debug_button)
 		room.free()
 		definition_index += 1
+	entity_grid.auto_tile_walls()
 	return entity_grid

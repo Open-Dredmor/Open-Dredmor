@@ -46,9 +46,12 @@ var animated_tile_lookup = {
 var _tilesets
 var _grid_lookup = null
 var _grid_center = null
+var _wall_cells = {}
+var _destructible_cells = {}
+var _blocker_cells = {}
 
-func init():
-	_tilesets = OD.Assets.tilesets()	
+func init(branch_id = 0):
+	_tilesets = OD.Assets.tileset_for_branch(branch_id)
 	var layer_order = 0
 	for layer_name in layer_names:
 		layer_order += 1
@@ -70,6 +73,13 @@ func resize(grid_width, grid_height):
 	position = Vector2(-_grid_center.x * OD.Assets.CELL_PIXEL_WIDTH, -_grid_center.y * OD.Assets.CELL_PIXEL_HEIGHT)
 
 func insert(source_grid, offset_position):
+	var offset_cell = Vector2i(int(offset_position.x), int(offset_position.y))
+	for wall_cell in source_grid._wall_cells.keys():
+		_wall_cells[wall_cell + offset_cell] = true
+	for destructible_cell in source_grid._destructible_cells.keys():
+		_destructible_cells[destructible_cell + offset_cell] = true
+	for blocker_cell in source_grid._blocker_cells.keys():
+		_blocker_cells[blocker_cell + offset_cell] = true
 	for layer_key in source_grid.layers.lookup.keys():
 		var source_layer = source_grid.layers.lookup[layer_key]
 		var target_layer = layers.lookup[layer_key]
@@ -103,8 +113,12 @@ func add_animation(x, y, name, animation):
 func add_tile(x, y, name, sprite_path = null):
 	var layer = get_layer(name)
 	var tile = null
+	var cell_key = Vector2i(int(x), int(y))
 	match name:
-		"floor","wall":
+		"floor":
+			tile = _tilesets.basic.get_tile(name)
+		"wall":
+			_wall_cells[cell_key] = true
 			tile = _tilesets.basic.get_tile(name)
 		"ice","lava","goo","water":
 			tile = _tilesets.liquids.get_animation(name)			
@@ -112,6 +126,33 @@ func add_tile(x, y, name, sprite_path = null):
 			tile = OD.Load.animation(sprite_path)
 	tile.position = Vector2(x, y)
 	layer.add_child(tile)
+
+func mark_destructible(grid_x, grid_y):
+	_destructible_cells[Vector2i(int(grid_x), int(grid_y))] = true
+
+func mark_blocker(grid_x, grid_y):
+	_blocker_cells[Vector2i(int(grid_x), int(grid_y))] = true
+
+func is_destructible(grid_x, grid_y):
+	return _destructible_cells.has(Vector2i(int(grid_x), int(grid_y)))
+
+func is_blocked(grid_x, grid_y):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	return _wall_cells.has(cell_key) or _blocker_cells.has(cell_key)
+
+func auto_tile_walls():
+	var wall_layer = layers.lookup["wall"]
+	for child in wall_layer.get_children():
+		wall_layer.remove_child(child)
+		child.queue_free()
+	for cell in _wall_cells.keys():
+		var has_north = _wall_cells.has(cell + Vector2i(0, -1))
+		var has_south = _wall_cells.has(cell + Vector2i(0, 1))
+		var has_west = _wall_cells.has(cell + Vector2i(-1, 0))
+		var has_east = _wall_cells.has(cell + Vector2i(1, 0))
+		var tile = _tilesets.basic.get_wall_tile(has_north, has_south, has_west, has_east)
+		tile.position = OD.Math.grid_to_pixel(cell.x, cell.y)
+		wall_layer.add_child(tile)
 	
 func move(target_x, target_y, entity):
 	entity.position = OD.Math.grid_to_pixel(target_x, target_y)

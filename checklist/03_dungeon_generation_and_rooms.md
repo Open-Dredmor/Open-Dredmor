@@ -11,7 +11,7 @@ Fast floor layout generation, branch tilesets, interactive room elements, traps,
     - Generation runs quickly (sub-second per floor) with spatial indexing/grid occupancy instead of naive brute-force retries.
     - Generates a fully connected floor from `branchDB` + `rooms.xml` (respecting `minLevel`/`maxLevel`, `no_time_to_grind` floor size scaling, Starting Room on floor 1, stairs up/down, Brax shop room, and optional special/quest/zoo rooms) with zero overlapping or unreachable rooms.
 
-- [ ] **Branch tileset & wall/floor auto-tiling**
+- [x] **Branch tileset & wall/floor auto-tiling**
   - *Current state*: [script/instance/tileset.gd](../script/instance/tileset.gd) picks a random `floor` or `wall` tile from branch `0` without contextual wall/corner/edge selection or branch switching per floor.
   - *Done when*: Each floor uses its `branchDB` tileset and renders proper wall/floor/corner variants, destructible walls (`!`), and invisible blockers (`X`).
 
