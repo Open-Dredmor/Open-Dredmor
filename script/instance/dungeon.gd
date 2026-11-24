@@ -408,11 +408,22 @@ func _toggle_pocket_dimension(_portal_pos):
 	_spawn_floating_text(spawn_cell, label_text, Color(0.75, 0.55, 1.0))
 	floor_changed.emit(_floor_level, branch_label)
 
+func award_xp(amount, grid_pos = null):
+	if _player == null or int(amount) <= 0:
+		return false
+	var leveled_up = _player.add_xp(int(amount))
+	if leveled_up and grid_pos != null:
+		_spawn_floating_text(grid_pos, "Level Up! Lv " + str(_player.level), Color(1.0, 0.9, 0.25))
+	return leveled_up
+
 func _handle_trap_disarm(trap):
-	var disarm_res = trap.attempt_disarm()
+	var trap_affinity = max(1, _player.get_secondary_stat("trap_affinity")) if _player != null else 1
+	var disarm_res = trap.attempt_disarm(trap_affinity)
 	var pos = trap.get_grid_position()
 	if disarm_res.success:
-		_spawn_floating_text(pos, "Disarmed!", Color(0.45, 0.95, 0.45))
+		var trap_xp = max(1, int(trap.trap_level)) * int(OD.Database.get_tweak("trap XP scale", 10))
+		_spawn_floating_text(pos, "Disarmed! +" + str(trap_xp) + " XP", Color(0.45, 0.95, 0.45))
+		award_xp(trap_xp, pos)
 	else:
 		if disarm_res.has("triggered") and disarm_res.triggered != null:
 			_spawn_spell_vfx(disarm_res.triggered.casts_spell, pos)
@@ -480,6 +491,8 @@ func _handle_element_interaction(element, grid_coords):
 		var break_res = element.interact()
 		_entity_grid.unblock_cell(grid_coords.x, grid_coords.y)
 		_spawn_floating_text(grid_coords, break_res.get("message", "Smashed!"), Color(0.95, 0.85, 0.45))
+		if int(break_res.get("exp", 0)) > 0:
+			award_xp(int(break_res.exp), grid_coords)
 		return
 	_close_element_dialog()
 	_interaction_dialog = ElementDialogScript.new()

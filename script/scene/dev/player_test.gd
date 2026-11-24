@@ -43,6 +43,7 @@ func _build_ui():
 	var sprite_stage = Node2D.new()
 	preview_panel.add_child(sprite_stage)
 
+	OD.DungeonSettings.set_starting_skill_ids([0, 1, 2, 4, 19, 20, 21])
 	OD.DungeonSettings.set_hero("hero")
 	OD.DungeonSettings.set_character_name("Sir Eyebrows")
 	_hero_player = PlayerCharacter.new()
@@ -120,6 +121,12 @@ func _build_ui():
 	_add_action_btn(action_grid, "+250 XP", func(): _active_player.add_xp(250))
 	_add_action_btn(action_grid, "+50 Zorkmids", func(): _active_player.add_zorkmids(50))
 	_add_action_btn(action_grid, "+3 Conflagratory Res", func(): _active_player.add_resistance("conflagratory", 3))
+	_add_action_btn(action_grid, "Unlock Next Skill Tier", func():
+		for sid in _active_player.chosen_skills:
+			if _active_player.can_unlock_skill_tier(sid):
+				_active_player.unlock_next_skill_tier(sid)
+				break
+	)
 
 	var quick_game_btn = Button.new()
 	quick_game_btn.text = "Launch Quick Game"
@@ -161,9 +168,19 @@ func _refresh_stats():
 		return
 	var lines = []
 	lines.append("=== " + _active_player.character_name + " (" + _active_player.hero_kind + ") ===")
-	lines.append("Level: " + str(_active_player.level) + " | XP: " + str(_active_player.xp) + " / " + str(_active_player.xp_to_next_level))
+	lines.append("Level: " + str(_active_player.level) + " | XP: " + str(_active_player.xp) + " / " + str(_active_player.xp_to_next_level) + " | Skill Points: " + str(_active_player.skill_points))
+	lines.append("Archetypes: Warrior=" + str(_active_player.warrior_level) + " Rogue=" + str(_active_player.rogue_level) + " Wizard=" + str(_active_player.wizard_level))
 	lines.append("HP: " + str(_active_player.hp) + " / " + str(_active_player.max_hp) + " | MP: " + str(_active_player.mp) + " / " + str(_active_player.max_mp))
 	lines.append("Zorkmids: " + str(_active_player.get_zorkmids()))
+	lines.append("")
+	lines.append("--- Chosen Skills (" + str(_active_player.chosen_skills.size()) + ") ---")
+	for sid in _active_player.chosen_skills:
+		var skill_entry = OD.Database.get_skill(sid)
+		var sname = skill_entry.name if skill_entry != null else str(sid)
+		var tier = _active_player.get_skill_tier(sid)
+		var max_t = _active_player.get_skill_max_tiers(sid)
+		lines.append("  " + sname + ": Tier " + str(tier) + "/" + str(max_t))
+	lines.append("Unlocked Spells: " + (", ".join(_active_player.unlocked_spells) if not _active_player.unlocked_spells.is_empty() else "None"))
 	lines.append("")
 	lines.append("--- Primary Stats (6) ---")
 	for stat_key in PlayerCharacter.PRIMARY_STAT_KEYS:

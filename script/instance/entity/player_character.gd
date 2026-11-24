@@ -6,6 +6,9 @@ signal stats_changed
 signal hp_changed(current_hp, max_hp)
 signal mp_changed(current_mp, max_mp)
 signal xp_changed(current_xp, xp_to_next, current_level)
+signal leveled_up(new_level, skill_points_available)
+signal skills_changed
+signal skill_unlocked(skill_id, level_entry)
 signal zorkmids_changed(amount)
 
 const PRIMARY_STAT_KEYS = [
@@ -101,6 +104,12 @@ var zorkmids_ref = { value = 150 }
 var warrior_level = 0
 var rogue_level = 0
 var wizard_level = 0
+
+var skill_points = 0
+var chosen_skills = []
+var skill_tiers_unlocked = {}
+var unlocked_abilities = []
+var unlocked_spells = []
 
 var base_primary_stats = {}
 var bonus_primary_stats = {}
@@ -279,15 +288,135 @@ func add_zorkmids(delta_amount):
 	set_zorkmids(zorkmids_ref.value + int(delta_amount))
 
 func add_xp(amount):
-	xp = max(0, xp + int(amount))
-	var leveled_up = false
+	var gained = int(amount)
+	if gained <= 0:
+		return false
+	xp = max(0, xp + gained)
+	var did_level_up = false
 	while xp >= xp_to_next_level:
 		xp -= xp_to_next_level
 		level += 1
+		skill_points += 1
 		xp_to_next_level = _compute_xp_threshold(level)
-		leveled_up = true
+		did_level_up = true
 	xp_changed.emit(xp, xp_to_next_level, level)
-	return leveled_up
+	if did_level_up:
+		leveled_up.emit(level, skill_points)
+	return did_level_up
+
+func get_skill_tier(skill_id):
+	return int(skill_tiers_unlocked.get(int(skill_id), 0))
+
+func get_skill_max_tiers(skill_id):
+	var skill_entry = OD.Database.get_skill(int(skill_id)) if OD.Database != null else null
+	if skill_entry == null:
+		return 0
+	return skill_entry.level_progression.size()
+
+func get_next_skill_tier_entry(skill_id):
+	var skill_entry = OD.Database.get_skill(int(skill_id)) if OD.Database != null else null
+	if skill_entry == null:
+		return null
+	var current_tier = get_skill_tier(skill_id)
+	if current_tier >= skill_entry.level_progression.size():
+		return null
+	return skill_entry.level_progression[current_tier]
+
+func can_unlock_skill_tier(skill_id):
+	var sid = int(skill_id)
+	if skill_points <= 0:
+		return false
+	if not chosen_skills.has(sid):
+		return false
+	return get_skill_tier(sid) < get_skill_max_tiers(sid)
+
+func _apply_ability_bonuses(level_entry):
+	if level_entry == null:
+		return
+	for buff in level_entry.primary_buffs:
+		if typeof(buff) != TYPE_DICTIONARY or not buff.has("id"):
+			continue
+		var stat_idx = int(buff.id)
+		if stat_idx >= 0 and stat_idx < PRIMARY_STAT_KEYS.size():
+			var stat_key = PRIMARY_STAT_KEYS[stat_idx]
+			bonus_primary_stats[stat_key] += int(buff.get("amount", 0))
+	for buff in level_entry.secondary_buffs:
+		if typeof(buff) != TYPE_DICTIONARY or not buff.has("id"):
+			continue
+		var sec_id = int(buff.id)
+		if SECONDARY_STAT_BY_ID.has(sec_id):
+			var sec_key = SECONDARY_STAT_BY_ID[sec_id]
+			bonus_secondary_stats[sec_key] += int(buff.get("amount", 0))
+	for buff in level_entry.resist_buffs:
+		if typeof(buff) != TYPE_DICTIONARY:
+			continue
+		for dmg_type in DAMAGE_TYPES:
+			if buff.has(dmg_type):
+				resistances[dmg_type] += int(buff[dmg_type])
+	for buff in level_entry.damage_buffs:
+		if typeof(buff) != TYPE_DICTIONARY:
+			continue
+		for dmg_type in DAMAGE_TYPES:
+			if buff.has(dmg_type):
+				damage_bonuses[dmg_type] += int(buff[dmg_type])
+	for spell_ref in level_entry.spells:
+		if typeof(spell_ref) == TYPE_DICTIONARY and spell_ref.has("name"):
+			var spell_name = str(spell_ref.name)
+			if spell_name != "" and not unlocked_spells.has(spell_name):
+				unlocked_spells.append(spell_name)
+
+func unlock_next_skill_tier(skill_id, free = false):
+	var sid = int(skill_id)
+	if not free and not can_unlock_skill_tier(sid):
+		return { success = false, reason = "Cannot unlock skill tier" }
+	var skill_entry = OD.Database.get_skill(sid) if OD.Database != null else null
+	if skill_entry == null:
+		return { success = false, reason = "Unknown skill" }
+	var current_tier = get_skill_tier(sid)
+	if current_tier >= skill_entry.level_progression.size():
+		return { success = false, reason = "Skill already maxed" }
+	var level_entry = skill_entry.level_progression[current_tier]
+	if not free:
+		skill_points -= 1
+	skill_tiers_unlocked[sid] = current_tier + 1
+	match str(skill_entry.type).to_lower():
+		"warrior":
+			warrior_level += 1
+		"rogue":
+			rogue_level += 1
+		"wizard":
+			wizard_level += 1
+	unlocked_abilities.append({
+		skill_id = sid,
+		skill_name = skill_entry.name,
+		tier = current_tier + 1,
+		ability = level_entry
+	})
+	_apply_ability_bonuses(level_entry)
+	recalculate_stats()
+	skill_unlocked.emit(sid, level_entry)
+	skills_changed.emit()
+	return { success = true, skill_id = sid, tier = current_tier + 1, level_entry = level_entry }
+
+func _init_starting_skills(skill_ids):
+	chosen_skills.clear()
+	skill_tiers_unlocked.clear()
+	unlocked_abilities.clear()
+	unlocked_spells.clear()
+	warrior_level = 0
+	rogue_level = 0
+	wizard_level = 0
+	if skill_ids == null:
+		return
+	for raw_id in skill_ids:
+		var sid = int(raw_id)
+		if chosen_skills.has(sid):
+			continue
+		if OD.Database != null and OD.Database.get_skill(sid) == null:
+			continue
+		chosen_skills.append(sid)
+		skill_tiers_unlocked[sid] = 0
+		unlock_next_skill_tier(sid, true)
 
 func _compute_xp_threshold(target_level):
 	var exp_n = 190
@@ -374,9 +503,12 @@ func init():
 
 	level = 1
 	xp = 0
+	skill_points = 0
 	xp_to_next_level = _compute_xp_threshold(level)
 	zorkmids_ref = { value = 150 }
 
+	var starting_ids = settings.get("starting_skill_ids", []) if settings != null else []
+	_init_starting_skills(starting_ids)
 	recalculate_stats()
 	hp = max_hp
 	mp = max_mp

@@ -8,7 +8,7 @@ Player stats, skill tree progression, melee/ranged combat, `spellDB` effects, st
   - *Current state*: [script/instance/entity/player_character.gd](../script/instance/entity/player_character.gd) hardcodes `OD.Resources.paths.player.hero` (ignoring `DungeonSettings.hero == "heroine"`) and has no stats, HP/MP, XP, or equipment.
   - *Done when*: `PlayerCharacter` loads `hero` or `heroine` sprites, tracks HP/MaxHP, MP/MaxMP, XP/Level, Zorkmids, Primary stats (6), Secondary stats (18+), and Elemental resistances/damage.
 
-- [ ] **Skill system & Leveling**
+- [x] **Skill system & Leveling**
   - *Current state*: Chosen skill IDs are stored in `DungeonSettings.starting_skill_ids` and never used in `game.gd`.
   - *Done when*: Starting skills grant level-1 abilities/stats; XP from kills/quests/disarms levels up the character, awards skill points, and lets the player unlock higher tiers in their 7 chosen skill trees (`skillDB.xml`).
 
