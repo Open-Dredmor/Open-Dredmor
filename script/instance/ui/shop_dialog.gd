@@ -4,7 +4,7 @@ class_name ShopDialog
 
 var _on_close_callback = null
 
-func show_pedestal_dialog(pedestal, shop, zorkmids_ref, player_bag, on_close = Callable(), on_steal = Callable()):
+func show_pedestal_dialog(pedestal, shop, zorkmids_ref, player_bag, on_close = Callable(), on_steal = Callable(), on_tab = Callable()):
 	layer = 10
 	_on_close_callback = on_close
 	var dialog_assets = OD.Assets.dialog()
@@ -111,6 +111,8 @@ func show_pedestal_dialog(pedestal, shop, zorkmids_ref, player_bag, on_close = C
 		})
 		pedestal.clear_item(false)
 		OD.Audio.play_sfx("metal_get")
+		if shop != null and not shop.is_hostile and on_tab.is_valid():
+			on_tab.call()
 		if shop != null and shop.is_hostile and on_steal.is_valid():
 			on_steal.call()
 		_dismiss()
@@ -124,7 +126,7 @@ func show_pedestal_dialog(pedestal, shop, zorkmids_ref, player_bag, on_close = C
 	cancel_btn.pressed.connect(_dismiss)
 	btn_hbox.add_child(cancel_btn)
 
-func show_brax_dialog(shop, zorkmids_ref, player_bag, on_close = Callable(), on_steal = Callable()):
+func show_brax_dialog(shop, zorkmids_ref, player_bag, on_close = Callable(), on_steal = Callable(), on_pay_tab = Callable()):
 	layer = 10
 	_on_close_callback = on_close
 	var dialog_assets = OD.Assets.dialog()
@@ -185,6 +187,8 @@ func show_brax_dialog(shop, zorkmids_ref, player_bag, on_close = Callable(), on_
 			OD.Audio.play_sfx("item_purchase")
 			status_label.text = "Tab paid in full! Brax nods approvingly."
 			refresh_wallet.call()
+			if on_pay_tab.is_valid():
+				on_pay_tab.call()
 		else:
 			OD.Audio.play_sfx("zorkmidslow1")
 			status_label.text = "Not enough Zorkmids to pay your tab!"

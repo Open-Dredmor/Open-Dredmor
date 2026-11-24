@@ -121,27 +121,33 @@ func register_shop(shop_def, offset_cell, entity_grid):
 	_shops_by_id[shop_id] = shop
 	return shop
 
-func teleport_brax_to_shop(shop, player_cell):
+func teleport_brax_to_shop(shop, player_cell, entity_grid = null):
 	if shop == null or shop.is_hostile or not is_instance_valid(shop.brax):
 		return
 	if shop.brax_shop == Vector2i(-1, -1):
 		return
 	var current_pos = shop.brax.get_grid_position()
-	if current_pos != null and Vector2i(int(current_pos.x), int(current_pos.y)) == shop.brax_shop:
+	var current_cell = Vector2i(int(current_pos.x), int(current_pos.y)) if current_pos != null else null
+	if current_cell != null and current_cell == shop.brax_shop:
 		return
 	if shop.brax_shop != player_cell and not has_actor_at(shop.brax_shop):
 		shop.brax.teleport_to(shop.brax_shop)
+		if entity_grid != null and current_cell != null:
+			entity_grid.move_entity(shop.brax, current_cell, shop.brax_shop)
 
-func teleport_brax_home(shop, player_cell):
+func teleport_brax_home(shop, player_cell, entity_grid = null):
 	if shop == null or shop.is_hostile or not is_instance_valid(shop.brax):
 		return
 	if shop.brax_home == Vector2i(-1, -1):
 		return
 	var current_pos = shop.brax.get_grid_position()
-	if current_pos != null and Vector2i(int(current_pos.x), int(current_pos.y)) == shop.brax_home:
+	var current_cell = Vector2i(int(current_pos.x), int(current_pos.y)) if current_pos != null else null
+	if current_cell != null and current_cell == shop.brax_home:
 		return
 	if shop.brax_home != player_cell and not has_actor_at(shop.brax_home):
 		shop.brax.teleport_to(shop.brax_home)
+		if entity_grid != null and current_cell != null:
+			entity_grid.move_entity(shop.brax, current_cell, shop.brax_home)
 
 func on_player_moved(player_pos, entity_grid):
 	var player_cell = Vector2i(int(player_pos.x), int(player_pos.y))
@@ -154,14 +160,13 @@ func on_player_moved(player_pos, entity_grid):
 			if not shop.player_inside:
 				shop.player_inside = true
 				if not shop.is_hostile:
-					teleport_brax_to_shop(shop, player_cell)
 					shop_alert.emit("Welcome to Brax's Shop!", shop.brax.get_grid_position() if is_instance_valid(shop.brax) else player_cell, Color(1.0, 0.85, 0.35))
 		elif shop.player_inside and not shop.bounds.has_point(player_cell):
 			shop.player_inside = false
 			if shop.unpaid_total > 0 and not shop.is_hostile:
 				make_shop_hostile(shop, entity_grid, player_cell, "THIEF! Pay your tab!")
 			elif not shop.is_hostile:
-				teleport_brax_home(shop, player_cell)
+				teleport_brax_home(shop, player_cell, entity_grid)
 
 func make_shop_hostile(shop, entity_grid, player_cell, reason = "THIEF! Dread Collectors summoned!"):
 	if shop == null or shop.is_hostile:

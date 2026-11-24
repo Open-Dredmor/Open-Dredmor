@@ -636,7 +636,6 @@ func _handle_shopkeeper_interaction(keeper, pos):
 		return
 	var player_pos = _player.get_grid_position()
 	var player_cell = Vector2i(int(player_pos.x), int(player_pos.y))
-	_entity_grid.shop_manager.teleport_brax_to_shop(shop, player_cell)
 	_close_element_dialog()
 	_interaction_dialog = ShopDialogScript.new()
 	add_child(_interaction_dialog)
@@ -645,7 +644,8 @@ func _handle_shopkeeper_interaction(keeper, pos):
 		_zorkmids_ref,
 		_player_bag,
 		func(): _interaction_dialog = null,
-		func(): _entity_grid.shop_manager.make_shop_hostile(shop, _entity_grid, player_cell)
+		func(): _entity_grid.shop_manager.make_shop_hostile(shop, _entity_grid, player_cell),
+		func(): _entity_grid.shop_manager.teleport_brax_home(shop, player_cell, _entity_grid)
 	)
 
 func _handle_shop_pedestal_interaction(pedestal, pos):
@@ -655,8 +655,6 @@ func _handle_shop_pedestal_interaction(pedestal, pos):
 	var shop = _entity_grid.shop_manager.get_shop_by_id(pedestal.shop_id)
 	var player_pos = _player.get_grid_position()
 	var player_cell = Vector2i(int(player_pos.x), int(player_pos.y))
-	if shop != null and not shop.is_hostile:
-		_entity_grid.shop_manager.teleport_brax_to_shop(shop, player_cell)
 	_close_element_dialog()
 	_interaction_dialog = ShopDialogScript.new()
 	add_child(_interaction_dialog)
@@ -666,6 +664,7 @@ func _handle_shop_pedestal_interaction(pedestal, pos):
 		_zorkmids_ref,
 		_player_bag,
 		func(): _interaction_dialog = null,
-		func(): _entity_grid.shop_manager.make_shop_hostile(shop, _entity_grid, player_cell)
+		func(): _entity_grid.shop_manager.make_shop_hostile(shop, _entity_grid, player_cell),
+		func(): _entity_grid.shop_manager.teleport_brax_to_shop(shop, player_cell, _entity_grid)
 	)
 		
