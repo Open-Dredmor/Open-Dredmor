@@ -21,6 +21,7 @@ func _ready():
 
 func init(step_only = false):
 	_sprite = Sprite2D.new()
+	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(_sprite)
 	_step_only = step_only
 	if not _step_only:

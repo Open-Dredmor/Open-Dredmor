@@ -2,6 +2,8 @@ extends RefCounted
 
 class_name MoveToLocationAction
 
+signal completed(reached_destination)
+
 var _entity
 var _destination
 var _entity_grid = null
@@ -17,20 +19,24 @@ func init(entity, grid_destination, entity_grid = null):
 		_path = _entity_grid.find_path(start_pos, grid_destination)
 		if _path.is_empty():
 			_action_complete = true
+			completed.emit(false)
 
 func update():
 	if not is_instance_valid(_entity):
 		_action_complete = true
+		completed.emit(false)
 		return
 	if _entity_grid != null:
 		if _path.is_empty():
 			_entity.idle()
 			_action_complete = true
+			completed.emit(true)
 			return
 		var next_step = _path[0]
 		if not _entity_grid.is_walkable(next_step.x, next_step.y):
 			_entity.idle()
 			_action_complete = true
+			completed.emit(false)
 			return
 		_path.remove_at(0)
 		var current_pos = _entity.get_grid_position()
@@ -41,6 +47,7 @@ func update():
 		if _path.is_empty():
 			_entity.idle()
 			_action_complete = true
+			completed.emit(true)
 		return
 	var diff = _entity.get_grid_position() - _destination
 	if diff.x != 0:

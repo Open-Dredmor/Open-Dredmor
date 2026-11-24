@@ -23,6 +23,7 @@ var _active_strategy = FLOOR_STRATEGY.DEBUG_ROOMS
 var _zorkmids_ref = { value = 150 }
 var _lutefisk_ref = { value = 10 }
 var _interaction_dialog = null
+var _pending_interaction = null
 
 func global_coordinates_to_grid(x, y):
 	var xform = get_global_transform_with_canvas()
@@ -50,6 +51,7 @@ func _input(ev):
 	if ev is InputEventMouseButton and ev.pressed and _target_cursor != null:
 		var grid_coords = global_coordinates_to_grid(ev.position.x, ev.position.y)
 		if ev.button_index == MOUSE_BUTTON_RIGHT and _active_strategy == FLOOR_STRATEGY.DEBUG_ROOMS:
+			_pending_interaction = null
 			OD.ActionQueue.clear()
 			_target_cursor.select(grid_coords.x, grid_coords.y)
 			_player.move_to(grid_coords.x, grid_coords.y)
@@ -59,17 +61,18 @@ func _input(ev):
 			return
 		if ev.button_index != MOUSE_BUTTON_LEFT:
 			return
+		_pending_interaction = null
 		var door = _entity_grid.get_door_at(grid_coords.x, grid_coords.y) if _entity_grid != null else null
 		if door != null and not door.can_pass():
-			door.interact()
+			_interact_or_approach({ kind = "door", target_pos = Vector2i(int(grid_coords.x), int(grid_coords.y)) })
 			return
 		var element = _entity_grid.get_element_at(grid_coords.x, grid_coords.y) if _entity_grid != null else null
 		if element != null and not element.is_broken:
-			_handle_element_interaction(element, grid_coords)
+			_interact_or_approach({ kind = "element", target_pos = Vector2i(int(grid_coords.x), int(grid_coords.y)) })
 			return
 		var trap = _entity_grid.get_trap_at(grid_coords.x, grid_coords.y) if _entity_grid != null else null
 		if trap != null and trap.is_discovered and not trap.is_disarmed:
-			_handle_trap_disarm(trap)
+			_interact_or_approach({ kind = "trap", target_pos = Vector2i(int(grid_coords.x), int(grid_coords.y)) })
 			return
 		if _entity_grid != null and not _entity_grid.is_walkable(grid_coords.x, grid_coords.y):
 			return
@@ -78,6 +81,64 @@ func _input(ev):
 		var action = OD.Actions.MoveToLocation.new()
 		action.init(_player, grid_coords, _entity_grid)
 		OD.ActionQueue.add(action)
+
+func _is_adjacent(pos_a, pos_b):
+	return max(abs(int(pos_a.x) - int(pos_b.x)), abs(int(pos_a.y) - int(pos_b.y))) <= 1
+
+func _find_best_adjacent_cell(target_cell):
+	var player_pos = _player.get_grid_position()
+	var best_cell = null
+	var best_len = 999999
+	for dir in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		var candidate = target_cell + dir
+		if not _entity_grid.is_walkable(candidate.x, candidate.y):
+			continue
+		var path = _entity_grid.find_path(player_pos, candidate)
+		if not path.is_empty() and path.size() < best_len:
+			best_len = path.size()
+			best_cell = candidate
+	return best_cell
+
+func _interact_or_approach(interaction):
+	var player_pos = _player.get_grid_position()
+	if _is_adjacent(player_pos, interaction.target_pos):
+		_execute_interaction(interaction)
+		return
+	var dest_cell = _find_best_adjacent_cell(interaction.target_pos)
+	if dest_cell == null:
+		return
+	_pending_interaction = interaction
+	_target_cursor.select(interaction.target_pos.x, interaction.target_pos.y)
+	OD.ActionQueue.clear()
+	var action = OD.Actions.MoveToLocation.new()
+	action.init(_player, dest_cell, _entity_grid)
+	action.completed.connect(_on_approach_completed)
+	OD.ActionQueue.add(action)
+
+func _on_approach_completed(reached):
+	if not reached or _pending_interaction == null:
+		_pending_interaction = null
+		return
+	var interaction = _pending_interaction
+	_pending_interaction = null
+	if _is_adjacent(_player.get_grid_position(), interaction.target_pos):
+		_execute_interaction(interaction)
+
+func _execute_interaction(interaction):
+	var pos = interaction.target_pos
+	match interaction.kind:
+		"door":
+			var door = _entity_grid.get_door_at(pos.x, pos.y)
+			if door != null and not door.can_pass():
+				door.interact()
+		"element":
+			var element = _entity_grid.get_element_at(pos.x, pos.y)
+			if element != null and not element.is_broken:
+				_handle_element_interaction(element, pos)
+		"trap":
+			var trap = _entity_grid.get_trap_at(pos.x, pos.y)
+			if trap != null and trap.is_discovered and not trap.is_disarmed:
+				_handle_trap_disarm(trap)
 
 func _build_ui():
 	var strategy = _active_strategy

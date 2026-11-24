@@ -69,6 +69,7 @@ func get_tile(tile_name):
 	var options = _tile_lookup[tile_name]
 	var tile = options[randi() % options.size()]
 	var sprite = Sprite2D.new()
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	sprite.region_enabled = true
 	sprite.region_rect = Rect2(tile.start_x, tile.start_y, tile.width, tile.height)
 	sprite.texture = _texture
