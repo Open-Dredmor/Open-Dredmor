@@ -294,6 +294,9 @@ func get_floor_level():
 func get_branch_name():
 	return _branch_name
 
+func get_player():
+	return _player
+
 func get_player_global_position():
 	if _player != null and is_instance_valid(_player) and _player.is_inside_tree():
 		return _player.global_position
@@ -316,6 +319,7 @@ func _build_ui():
 		add_child(_turn_scheduler)
 	_player = PlayerCharacter.new()
 	_player.init()
+	_zorkmids_ref = _player.get_zorkmids_ref()
 	_target_cursor = TargetCursor.new()
 	_target_cursor.init()
 	var settings = OD.DungeonSettings.get_settings()

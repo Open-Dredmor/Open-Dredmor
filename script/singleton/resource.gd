@@ -207,6 +207,20 @@ var paths = {
 				up = "sprites/hero/hero_idle_u.spr",
 				down = "sprites/hero/hero_idle_d.spr"
 			}
+		},
+		heroine = {
+			move = {
+				left = "sprites/fhero/hero_run_l.xml",
+				right = "sprites/fhero/hero_run_r.xml",
+				up = "sprites/fhero/hero_run_u.xml",
+				down = "sprites/fhero/hero_run_d.xml"
+			},
+			idle = {
+				left = "sprites/fhero/hero_idle_l.xml",
+				right = "sprites/fhero/hero_idle_r.xml",
+				up = "sprites/fhero/hero_idle_u.xml",
+				down = "sprites/fhero/hero_idle_d.xml"
+			}
 		}
 	},
 	input = {
