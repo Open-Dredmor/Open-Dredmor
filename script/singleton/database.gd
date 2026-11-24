@@ -131,6 +131,7 @@ func set_active_packs(pack_ids = []):
 	_build_item_info()
 	_build_skill_info()
 	_build_spell_info()
+	_build_template_info()
 	_build_tweak_info()
 	_build_branch_info()
 	_build_room_layouts()
@@ -291,7 +292,11 @@ func _build_monster_info():
 	cache_result("monster_info", monsters)
 
 func get_random_monster():
-	return OD.DataStructure.choose(result_cache["monster_info"])
+	var monster_map = result_cache["monster_info"]
+	var keys = monster_map.keys()
+	if keys.is_empty():
+		return null
+	return monster_map[keys[randi() % keys.size()]]
 
 func get_monster(name):		
 	if not result_cache["monster_info"].has(name):
@@ -552,6 +557,61 @@ func get_all_spells():
 	if result_cache == null or not result_cache.has("spell_info"):
 		return []
 	return result_cache["spell_info"].list
+
+func _build_template_info():
+	var by_name = {}
+	var template_list = []
+	if cache.template_db.has("templatedb"):
+		var blocks = OD.DataStructure.arrayify(cache.template_db.templatedb)
+		for block in blocks:
+			if typeof(block) == TYPE_DICTIONARY and block.has("template"):
+				var templates = OD.DataStructure.arrayify(block.template)
+				for tmpl in templates:
+					if typeof(tmpl) != TYPE_DICTIONARY or not tmpl.has("name"):
+						continue
+					var rows_raw = OD.DataStructure.arrayify(tmpl.row) if tmpl.has("row") else []
+					var rows = []
+					var anchor = Vector2i.ZERO
+					var found_anchor = false
+					var raw_cells = []
+					for row_idx in range(rows_raw.size()):
+						var row_entry = rows_raw[row_idx]
+						var row_text = str(row_entry.get("text", "")) if typeof(row_entry) == TYPE_DICTIONARY else ""
+						rows.append(row_text)
+						for col_idx in range(row_text.length()):
+							var ch = row_text.substr(col_idx, 1)
+							if ch == "#":
+								anchor = Vector2i(col_idx, row_idx)
+								found_anchor = true
+							elif ch == "@":
+								raw_cells.append(Vector2i(col_idx, row_idx))
+					if not found_anchor:
+						anchor = Vector2i(int(tmpl.get("width", 1)) / 2, int(tmpl.get("height", 1)) / 2)
+					var affected_offsets = []
+					for cell_pos in raw_cells:
+						affected_offsets.append(cell_pos - anchor)
+					var entry = {
+						name = str(tmpl.name),
+						width = int(tmpl.get("width", 1)),
+						height = int(tmpl.get("height", 1)),
+						affects_player = int(tmpl.get("affectsPlayer", 0)) == 1,
+						rows = rows,
+						anchor = anchor,
+						affected_offsets = affected_offsets
+					}
+					by_name[entry.name] = entry
+					template_list.append(entry)
+	cache_result("template_info", {
+		by_name = by_name,
+		list = template_list
+	})
+
+func get_template(template_id):
+	if result_cache == null or not result_cache.has("template_info"):
+		return null
+	var key = str(template_id)
+	var by_name = result_cache["template_info"].by_name
+	return by_name[key] if by_name.has(key) else null
 
 func _classify_item(item, reagent_set, component_set):
 	if item.has("armour"):

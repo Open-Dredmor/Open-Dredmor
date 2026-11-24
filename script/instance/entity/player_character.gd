@@ -110,6 +110,13 @@ var chosen_skills = []
 var skill_tiers_unlocked = {}
 var unlocked_abilities = []
 var unlocked_spells = []
+var spell_cooldowns = {}
+var hotbar_spells = []
+var active_buffs = []
+var active_dots = []
+var status_flags = {}
+
+const HOTBAR_SIZE = 10
 
 var base_primary_stats = {}
 var bonus_primary_stats = {}
@@ -154,7 +161,7 @@ func recalculate_stats():
 	var prev_max_mp = max_mp
 
 	for stat_key in PRIMARY_STAT_KEYS:
-		primary_stats[stat_key] = int(base_primary_stats.get(stat_key, 10)) + int(bonus_primary_stats.get(stat_key, 0))
+		primary_stats[stat_key] = int(base_primary_stats.get(stat_key, 10)) + int(bonus_primary_stats.get(stat_key, 0)) + _get_buff_primary_bonus(stat_key)
 
 	var burliness = primary_stats["burliness"]
 	var sagacity = primary_stats["sagacity"]
@@ -194,7 +201,8 @@ func recalculate_stats():
 		var stat_key = SECONDARY_STAT_BY_ID[stat_id]
 		var base_val = int(derived.get(stat_key, 0))
 		var bonus_val = int(bonus_secondary_stats.get(stat_key, 0))
-		secondary_stats[stat_key] = base_val + bonus_val
+		var buff_val = _get_buff_secondary_bonus(stat_key)
+		secondary_stats[stat_key] = base_val + bonus_val + buff_val
 
 	max_hp = max(1, int(secondary_stats["hp_max"]))
 	max_mp = max(0, int(secondary_stats["mp_max"]))
@@ -243,7 +251,7 @@ func add_secondary_bonus(stat_key, amount):
 	recalculate_stats()
 
 func get_resistance(damage_type):
-	return int(resistances.get(damage_type, 0))
+	return int(resistances.get(damage_type, 0)) + _get_buff_resistance_bonus(damage_type)
 
 func add_resistance(damage_type, amount):
 	if not resistances.has(damage_type):
@@ -252,7 +260,7 @@ func add_resistance(damage_type, amount):
 	stats_changed.emit()
 
 func get_damage_bonus(damage_type):
-	return int(damage_bonuses.get(damage_type, 0))
+	return int(damage_bonuses.get(damage_type, 0)) + _get_buff_damage_bonus(damage_type)
 
 func add_damage_bonus(damage_type, amount):
 	if not damage_bonuses.has(damage_type):
@@ -364,6 +372,7 @@ func _apply_ability_bonuses(level_entry):
 			var spell_name = str(spell_ref.name)
 			if spell_name != "" and not unlocked_spells.has(spell_name):
 				unlocked_spells.append(spell_name)
+				_assign_spell_to_first_empty_hotbar(spell_name)
 
 func unlock_next_skill_tier(skill_id, free = false):
 	var sid = int(skill_id)
@@ -514,3 +523,232 @@ func init():
 	mp = max_mp
 
 	_load_sprite_animations()
+
+func _ensure_hotbar_initialized():
+	while hotbar_spells.size() < HOTBAR_SIZE:
+		hotbar_spells.append("")
+
+func _assign_spell_to_first_empty_hotbar(spell_name):
+	_ensure_hotbar_initialized()
+	if hotbar_spells.has(spell_name):
+		return
+	for ii in range(HOTBAR_SIZE):
+		if hotbar_spells[ii] == "":
+			hotbar_spells[ii] = spell_name
+			return
+
+func get_hotbar_spells():
+	_ensure_hotbar_initialized()
+	return hotbar_spells.duplicate()
+
+func get_hotbar_spell(slot_index):
+	_ensure_hotbar_initialized()
+	if slot_index < 0 or slot_index >= HOTBAR_SIZE:
+		return ""
+	return hotbar_spells[slot_index]
+
+func set_hotbar_slot(slot_index, spell_name):
+	_ensure_hotbar_initialized()
+	if slot_index < 0 or slot_index >= HOTBAR_SIZE:
+		return
+	hotbar_spells[slot_index] = str(spell_name)
+	skills_changed.emit()
+
+func get_spell_cooldown(spell_name):
+	return int(spell_cooldowns.get(str(spell_name), 0))
+
+func set_spell_cooldown(spell_name, turns):
+	var key = str(spell_name)
+	var count = int(turns)
+	if count <= 0:
+		spell_cooldowns.erase(key)
+	else:
+		spell_cooldowns[key] = count
+
+func tick_cooldowns():
+	var ticked = 0
+	for key in spell_cooldowns.keys():
+		var remaining = int(spell_cooldowns[key]) - 1
+		ticked += 1
+		if remaining <= 0:
+			spell_cooldowns.erase(key)
+		else:
+			spell_cooldowns[key] = remaining
+	return ticked
+
+func _get_buff_primary_bonus(stat_key):
+	var total = 0
+	for buff in active_buffs:
+		var stacks = int(buff.get("stacks", 1))
+		total += int(buff.get("primary_bonuses", {}).get(stat_key, 0)) * stacks
+	return total
+
+func _get_buff_secondary_bonus(stat_key):
+	var total = 0
+	for buff in active_buffs:
+		var stacks = int(buff.get("stacks", 1))
+		total += int(buff.get("secondary_bonuses", {}).get(stat_key, 0)) * stacks
+	return total
+
+func _get_buff_resistance_bonus(damage_type):
+	var total = 0
+	for buff in active_buffs:
+		var stacks = int(buff.get("stacks", 1))
+		total += int(buff.get("resist_bonuses", {}).get(damage_type, 0)) * stacks
+	return total
+
+func _get_buff_damage_bonus(damage_type):
+	var total = 0
+	for buff in active_buffs:
+		var stacks = int(buff.get("stacks", 1))
+		total += int(buff.get("damage_bonuses", {}).get(damage_type, 0)) * stacks
+	return total
+
+func has_buff(buff_name):
+	var target_name = str(buff_name)
+	for buff in active_buffs:
+		if str(buff.get("name", "")) == target_name:
+			return true
+	return false
+
+func get_active_buffs():
+	return active_buffs.duplicate(true)
+
+func remove_buff_by_name(buff_name):
+	var target_name = str(buff_name)
+	var removed = false
+	var ii = 0
+	while ii < active_buffs.size():
+		if str(active_buffs[ii].get("name", "")) == target_name:
+			active_buffs.remove_at(ii)
+			removed = true
+		else:
+			ii += 1
+	if removed:
+		recalculate_stats()
+	return removed
+
+func apply_buff(buff_def, source_spell = ""):
+	if buff_def == null or typeof(buff_def) != TYPE_DICTIONARY:
+		return false
+	var buff_name = str(buff_def.get("name", source_spell))
+	var duration = int(buff_def.get("time", buff_def.get("duration", 0)))
+	var use_timer = int(buff_def.get("useTimer", buff_def.get("usetimer", 1 if duration > 0 else 0))) == 1
+	var allow_stack = int(buff_def.get("allowstacking", buff_def.get("allowStacking", buff_def.get("stackable", 0)))) == 1
+	var max_stacks = max(1, int(buff_def.get("stacksize", 1)))
+
+	var primary_b = {}
+	for p_item in OD.DataStructure.arrayify(buff_def.get("primarybuff", [])):
+		if typeof(p_item) == TYPE_DICTIONARY and p_item.has("id"):
+			var idx = int(p_item.id)
+			if idx >= 0 and idx < PRIMARY_STAT_KEYS.size():
+				var key = PRIMARY_STAT_KEYS[idx]
+				primary_b[key] = int(primary_b.get(key, 0)) + int(p_item.get("amount", 0))
+
+	var secondary_b = {}
+	for s_item in OD.DataStructure.arrayify(buff_def.get("secondarybuff", [])):
+		if typeof(s_item) == TYPE_DICTIONARY and s_item.has("id"):
+			var sec_id = int(s_item.id)
+			if SECONDARY_STAT_BY_ID.has(sec_id):
+				var key = SECONDARY_STAT_BY_ID[sec_id]
+				secondary_b[key] = int(secondary_b.get(key, 0)) + int(s_item.get("amount", 0))
+
+	var resist_b = {}
+	for r_item in OD.DataStructure.arrayify(buff_def.get("resistbuff", [])):
+		if typeof(r_item) == TYPE_DICTIONARY:
+			for dmg_type in DAMAGE_TYPES:
+				if r_item.has(dmg_type):
+					resist_b[dmg_type] = int(resist_b.get(dmg_type, 0)) + int(r_item[dmg_type])
+
+	var damage_b = {}
+	for d_item in OD.DataStructure.arrayify(buff_def.get("damagebuff", [])):
+		if typeof(d_item) == TYPE_DICTIONARY:
+			for dmg_type in DAMAGE_TYPES:
+				if d_item.has(dmg_type):
+					damage_b[dmg_type] = int(damage_b.get(dmg_type, 0)) + int(d_item[dmg_type])
+
+	for existing in active_buffs:
+		if str(existing.get("name", "")) == buff_name:
+			if allow_stack and int(existing.get("stacks", 1)) < max_stacks:
+				existing["stacks"] = int(existing.get("stacks", 1)) + 1
+			if use_timer:
+				existing["remaining_turns"] = max(1, duration)
+			recalculate_stats()
+			return true
+
+	active_buffs.append({
+		name = buff_name,
+		icon = str(buff_def.get("smallicon", buff_def.get("icon", ""))),
+		bad = int(buff_def.get("bad", 0)) == 1,
+		use_timer = use_timer,
+		remaining_turns = max(1, duration) if use_timer else -1,
+		stacks = 1,
+		mana_upkeep = int(buff_def.get("manaUpkeep", buff_def.get("manaupkeep", 0))),
+		primary_bonuses = primary_b,
+		secondary_bonuses = secondary_b,
+		resist_bonuses = resist_b,
+		damage_bonuses = damage_b,
+		raw = buff_def
+	})
+	recalculate_stats()
+	return true
+
+func set_status_flag(flag_name, turns):
+	var key = str(flag_name)
+	var count = int(turns)
+	if count <= 0:
+		status_flags.erase(key)
+	else:
+		status_flags[key] = max(int(status_flags.get(key, 0)), count)
+
+func has_status_flag(flag_name):
+	return int(status_flags.get(str(flag_name), 0)) > 0
+
+func apply_dot(dot_def):
+	if dot_def == null or typeof(dot_def) != TYPE_DICTIONARY:
+		return
+	active_dots.append(dot_def.duplicate(true))
+
+func tick_status_effects():
+	var ticked = 0
+	var buff_changed = false
+	var ii = 0
+	while ii < active_buffs.size():
+		var buff = active_buffs[ii]
+		ticked += 1
+		var upkeep = int(buff.get("mana_upkeep", 0))
+		if upkeep > 0:
+			if mp >= upkeep:
+				modify_mp(-upkeep)
+			else:
+				active_buffs.remove_at(ii)
+				buff_changed = true
+				continue
+		if buff.get("use_timer", false):
+			buff["remaining_turns"] = int(buff.get("remaining_turns", 1)) - 1
+			if buff["remaining_turns"] <= 0:
+				active_buffs.remove_at(ii)
+				buff_changed = true
+				continue
+		ii += 1
+	if buff_changed:
+		recalculate_stats()
+	for flag_key in status_flags.keys():
+		ticked += 1
+		var rem = int(status_flags[flag_key]) - 1
+		if rem <= 0:
+			status_flags.erase(flag_key)
+		else:
+			status_flags[flag_key] = rem
+	var jj = 0
+	while jj < active_dots.size():
+		var dot = active_dots[jj]
+		ticked += 1
+		if dot.has("on_tick") and dot.on_tick is Callable:
+			dot.on_tick.call(self, dot)
+		dot["remaining_turns"] = int(dot.get("remaining_turns", 1)) - 1
+		if dot["remaining_turns"] <= 0:
+			active_dots.remove_at(jj)
+		else:
+			jj += 1
+	return ticked

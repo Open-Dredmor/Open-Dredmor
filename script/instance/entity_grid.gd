@@ -8,11 +8,13 @@ const TrapScript = preload("res://script/instance/entity/trap.gd")
 const ShopPedestalScript = preload("res://script/instance/entity/shop_pedestal.gd")
 const ShopManagerScript = preload("res://script/instance/shop_manager.gd")
 const FieldOfViewScript = preload("res://script/instance/fov.gd")
+const MonsterEntityScript = preload("res://script/instance/entity/monster_entity.gd")
 
 signal script_ticker(message)
 signal script_spell_cast(spell_name, grid_pos)
 signal trap_triggered(trap_result, grid_pos)
 signal teleporter_stepped(teleporter_info, grid_pos)
+signal spell_mine_detonated(mine_info, trigger_pos)
 
 var layers = {
 	list = [],
@@ -79,6 +81,7 @@ var _stairs_by_cell = {}
 var _entities_by_cell = {}
 var _named_entities = {}
 var _room_scripts = []
+var _spell_mines = []
 var shop_manager = ShopManagerScript.new()
 var fov = FieldOfViewScript.new()
 var pending_shop_def = null
@@ -856,6 +859,7 @@ func on_player_step(player_pos):
 	update_trap_visibility(player_pos)
 	update_fov(player_pos, _get_player_sight_radius())
 	trigger_trap_at(player_pos)
+	trigger_spell_mines_at(player_pos)
 	if shop_manager != null:
 		shop_manager.on_player_moved(player_pos, self)
 	var teleporter = get_teleporter_at(player_pos.x, player_pos.y)
@@ -974,3 +978,173 @@ func decorate_walls():
 	
 func move(target_x, target_y, entity):
 	entity.position = OD.Math.grid_to_pixel(target_x, target_y)
+
+func is_wall(grid_x, grid_y):
+	return _wall_cells.has(Vector2i(int(grid_x), int(grid_y)))
+
+func is_floor(grid_x, grid_y):
+	return _floor_cells.has(Vector2i(int(grid_x), int(grid_y)))
+
+func dig_wall(grid_x, grid_y):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	if not _wall_cells.has(cell_key):
+		return false
+	_wall_cells.erase(cell_key)
+	_destructible_cells.erase(cell_key)
+	_blocker_cells.erase(cell_key)
+	_floor_cells[cell_key] = true
+	if layers.lookup.has("floor") and _tilesets != null and _tilesets.basic != null and _tilesets.basic.has_tile("floor"):
+		var floor_tile = _tilesets.basic.get_tile("floor")
+		if floor_tile != null:
+			floor_tile.position = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
+			floor_tile.set_meta("grid_cell", cell_key)
+			layers.lookup["floor"].add_child(floor_tile)
+			_floor_tile_nodes[cell_key] = floor_tile
+	if _tilesets != null and _tilesets.basic != null:
+		auto_tile_walls()
+	return true
+
+func move_actor_to(actor, target_x, target_y):
+	if actor == null or not is_instance_valid(actor):
+		return false
+	var dest = Vector2i(int(target_x), int(target_y))
+	var old_pos = actor.get_grid_position() if actor.has_method("get_grid_position") else null
+	if old_pos != null:
+		unregister_entity(actor, Vector2i(int(old_pos.x), int(old_pos.y)))
+	else:
+		unregister_entity(actor)
+	actor.position = OD.Math.grid_to_pixel(dest.x, dest.y)
+	register_entity(dest.x, dest.y, actor)
+	return true
+
+func get_random_walkable_cell():
+	var candidates = []
+	for cell_key in _floor_cells.keys():
+		if is_walkable(cell_key.x, cell_key.y):
+			candidates.append(cell_key)
+	if candidates.is_empty():
+		return null
+	return candidates[randi() % candidates.size()]
+
+func spawn_monster_at(monster_name, grid_x, grid_y, target_floor_level = -1, hostile = true):
+	if OD.Database == null:
+		return null
+	var monster_def = OD.Database.get_monster(str(monster_name))
+	if monster_def == null:
+		return null
+	var spawn_cell = Vector2i(int(grid_x), int(grid_y))
+	if not is_walkable(spawn_cell.x, spawn_cell.y):
+		var found = null
+		for offset in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1), Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1)]:
+			var cand = spawn_cell + offset
+			if is_walkable(cand.x, cand.y):
+				found = cand
+				break
+		if found == null:
+			return null
+		spawn_cell = found
+	var level_val = floor_level if target_floor_level < 0 else int(target_floor_level)
+	var monster = MonsterEntityScript.new()
+	monster.init(monster_def, level_val)
+	monster.is_hostile = hostile
+	add_entity(spawn_cell.x, spawn_cell.y, monster)
+	return monster
+
+func replace_monster_at(old_monster, new_monster_name, target_floor_level = -1):
+	if old_monster == null or not is_instance_valid(old_monster):
+		return null
+	var pos = old_monster.get_grid_position()
+	var cell = Vector2i(int(pos.x), int(pos.y)) if pos != null else Vector2i.ZERO
+	var was_hostile = bool(old_monster.get("is_hostile"))
+	unregister_entity(old_monster, cell)
+	if old_monster.get_parent() != null:
+		old_monster.get_parent().remove_child(old_monster)
+	old_monster.queue_free()
+	return spawn_monster_at(new_monster_name, cell.x, cell.y, target_floor_level, was_hostile)
+
+func place_spell_mine(mine_def):
+	if mine_def == null or typeof(mine_def) != TYPE_DICTIONARY:
+		return null
+	var cell = Vector2i(int(mine_def.get("cell", Vector2i.ZERO).x), int(mine_def.get("cell", Vector2i.ZERO).y))
+	var mine_node = null
+	var series = str(mine_def.get("sprite_series", ""))
+	var first_idx = int(mine_def.get("sprite_first", 0))
+	var frame_count = int(mine_def.get("sprite_num", 0))
+	var frame_rate = int(mine_def.get("sprite_rate", 100))
+	if series != "" and frame_count > 0 and OD.Load != null:
+		mine_node = OD.Load.png_sprite(series, first_idx, first_idx + frame_count, frame_rate)
+	if mine_node == null:
+		var marker = ColorRect.new()
+		marker.size = Vector2(18, 18)
+		marker.position = Vector2(-9, -9)
+		marker.color = Color(0.95, 0.55, 0.15, 0.75)
+		mine_node = marker
+	var px = OD.Math.grid_to_pixel(cell.x, cell.y)
+	add_animation(px.x, px.y, "trap", mine_node)
+	var entry = {
+		cell = cell,
+		spell_name = str(mine_def.get("spell_name", "")),
+		caster = mine_def.get("caster", null),
+		radius = int(mine_def.get("radius", 1)),
+		remaining_turns = int(mine_def.get("timer", 5)),
+		permanent = bool(mine_def.get("permanent", false)),
+		node = mine_node
+	}
+	_spell_mines.append(entry)
+	return entry
+
+func get_spell_mines():
+	return _spell_mines.duplicate()
+
+func _remove_spell_mine_at_index(idx):
+	var mine = _spell_mines[idx]
+	if mine.node != null and is_instance_valid(mine.node):
+		if mine.node.get_parent() != null:
+			mine.node.get_parent().remove_child(mine.node)
+		mine.node.queue_free()
+	_spell_mines.remove_at(idx)
+	return mine
+
+func trigger_spell_mines_at(grid_pos):
+	var target = Vector2i(int(grid_pos.x), int(grid_pos.y))
+	var triggered = []
+	var ii = 0
+	while ii < _spell_mines.size():
+		var mine = _spell_mines[ii]
+		var dist = max(abs(mine.cell.x - target.x), abs(mine.cell.y - target.y))
+		if dist <= max(0, int(mine.radius) - 1):
+			var popped = _remove_spell_mine_at_index(ii)
+			triggered.append(popped)
+			spell_mine_detonated.emit(popped, target)
+		else:
+			ii += 1
+	return triggered
+
+func tick_spell_mines():
+	var ticked = 0
+	var ii = 0
+	while ii < _spell_mines.size():
+		var mine = _spell_mines[ii]
+		ticked += 1
+		if not mine.permanent:
+			mine.remaining_turns -= 1
+			if mine.remaining_turns <= 0:
+				var popped = _remove_spell_mine_at_index(ii)
+				spell_mine_detonated.emit(popped, popped.cell)
+				continue
+		ii += 1
+	return ticked
+
+func tick_status_effects():
+	var ticked = 0
+	var seen = {}
+	for cell_key in _entities_by_cell.keys():
+		for entity in _entities_by_cell[cell_key]:
+			if entity != null and is_instance_valid(entity) and entity.get("entity_kind") == "monster":
+				var eid = entity.get_instance_id()
+				if not seen.has(eid):
+					seen[eid] = true
+					if entity.has_method("tick_status_effects"):
+						ticked += int(entity.tick_status_effects())
+	ticked += tick_spell_mines()
+	return ticked

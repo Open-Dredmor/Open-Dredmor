@@ -1,5 +1,7 @@
 extends Node2D
 
+const SpellHotbarScript = preload("res://script/instance/ui/spell_hotbar.gd")
+
 static func init_container():
 	return Node2D.new()
 
@@ -7,6 +9,7 @@ var moveable_container
 var _dungeon = null
 var _floor_label = null
 var _turn_label = null
+var _spell_hotbar = null
 
 func _ready():
 	call_deferred("_build_ui")
@@ -68,6 +71,8 @@ func _build_ui():
 	_turn_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	_turn_label.text = "Turn 0"
 	hud_layer.add_child(_turn_label)
+	_spell_hotbar = SpellHotbarScript.new().init(_dungeon)
+	hud_layer.add_child(_spell_hotbar)
 	_dungeon.floor_changed.connect(_on_floor_changed)
 	_dungeon.get_turn_scheduler().turn_started.connect(_on_turn_started)
 	_dungeon.get_turn_scheduler().turn_completed.connect(_on_turn_completed)
@@ -126,6 +131,10 @@ var old_position
 
 func _input(ev):
 	if _dungeon == null or not is_instance_valid(_dungeon):
+		return
+	if _spell_hotbar != null and _spell_hotbar.handle_key_input(ev):
+		return
+	if _spell_hotbar != null and _spell_hotbar.is_spellbook_open():
 		return
 	if _dungeon.is_dialog_open():
 		drag_enabled = false

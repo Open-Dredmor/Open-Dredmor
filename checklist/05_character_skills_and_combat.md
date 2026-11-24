@@ -16,7 +16,7 @@ Player stats, skill tree progression, melee/ranged combat, `spellDB` effects, st
   - *Current state*: None.
   - *Done when*: Bumping an enemy or firing a crossbow/thrown weapon resolves hit vs. dodge, block, counter, critical, haywire, armor absorption, and elemental damage/resistances using `tweakDB.xml` formulas, spawns attack animations/SFX, and handles monster death & loot/XP drops.
 
-- [ ] **Spellcasting & `spellDB.xml` effect engine**
+- [x] **Spellcasting & `spellDB.xml` effect engine**
   - *Current state*: None.
   - *Done when*: Spells can be cast from hotbar/menu with mana cost and cooldowns; targeting supports self, single target, beam, cone, template/AOE, missile, and mine; core `spellDB` effects (damage, heal, buff, DoT, summon, knockback, dig, teleport, polymorph, etc.) execute accurately.
 

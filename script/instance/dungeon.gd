@@ -9,8 +9,12 @@ const CommandProcessorScript = preload("res://script/instance/command/command_pr
 const InputMapperScript = preload("res://script/instance/input/input_mapper.gd")
 const TurnSchedulerScript = preload("res://script/instance/turn/turn_scheduler.gd")
 const CombatResolverScript = preload("res://script/instance/combat/combat_resolver.gd")
+const SpellEngineScript = preload("res://script/instance/combat/spell_engine.gd")
+const CastSpellCommandScript = preload("res://script/instance/command/cast_spell_command.gd")
 
 signal floor_changed(floor_level, branch_name)
+signal spell_cast_completed(spell_name, result)
+signal spell_targeting_changed(spell_name)
 
 var floors = []
 # TODO Use ID instead of name
@@ -33,6 +37,7 @@ var _zorkmids_ref = { value = 150 }
 var _lutefisk_ref = { value = 10 }
 var _player_bag = []
 var _interaction_dialog = null
+var _pending_spell_name = ""
 var _pending_interaction = null
 var _in_pocket_dimension = false
 var _pocket_dimensions = {}
@@ -189,11 +194,50 @@ func execute_attack_at(target_cell):
 	return false
 
 func execute_cast_spell(spell_name, target_cell):
-	if spell_name == "" or _entity_grid == null:
+	if spell_name == "" or _entity_grid == null or _player == null:
 		return false
-	_spawn_spell_vfx(spell_name, target_cell)
-	_spawn_floating_text(target_cell, "Cast " + spell_name, Color(0.65, 0.85, 1.0))
+	var res = SpellEngineScript.execute_spell(spell_name, _player, target_cell, _build_command_context())
+	if not res.get("executed", false):
+		var p_pos = _player.get_grid_position()
+		var p_cell = Vector2i(int(p_pos.x), int(p_pos.y)) if p_pos != null else target_cell
+		_spawn_floating_text(p_cell, str(res.get("reason", "Cannot cast")), Color(1.0, 0.5, 0.45))
+		return false
+	spell_cast_completed.emit(spell_name, res)
 	return true
+
+func begin_spell_targeting(spell_name):
+	if spell_name == "" or _player == null:
+		return false
+	var spell_def = OD.Database.get_spell(spell_name) if OD.Database != null else null
+	if spell_def == null:
+		return false
+	var check = SpellEngineScript.can_cast(_player, spell_def)
+	if not check.ok:
+		var p_pos = _player.get_grid_position()
+		if p_pos != null:
+			_spawn_floating_text(Vector2i(int(p_pos.x), int(p_pos.y)), check.reason, Color(1.0, 0.5, 0.45))
+		return false
+	if not SpellEngineScript.requires_target_selection(spell_def):
+		var p_pos = _player.get_grid_position()
+		var p_cell = Vector2i(int(p_pos.x), int(p_pos.y)) if p_pos != null else Vector2i.ZERO
+		var cmd = CastSpellCommandScript.new().init(_player, spell_name, p_cell)
+		submit_command(cmd)
+		return true
+	_pending_spell_name = spell_name
+	spell_targeting_changed.emit(_pending_spell_name)
+	return true
+
+func cancel_spell_targeting():
+	if _pending_spell_name == "":
+		return
+	_pending_spell_name = ""
+	spell_targeting_changed.emit("")
+
+func is_targeting_spell():
+	return _pending_spell_name != ""
+
+func get_pending_spell_name():
+	return _pending_spell_name
 
 func execute_use_item(item_data, target_cell):
 	if item_data.is_empty() or _player == null:
@@ -237,6 +281,22 @@ func handle_dungeon_input(ev):
 		_turn_scheduler.cancel_auto_actions()
 		return
 	if _turn_scheduler.is_busy():
+		return
+	if _pending_spell_name != "":
+		if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_ESCAPE:
+			cancel_spell_targeting()
+			return
+		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_RIGHT:
+			cancel_spell_targeting()
+			return
+		if ev is InputEventMouseButton and not ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			var target_coords = global_coordinates_to_grid(ev.position.x, ev.position.y)
+			var chosen_spell = _pending_spell_name
+			_pending_spell_name = ""
+			spell_targeting_changed.emit("")
+			var cmd = CastSpellCommandScript.new().init(_player, chosen_spell, Vector2i(int(target_coords.x), int(target_coords.y)))
+			submit_command(cmd)
+			return
 		return
 	var command = _input_mapper.translate_dungeon_input(ev, _build_command_context())
 	if command != null:
@@ -332,8 +392,18 @@ func _execute_interaction(interaction):
 func _connect_grid_signals(grid):
 	grid.trap_triggered.connect(_on_trap_triggered)
 	grid.teleporter_stepped.connect(_on_teleporter_stepped)
+	grid.spell_mine_detonated.connect(_on_spell_mine_detonated)
 	grid.shop_manager.shop_alert.connect(_on_shop_alert)
 	grid.shop_manager.hostile_attack.connect(_on_hostile_attack)
+
+func _on_spell_mine_detonated(mine_info, trigger_pos):
+	if mine_info == null or mine_info.get("spell_name", "") == "":
+		return
+	SpellEngineScript.execute_spell(mine_info.spell_name, mine_info.get("caster", _player), trigger_pos, {
+		entity_grid = _entity_grid,
+		dungeon = self,
+		free_cast = true
+	})
 
 func _create_floor(floor_level):
 	var strategy = _active_strategy

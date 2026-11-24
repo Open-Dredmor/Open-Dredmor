@@ -17,6 +17,9 @@ var damage_profile = {}
 var resistances = {}
 var secondary_stats = {}
 var sfx_map = {}
+var active_buffs = []
+var active_dots = []
+var status_flags = {}
 
 var _idle_sprites = {}
 var _attack_sprites = {}
@@ -173,3 +176,89 @@ func get_die_sprite_path():
 
 func get_palette_path():
 	return _palette_path
+
+func has_buff(buff_name):
+	var target_name = str(buff_name)
+	for buff in active_buffs:
+		if str(buff.get("name", "")) == target_name:
+			return true
+	return false
+
+func remove_buff_by_name(buff_name):
+	var target_name = str(buff_name)
+	var removed = false
+	var ii = 0
+	while ii < active_buffs.size():
+		if str(active_buffs[ii].get("name", "")) == target_name:
+			active_buffs.remove_at(ii)
+			removed = true
+		else:
+			ii += 1
+	return removed
+
+func apply_buff(buff_def, source_spell = ""):
+	if buff_def == null or typeof(buff_def) != TYPE_DICTIONARY:
+		return false
+	var buff_name = str(buff_def.get("name", source_spell))
+	var duration = int(buff_def.get("time", buff_def.get("duration", 0)))
+	var use_timer = int(buff_def.get("useTimer", buff_def.get("usetimer", 1 if duration > 0 else 0))) == 1
+	for existing in active_buffs:
+		if str(existing.get("name", "")) == buff_name:
+			if use_timer:
+				existing["remaining_turns"] = max(1, duration)
+			return true
+	active_buffs.append({
+		name = buff_name,
+		use_timer = use_timer,
+		remaining_turns = max(1, duration) if use_timer else -1,
+		raw = buff_def
+	})
+	return true
+
+func set_status_flag(flag_name, turns):
+	var key = str(flag_name)
+	var count = int(turns)
+	if count <= 0:
+		status_flags.erase(key)
+	else:
+		status_flags[key] = max(int(status_flags.get(key, 0)), count)
+
+func has_status_flag(flag_name):
+	return int(status_flags.get(str(flag_name), 0)) > 0
+
+func apply_dot(dot_def):
+	if dot_def == null or typeof(dot_def) != TYPE_DICTIONARY:
+		return
+	active_dots.append(dot_def.duplicate(true))
+
+func tick_status_effects():
+	var ticked = 0
+	var ii = 0
+	while ii < active_buffs.size():
+		var buff = active_buffs[ii]
+		ticked += 1
+		if buff.get("use_timer", false):
+			buff["remaining_turns"] = int(buff.get("remaining_turns", 1)) - 1
+			if buff["remaining_turns"] <= 0:
+				active_buffs.remove_at(ii)
+				continue
+		ii += 1
+	for flag_key in status_flags.keys():
+		ticked += 1
+		var rem = int(status_flags[flag_key]) - 1
+		if rem <= 0:
+			status_flags.erase(flag_key)
+		else:
+			status_flags[flag_key] = rem
+	var jj = 0
+	while jj < active_dots.size():
+		var dot = active_dots[jj]
+		ticked += 1
+		if dot.has("on_tick") and dot.on_tick is Callable:
+			dot.on_tick.call(self, dot)
+		dot["remaining_turns"] = int(dot.get("remaining_turns", 1)) - 1
+		if dot["remaining_turns"] <= 0:
+			active_dots.remove_at(jj)
+		else:
+			jj += 1
+	return ticked
