@@ -5,6 +5,7 @@ static func init_container():
 
 var moveable_container
 var _dungeon = null
+var _floor_label = null
 
 func _ready():
 	call_deferred("_build_ui")
@@ -44,8 +45,37 @@ func _build_ui():
 	var gui = Control.new()
 	gui.name = "GUI"
 	moveable_container.add_child(gui)
+
+	var hud_layer = CanvasLayer.new()
+	hud_layer.name = "FloorHudLayer"
+	container.add_child(hud_layer)
+	_floor_label = Label.new()
+	_floor_label.position = Vector2(16, 12)
+	_floor_label.add_theme_font_override("font", OD.Assets.dialog().font)
+	_floor_label.add_theme_font_size_override("font_size", 20)
+	_floor_label.add_theme_color_override("font_color", Color(0.95, 0.9, 0.65))
+	_floor_label.add_theme_constant_override("outline_size", 3)
+	_floor_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	_floor_label.text = "Floor " + str(_dungeon.get_floor_level()) + " - " + _dungeon.get_branch_name()
+	hud_layer.add_child(_floor_label)
+	_dungeon.floor_changed.connect(_on_floor_changed)
+	call_deferred("_center_on_player")
 	
 	OD.Audio.play(assets.music.default)
+
+func _center_on_player():
+	if moveable_container == null or _dungeon == null or not is_instance_valid(_dungeon):
+		return
+	var player_global = _dungeon.get_player_global_position()
+	if player_global == null:
+		return
+	var target_screen = OD.Settings.display_size() / 2.0
+	moveable_container.global_position += target_screen - player_global
+
+func _on_floor_changed(floor_level, branch_name):
+	if is_instance_valid(_floor_label):
+		_floor_label.text = "Floor " + str(floor_level) + " - " + branch_name
+	call_deferred("_center_on_player")
 
 func _dev_seed():
 	OD.Audio.setup(get_tree().get_root())

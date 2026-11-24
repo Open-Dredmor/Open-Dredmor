@@ -9,6 +9,8 @@ static func generate(_branch_name, _floor_level):
 		branch_id = 0
 	var entity_grid = EntityGrid.new()
 	entity_grid.init(branch_id)
+	entity_grid.floor_level = _floor_level
+	entity_grid.branch_id = branch_id
 	entity_grid.resize(1,1)	
 	
 	# Useful development rooms
@@ -59,5 +61,8 @@ static func generate(_branch_name, _floor_level):
 		north_debug_button.position = OD.Math.grid_to_pixel(north_room.position.x, north_room.position.y) + entity_grid.position - Vector2(32, 32)
 		entity_grid.add_child(north_debug_button)
 		north_room.free()
+	if _floor_level > 1:
+		entity_grid.add_stairs(4, 6, "up")
+	entity_grid.add_stairs(4, 8, "down")
 	entity_grid.auto_tile_walls()
 	return entity_grid

@@ -25,7 +25,8 @@ func reset():
 		player_start_x = 4,
 		player_start_y = 6,
 		seconds_per_action = .5,
-		active_packs = default_packs
+		active_packs = default_packs,
+		debug_teleport = false
 	}
 
 func set_difficulty(difficulty):
@@ -49,6 +50,9 @@ func set_starting_skill_ids(skills):
 func set_active_packs(pack_ids):
 	_packs_initialized = true
 	_settings.active_packs = pack_ids.duplicate()
+
+func set_debug_teleport(enabled):
+	_settings.debug_teleport = enabled
 
 func has_initialized_packs():
 	return _packs_initialized

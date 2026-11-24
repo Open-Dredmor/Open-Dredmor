@@ -42,6 +42,6 @@ Fast floor layout generation, branch tilesets, interactive room elements, traps,
   - *Current state*: [script/instance/room.gd](../script/instance/room.gd) places a static Brax sprite on `S`, ignores `s`, and places a static pedestal on `i`.
   - *Done when*: Shops spawn priced items on pedestals, allow buying/selling with Brax, teleport Brax to `s` when shopping, and turn Brax + Collector/demonic guards hostile if the player attempts to steal or leaves without paying.
 
-- [ ] **Multi-floor progression & Stairs**
+- [x] **Multi-floor progression & Stairs**
   - *Current state*: [script/instance/dungeon.gd](../script/instance/dungeon.gd) has an unused `floors = []` array and only generates floor 1.
   - *Done when*: Stepping on/activating Stairs Down/Up generates or restores the target floor state, places the player at the corresponding stairs, and persists visited floors until save/quit.

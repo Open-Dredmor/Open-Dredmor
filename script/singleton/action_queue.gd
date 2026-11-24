@@ -17,6 +17,8 @@ func _on_UpdateTimer_timeout():
 	while ii < _actions.size():		
 		var action = _actions[ii]
 		action.update()
+		if ii >= _actions.size() or _actions[ii] != action:
+			continue
 		if action.is_complete():
 			_actions.remove_at(ii)
 		else:

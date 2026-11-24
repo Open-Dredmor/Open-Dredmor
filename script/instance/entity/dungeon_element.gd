@@ -15,6 +15,8 @@ func init(elem_type, animation, initial_data = {}):
 	_animation = animation
 	state_data = initial_data.duplicate(true)
 	if _animation != null:
+		if _animation.is_tall():
+			_animation.position.y -= OD.Assets.CELL_PIXEL_HEIGHT / 2.0
 		add_child(_animation)
 		if element_type == "lever" or element_type == "bookshelf":
 			_animation.set_step_only(true)

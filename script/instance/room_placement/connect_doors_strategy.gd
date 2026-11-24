@@ -18,7 +18,7 @@ static func _collides(buckets, rect):
 			if not buckets.has(key):
 				continue
 			for existing in buckets[key]:
-				if rect.x < existing.x + existing.w and rect.x + rect.w > existing.x and rect.y < existing.y + existing.h and rect.y + rect.h > existing.y:
+				if rect.x + 1 < existing.x + existing.w and rect.x + rect.w - 1 > existing.x and rect.y + 1 < existing.y + existing.h and rect.y + rect.h - 1 > existing.y:
 					return true
 	return false
 
@@ -46,21 +46,42 @@ static func _collect_doors(layout, placement_index, x_pos, y_pos, exclude_door =
 			})
 	return out
 
+static func _can_place_3x3_door(entity_grid, grid_x, grid_y, orientation):
+	if orientation == "ns":
+		if not entity_grid.has_wall(grid_x, grid_y - 2) or not entity_grid.has_wall(grid_x, grid_y + 2):
+			return false
+		for dy in [-1, 1]:
+			if not entity_grid.has_wall(grid_x, grid_y + dy):
+				return false
+			if not entity_grid.has_floor(grid_x - 1, grid_y + dy) or not entity_grid.has_floor(grid_x + 1, grid_y + dy):
+				return false
+			if entity_grid.get_door_at(grid_x, grid_y + dy) != null:
+				return false
+		return true
+	if not entity_grid.has_wall(grid_x - 2, grid_y) or not entity_grid.has_wall(grid_x + 2, grid_y):
+		return false
+	for dx in [-1, 1]:
+		if not entity_grid.has_wall(grid_x + dx, grid_y):
+			return false
+		if not entity_grid.has_floor(grid_x + dx, grid_y - 1) or not entity_grid.has_floor(grid_x + dx, grid_y + 1):
+			return false
+		if entity_grid.get_door_at(grid_x + dx, grid_y) != null:
+			return false
+	return true
+
 static func _compute_offset(source_door, target_door, layout):
 	var pos_x = source_door.world_x
 	var pos_y = source_door.world_y
 	match target_door.kind:
 		"up":
-			pos_y += 1
 			pos_x -= target_door.x
 		"down":
-			pos_y -= layout.height
+			pos_y -= layout.height - 1
 			pos_x -= target_door.x
 		"left":
-			pos_x += 1
 			pos_y -= target_door.y
 		"right":
-			pos_x -= layout.width
+			pos_x -= layout.width - 1
 			pos_y -= target_door.y
 	return Vector2i(pos_x, pos_y)
 
@@ -171,8 +192,11 @@ static func generate(_branch_name, floor_level):
 		branch_id = 0
 	var entity_grid = EntityGrid.new()
 	entity_grid.init(branch_id)
+	entity_grid.floor_level = floor_level
+	entity_grid.branch_id = branch_id
 	entity_grid.resize(1, 1)
 
+	var pending_doors = []
 	var farthest_index = 0
 	var farthest_dist = -1
 	for idx in range(placements.size()):
@@ -188,7 +212,12 @@ static func generate(_branch_name, floor_level):
 			if door.get("spawn_door", false):
 				var orientation = "ns" if door.kind == "left" or door.kind == "right" else "ew"
 				var is_locked = floor_level > 1 and randi() % 8 == 0
-				entity_grid.add_door(placement.x + door.x, placement.y + door.y, orientation, is_locked)
+				pending_doors.append({
+					x = placement.x + door.x,
+					y = placement.y + door.y,
+					orientation = orientation,
+					locked = is_locked
+				})
 		var debug_button = room.get_debug_button()
 		debug_button.position = OD.Math.grid_to_pixel(room.position.x, room.position.y) + entity_grid.position - Vector2(32, 32)
 		entity_grid.add_child(debug_button)
@@ -198,18 +227,18 @@ static func generate(_branch_name, floor_level):
 			farthest_dist = dist
 			farthest_index = idx
 
+	for door_info in pending_doors:
+		var style = "3x3" if _can_place_3x3_door(entity_grid, door_info.x, door_info.y, door_info.orientation) else "1x1"
+		entity_grid.add_door(door_info.x, door_info.y, door_info.orientation, door_info.locked, style)
+
 	if floor_level > 1 and not start_layout.floor_cells.is_empty():
 		var up_cell = start_layout.floor_cells[0]
-		var stairs_up = OD.Load.animation("dungeon/stairs_up.spr")
-		var up_px = OD.Math.grid_to_pixel(up_cell.x, up_cell.y)
-		entity_grid.add_animation(up_px.x, up_px.y, "element", stairs_up)
+		entity_grid.add_stairs(up_cell.x, up_cell.y, "up")
 
 	var down_placement = placements[farthest_index]
 	if not down_placement.layout.floor_cells.is_empty():
 		var down_cell = down_placement.layout.floor_cells[down_placement.layout.floor_cells.size() / 2]
-		var stairs_down = OD.Load.animation("dungeon/stairs_down.spr")
-		var down_px = OD.Math.grid_to_pixel(down_placement.x + down_cell.x, down_placement.y + down_cell.y)
-		entity_grid.add_animation(down_px.x, down_px.y, "element", stairs_down)
+		entity_grid.add_stairs(down_placement.x + down_cell.x, down_placement.y + down_cell.y, "down")
 
 	entity_grid.auto_tile_walls()
 	return entity_grid

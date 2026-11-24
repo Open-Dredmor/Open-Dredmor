@@ -44,7 +44,9 @@ var xml_name_to_layer_name = {
 	"water": "liquid",
 	"horde": "actors",
 	"monster": "actors",
-	"player": "actors"
+	"player": "actors",
+	"element": "actors",
+	"pedestal": "actors"
 }
 
 var animated_tile_lookup = {
@@ -64,10 +66,15 @@ var _blocker_cells = {}
 var _doors_by_cell = {}
 var _elements_by_cell = {}
 var _traps_by_cell = {}
+var _stairs_by_cell = {}
 var _named_entities = {}
 var _room_scripts = []
 var shop_manager = ShopManagerScript.new()
 var pending_shop_def = null
+var floor_level = 1
+var branch_id = 0
+var stairs_up_cell = null
+var stairs_down_cell = null
 
 func init(branch_id = 0):
 	_tilesets = OD.Assets.tileset_for_branch(branch_id)
@@ -143,11 +150,6 @@ func insert(source_grid, offset_position):
 				child.move_to(new_grid_pos.x, new_grid_pos.y)
 			else:
 				child.position = OD.Math.grid_to_pixel(child.position.x + offset_position.x, child.position.y + offset_position.y)
-			# Compensate for sprites greater than 1 tile height not being properly anchored.
-			# Might be another root cause, but this fixes the graphical problem of 2+ tile high sprites being drawn slightly too low
-			if child.has_method('is_tall'):				
-				if child.is_tall():
-					child.position.y -= OD.Assets.CELL_PIXEL_HEIGHT / 2
 			target_layer.add_child(child)
 	for ped_cell in source_grid.shop_manager._pedestals_by_cell.keys():
 		var shifted_ped_cell = ped_cell + offset_cell
@@ -353,15 +355,49 @@ func _execute_script_action(action, player_cell):
 			if spell_name != "":
 				script_spell_cast.emit(spell_name, player_cell)
 
-func add_door(grid_x, grid_y, orientation = "ew", locked = false):
+func add_door(grid_x, grid_y, orientation = "ew", locked = false, style = "1x1"):
 	var cell_key = Vector2i(int(grid_x), int(grid_y))
 	if _doors_by_cell.has(cell_key):
 		return _doors_by_cell[cell_key]
 	var door = DoorScript.new()
-	door.init(orientation, locked)
-	add_entity(grid_x, grid_y, door)
-	_doors_by_cell[cell_key] = door
+	door.init(orientation, locked, style)
+	if style == "3x3" and orientation == "ns":
+		add_entity(grid_x, grid_y - 1, door)
+		var aux = door.get_aux_node()
+		if aux != null:
+			aux.position = OD.Math.grid_to_pixel(grid_x, grid_y + 1)
+			get_layer(door.entity_kind).add_child(aux)
+		for dy in [-1, 0, 1]:
+			var span_cell = Vector2i(int(grid_x), int(grid_y) + dy)
+			if _wall_cells.has(span_cell):
+				_wall_cells.erase(span_cell)
+				add_floor_tile_at_grid(span_cell.x, span_cell.y)
+			_doors_by_cell[span_cell] = door
+	elif style == "3x3" and orientation == "ew":
+		add_entity(grid_x, grid_y, door)
+		for dx in [-1, 0, 1]:
+			var span_cell = Vector2i(int(grid_x) + dx, int(grid_y))
+			if _wall_cells.has(span_cell):
+				_wall_cells.erase(span_cell)
+				add_floor_tile_at_grid(span_cell.x, span_cell.y)
+			_doors_by_cell[span_cell] = door
+	else:
+		add_entity(grid_x, grid_y, door)
+		_doors_by_cell[cell_key] = door
 	return door
+
+func add_floor_tile_at_grid(grid_x, grid_y):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	_floor_cells[cell_key] = true
+	var tile = _tilesets.basic.get_tile("floor")
+	tile.position = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
+	get_layer("floor").add_child(tile)
+
+func has_floor(grid_x, grid_y):
+	return _floor_cells.has(Vector2i(int(grid_x), int(grid_y)))
+
+func has_wall(grid_x, grid_y):
+	return _wall_cells.has(Vector2i(int(grid_x), int(grid_y)))
 
 func get_door_at(grid_x, grid_y):
 	var cell_key = Vector2i(int(grid_x), int(grid_y))
@@ -390,6 +426,30 @@ func get_element_at(grid_x, grid_y):
 
 func unblock_cell(grid_x, grid_y):
 	_blocker_cells.erase(Vector2i(int(grid_x), int(grid_y)))
+
+func add_stairs(grid_x, grid_y, direction):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	var sprite_path = "dungeon/stairs_up.spr" if direction == "up" else "dungeon/stairs_down.spr"
+	var stairs_anim = OD.Load.animation(sprite_path)
+	var pixel_pos = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
+	if stairs_anim.is_tall():
+		pixel_pos.y -= OD.Assets.CELL_PIXEL_HEIGHT / 2.0
+	add_animation(pixel_pos.x, pixel_pos.y, "floor_decoration", stairs_anim)
+	_stairs_by_cell[cell_key] = {
+		direction = direction,
+		node = stairs_anim
+	}
+	if direction == "up":
+		stairs_up_cell = cell_key
+	else:
+		stairs_down_cell = cell_key
+	return _stairs_by_cell[cell_key]
+
+func get_stairs_at(grid_x, grid_y):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	if _stairs_by_cell.has(cell_key):
+		return _stairs_by_cell[cell_key]
+	return null
 
 func add_trap(grid_x, grid_y, trap_def):
 	var cell_key = Vector2i(int(grid_x), int(grid_y))
