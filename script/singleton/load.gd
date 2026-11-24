@@ -145,7 +145,7 @@ func read_int(file, byte_count):
 	var result = 0
 	var bytes = file.get_buffer(byte_count)
 	for ii in range(byte_count):
-		result += bytes[ii] * (pow(2, ii))
+		result += int(bytes[ii]) << (8 * ii)
 	return result
 
 func png_sprite(relative_path, start, end, delay_milliseconds):
@@ -216,11 +216,9 @@ func _pro_motion_sprites(relative_path):
 			color_table = color_table,
 			image_data = image_data
 		})
-	# TODO Apply this transparency information to the frame textures
 	if file.get_length() > file.get_position():
-			var _trans_header = file.get_buffer(6).get_string_from_ascii()
-			_trans_chunk = file.get_buffer(width*height)
-			#print("trans_chunk size: "+str(trans_chunk.size()))
+		var _trans_header = file.get_buffer(6).get_string_from_ascii()
+		_trans_chunk = file.get_buffer(width * height)
 		
 	var animation = OD.Animations.new()
 	animation.init()
@@ -230,7 +228,10 @@ func _pro_motion_sprites(relative_path):
 		# color_table ignore index = 0
 		for jj in range(frame.image_data.size()):
 			pixels.append_array(frame.color_table[frame.image_data[jj]])
-			pixels.append(0 if frame.image_data[jj] == 0 else 255) # Set alpha to 0 if transparent lookup
+			var alpha = 0 if frame.image_data[jj] == 0 else 255
+			if _trans_chunk != null and jj < _trans_chunk.size():
+				alpha = _trans_chunk[jj]
+			pixels.append(alpha)
 				
 		var img = Image.create_from_data(width, height, false, Image.FORMAT_RGBA8, pixels)
 		var image_texture = ImageTexture.create_from_image(img)

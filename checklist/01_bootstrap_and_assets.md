@@ -12,7 +12,7 @@ Foundational work to reliably validate the user's *Dungeons of Dredmor* installa
   - *Current state*: [script/singleton/database.gd](../script/singleton/database.gd) only loads `game/*.xml`.
   - *Done when*: `OD.Database` detects installed expansions (`expansion/`, `expansion2/`, `expansion3/`) and optional mod folders, and merges their `skillDB`, `itemDB`, `monDB`, `craftDB`, `spellDB`, `rooms`, `branchDB`, `soundfx`, `speech`, and `text` records without breaking vanilla lookups.
 
-- [ ] **SPR transparency mask support**
+- [x] **SPR transparency mask support**
   - *Current state*: [script/singleton/load.gd](../script/singleton/load.gd) (`_pro_motion_sprites`) reads `_trans_chunk` into a local variable but ignores it, only using color index `0` for alpha.
   - *Done when*: `_trans_chunk` (when present) is applied to the generated `Image` alpha channel so sprites with non-zero transparent indices render cleanly.
 
