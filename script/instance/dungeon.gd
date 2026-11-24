@@ -17,12 +17,13 @@ var _player
 
 var FLOOR_STRATEGY = {
 	CONNECT_DOORS = "connect_doors",
+	RETAIL = "retail",
 	DEBUG_ROOMS = "debug_rooms",
 	ALL_ROOMS = "all_rooms",
 	CENTER_PACK = "center_pack"
 }
 
-var _active_strategy = FLOOR_STRATEGY.CONNECT_DOORS
+var _active_strategy = FLOOR_STRATEGY.RETAIL
 var _zorkmids_ref = { value = 150 }
 var _lutefisk_ref = { value = 10 }
 var _player_bag = []
@@ -271,9 +272,11 @@ func _build_ui():
 	_target_cursor.init()
 	var settings = OD.DungeonSettings.get_settings()
 	_entity_grid = _create_floor(_floor_level)
-	_entity_grid.add_entity(settings.player_start_x, settings.player_start_y, _player)
+	var spawn_x = _entity_grid.player_spawn_cell.x if _entity_grid.player_spawn_cell != null else settings.player_start_x
+	var spawn_y = _entity_grid.player_spawn_cell.y if _entity_grid.player_spawn_cell != null else settings.player_start_y
+	_entity_grid.add_entity(spawn_x, spawn_y, _player)
 	add_child(_entity_grid)
-	_entity_grid.add_entity(0, 0, _target_cursor)
+	_entity_grid.add_entity(spawn_x, spawn_y, _target_cursor)
 	_entity_grid.update_trap_visibility(_player.get_grid_position())
 	_seed_player_bag()
 	floor_changed.emit(_floor_level, _branch_name)

@@ -75,6 +75,7 @@ var floor_level = 1
 var branch_id = 0
 var stairs_up_cell = null
 var stairs_down_cell = null
+var player_spawn_cell = null
 
 func init(branch_id = 0):
 	_tilesets = OD.Assets.tileset_for_branch(branch_id)
