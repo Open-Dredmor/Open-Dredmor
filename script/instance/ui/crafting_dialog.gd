@@ -17,6 +17,67 @@ const CRAFT_PANEL_W = 600.0
 const ENCRUST_PANEL_W = 664.0
 const PANEL_H = 600.0
 
+const DEFAULT_VIEWPORT_SIZE = Vector2(1280, 720)
+const UI_SCALE_MARGIN = Vector2(80.0, 40.0)
+const UI_SCALE_MIN = 0.75
+const UI_SCALE_MAX = 1.35
+
+const CRAFT_TAB_RECT = Rect2(6, 5, 93, 20)
+const ENCRUST_TAB_RECT = Rect2(6, 25, 93, 20)
+const CLOSE_BTN_POS = Vector2(506, 6)
+const CLOSE_BTN_FALLBACK_SIZE = Vector2(20, 20)
+
+const TOOL_BTN_START_POS = Vector2(39, 68)
+const TOOL_BTN_STEP_Y = 69
+const TOOL_BTN_SIZE = Vector2(60, 60)
+
+const FILTER_POSITIONS = {
+	ingredients = Vector2(106, 36),
+	skill = Vector2(214, 36),
+	secret = Vector2(286, 36)
+}
+
+const ROWS_CONTAINER_RECT = Rect2(122, 74, 384, 480)
+const ROW_SIZE = Vector2(384, 80)
+const ROW_STEP_Y = 80
+
+const NAV_BTN_X = 508
+const NAV_BTN_FALLBACK_SIZE = Vector2(64, 32)
+const NAV_TOP_Y = 141
+const NAV_PGUP_Y = 176
+const NAV_UP_Y = 211
+const NAV_DOWN_Y = 307
+const NAV_PGDN_Y = 345
+const NAV_BOT_Y = 381
+
+const CRAFT_BTN_POS = Vector2(416, 230)
+const CRAFT_BTN_FALLBACK_SIZE = Vector2(192, 88)
+const ENCRUST_TARGET_BTN_RECT = Rect2(590, 242, 64, 64)
+const ENCRUST_TARGET_ICON_RECT = Rect2(4, 4, 56, 56)
+
+const STATUS_LABEL_RECT = Rect2(106, 558, 400, 26)
+const STATUS_FONT_SIZE = 14
+
+const INGREDIENT_BASE_X = 304
+const INGREDIENT_STEP_X = 74
+const INGREDIENT_Y = 8
+const OUTPUT_SLOT_POS = Vector2(310, 8)
+const SLOT_ICON_SIZE = Vector2(56, 56)
+const SLOT_SKILL_LABEL_OFFSET = Vector2(6, 48)
+const SLOT_SKILL_LABEL_SIZE = Vector2(24, 16)
+const SLOT_SKILL_FONT_SIZE = 12
+const SLOT_MARK_OFFSET = Vector2(24, 46)
+const SLOT_MARK_SIZE = Vector2(20, 18)
+const SLOT_MARK_FONT_SIZE = 14
+
+const TOOLTIP_OFFSET = Vector2(16, 16)
+const TOOLTIP_SCREEN_MARGIN = 8
+const TOOLTIP_FLIP_MARGIN = 12
+const TOOLTIP_BORDER_WIDTH = 2
+const TOOLTIP_CONTENT_MARGIN = 10
+const TOOLTIP_MIN_WIDTH = 220
+const TOOLTIP_FONT_SIZE = 13
+
 var _player = null
 var _mode = "craft"
 var _active_tool = ""
@@ -100,11 +161,11 @@ func _process(_delta):
 		var mouse_pos = get_viewport().get_mouse_position()
 		var vp_size = get_viewport().get_visible_rect().size
 		var tip_size = _tooltip_panel.size
-		var target_pos = mouse_pos + Vector2(16, 16)
-		if target_pos.x + tip_size.x > vp_size.x - 8:
-			target_pos.x = mouse_pos.x - tip_size.x - 12
-		if target_pos.y + tip_size.y > vp_size.y - 8:
-			target_pos.y = mouse_pos.y - tip_size.y - 12
+		var target_pos = mouse_pos + TOOLTIP_OFFSET
+		if target_pos.x + tip_size.x > vp_size.x - TOOLTIP_SCREEN_MARGIN:
+			target_pos.x = mouse_pos.x - tip_size.x - TOOLTIP_FLIP_MARGIN
+		if target_pos.y + tip_size.y > vp_size.y - TOOLTIP_SCREEN_MARGIN:
+			target_pos.y = mouse_pos.y - tip_size.y - TOOLTIP_FLIP_MARGIN
 		_tooltip_panel.position = target_pos
 
 func _load_tex(path):
@@ -155,8 +216,8 @@ func _build_ui():
 	var vp = get_viewport()
 	var vp_size = vp.get_visible_rect().size if vp != null else OD.Settings.display_size()
 	if vp_size.x <= 0 or vp_size.y <= 0:
-		vp_size = Vector2(1280, 720)
-	_ui_scale = clamp(min((vp_size.x - 80.0) / ENCRUST_PANEL_W, (vp_size.y - 40.0) / PANEL_H), 0.75, 1.35)
+		vp_size = DEFAULT_VIEWPORT_SIZE
+	_ui_scale = clamp(min((vp_size.x - UI_SCALE_MARGIN.x) / ENCRUST_PANEL_W, (vp_size.y - UI_SCALE_MARGIN.y) / PANEL_H), UI_SCALE_MIN, UI_SCALE_MAX)
 	var panel_w = ENCRUST_PANEL_W if _mode == "encrust" else CRAFT_PANEL_W
 
 	var center = CenterContainer.new()
@@ -180,25 +241,25 @@ func _build_ui():
 	_panel_root.add_child(_bg_rect)
 
 	_craft_tab_btn = TextureButton.new()
-	_craft_tab_btn.position = Vector2(6, 5)
-	_craft_tab_btn.custom_minimum_size = Vector2(93, 20)
-	_craft_tab_btn.size = Vector2(93, 20)
+	_craft_tab_btn.position = CRAFT_TAB_RECT.position
+	_craft_tab_btn.custom_minimum_size = CRAFT_TAB_RECT.size
+	_craft_tab_btn.size = CRAFT_TAB_RECT.size
 	_craft_tab_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_craft_tab_btn.tooltip_text = "Crafting Mode"
 	_craft_tab_btn.pressed.connect(func(): _set_mode("craft"))
 	_panel_root.add_child(_craft_tab_btn)
 
 	_encrust_tab_btn = TextureButton.new()
-	_encrust_tab_btn.position = Vector2(6, 25)
-	_encrust_tab_btn.custom_minimum_size = Vector2(93, 20)
-	_encrust_tab_btn.size = Vector2(93, 20)
+	_encrust_tab_btn.position = ENCRUST_TAB_RECT.position
+	_encrust_tab_btn.custom_minimum_size = ENCRUST_TAB_RECT.size
+	_encrust_tab_btn.size = ENCRUST_TAB_RECT.size
 	_encrust_tab_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_encrust_tab_btn.tooltip_text = "Encrusting Mode"
 	_encrust_tab_btn.pressed.connect(func(): _set_mode("encrust"))
 	_panel_root.add_child(_encrust_tab_btn)
 
-	var close_btn = _make_tri_button("ui/gameplay/xclose_copper", Vector2(20, 20))
-	close_btn.position = Vector2(506, 6)
+	var close_btn = _make_tri_button("ui/gameplay/xclose_copper", CLOSE_BTN_FALLBACK_SIZE)
+	close_btn.position = CLOSE_BTN_POS
 	close_btn.pressed.connect(dismiss)
 	_panel_root.add_child(close_btn)
 
@@ -206,11 +267,11 @@ func _build_ui():
 	for idx in range(TOOL_ORDER.size()):
 		var tool_tag = TOOL_ORDER[idx]
 		var tool_btn = TextureButton.new()
-		tool_btn.position = Vector2(32, 76 + idx * 67)
+		tool_btn.position = Vector2(TOOL_BTN_START_POS.x, TOOL_BTN_START_POS.y + idx * TOOL_BTN_STEP_Y + idx)
 		tool_btn.ignore_texture_size = true
 		tool_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-		tool_btn.custom_minimum_size = Vector2(60, 60)
-		tool_btn.size = Vector2(60, 60)
+		tool_btn.custom_minimum_size = TOOL_BTN_SIZE
+		tool_btn.size = TOOL_BTN_SIZE
 		tool_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		var tk_info = OD.Database.get_toolkit_info(tool_tag)
 		tool_btn.tooltip_text = tk_info.name if tk_info != null else tool_tag.capitalize()
@@ -225,9 +286,9 @@ func _build_ui():
 		_tool_buttons[tool_tag] = tool_btn
 
 	var filter_defs = [
-		{ key = "ingredients", path = "ui/crafting/filter_ingredients", pos = Vector2(106, 36) },
-		{ key = "skill", path = "ui/crafting/filter_skill", pos = Vector2(214, 36) },
-		{ key = "secret", path = "ui/crafting/filter_secret", pos = Vector2(286, 36) }
+		{ key = "ingredients", path = "ui/crafting/filter_ingredients", pos = FILTER_POSITIONS.ingredients },
+		{ key = "skill", path = "ui/crafting/filter_skill", pos = FILTER_POSITIONS.skill },
+		{ key = "secret", path = "ui/crafting/filter_secret", pos = FILTER_POSITIONS.secret }
 	]
 	_filter_btns.clear()
 	for f_def in filter_defs:
@@ -251,35 +312,34 @@ func _build_ui():
 		_filter_btns[f_key] = { btn = f_btn, base = f_def.path }
 
 	_rows_container = Control.new()
-	_rows_container.position = Vector2(122, 74)
-	_rows_container.size = Vector2(384, 480)
+	_rows_container.position = ROWS_CONTAINER_RECT.position
+	_rows_container.size = ROWS_CONTAINER_RECT.size
 	_panel_root.add_child(_rows_container)
 
-	var nav_x = 516
-	var top_btn = _make_tri_button("ui/crafting/uber_top", Vector2(64, 32))
-	top_btn.position = Vector2(nav_x, 132)
+	var top_btn = _make_tri_button("ui/crafting/uber_top", NAV_BTN_FALLBACK_SIZE)
+	top_btn.position = Vector2(NAV_BTN_X, NAV_TOP_Y)
 	top_btn.pressed.connect(func(): _jump_selection(0))
 	_panel_root.add_child(top_btn)
 
-	var pgup_btn = _make_tri_button("ui/crafting/uber_pageup", Vector2(64, 32))
-	pgup_btn.position = Vector2(nav_x, 164)
+	var pgup_btn = _make_tri_button("ui/crafting/uber_pageup", NAV_BTN_FALLBACK_SIZE)
+	pgup_btn.position = Vector2(NAV_BTN_X, NAV_PGUP_Y)
 	pgup_btn.pressed.connect(func(): _move_selection(-VISIBLE_ROWS))
 	_panel_root.add_child(pgup_btn)
 
-	var up_btn = _make_tri_button("ui/crafting/uber_up", Vector2(64, 32))
-	up_btn.position = Vector2(nav_x, 196)
+	var up_btn = _make_tri_button("ui/crafting/uber_up", NAV_BTN_FALLBACK_SIZE)
+	up_btn.position = Vector2(NAV_BTN_X, NAV_UP_Y)
 	up_btn.pressed.connect(func(): _move_selection(-1))
 	_panel_root.add_child(up_btn)
 
-	_craft_btn = _make_tri_button("ui/crafting/craft_button", Vector2(192, 88))
-	_craft_btn.position = Vector2(416, 230)
+	_craft_btn = _make_tri_button("ui/crafting/craft_button", CRAFT_BTN_FALLBACK_SIZE)
+	_craft_btn.position = CRAFT_BTN_POS
 	_craft_btn.pressed.connect(_execute_craft)
 	_panel_root.add_child(_craft_btn)
 
 	_encrust_target_btn = TextureButton.new()
-	_encrust_target_btn.position = Vector2(590, 242)
-	_encrust_target_btn.custom_minimum_size = Vector2(64, 64)
-	_encrust_target_btn.size = Vector2(64, 64)
+	_encrust_target_btn.position = ENCRUST_TARGET_BTN_RECT.position
+	_encrust_target_btn.custom_minimum_size = ENCRUST_TARGET_BTN_RECT.size
+	_encrust_target_btn.size = ENCRUST_TARGET_BTN_RECT.size
 	_encrust_target_btn.visible = (_mode == "encrust")
 	_encrust_target_btn.pressed.connect(_cycle_encrust_target)
 	_encrust_target_btn.mouse_entered.connect(_show_encrust_target_tooltip)
@@ -287,32 +347,32 @@ func _build_ui():
 	_panel_root.add_child(_encrust_target_btn)
 
 	_encrust_target_icon = TextureRect.new()
-	_encrust_target_icon.position = Vector2(4, 4)
-	_encrust_target_icon.size = Vector2(56, 56)
+	_encrust_target_icon.position = ENCRUST_TARGET_ICON_RECT.position
+	_encrust_target_icon.size = ENCRUST_TARGET_ICON_RECT.size
 	_encrust_target_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_encrust_target_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_encrust_target_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_encrust_target_btn.add_child(_encrust_target_icon)
 
-	var down_btn = _make_tri_button("ui/crafting/uber_down", Vector2(64, 32))
-	down_btn.position = Vector2(nav_x, 328)
+	var down_btn = _make_tri_button("ui/crafting/uber_down", NAV_BTN_FALLBACK_SIZE)
+	down_btn.position = Vector2(NAV_BTN_X, NAV_DOWN_Y)
 	down_btn.pressed.connect(func(): _move_selection(1))
 	_panel_root.add_child(down_btn)
 
-	var pgdn_btn = _make_tri_button("ui/crafting/uber_pagedown", Vector2(64, 32))
-	pgdn_btn.position = Vector2(nav_x, 360)
+	var pgdn_btn = _make_tri_button("ui/crafting/uber_pagedown", NAV_BTN_FALLBACK_SIZE)
+	pgdn_btn.position = Vector2(NAV_BTN_X, NAV_PGDN_Y)
 	pgdn_btn.pressed.connect(func(): _move_selection(VISIBLE_ROWS))
 	_panel_root.add_child(pgdn_btn)
 
-	var bot_btn = _make_tri_button("ui/crafting/uber_bot", Vector2(64, 32))
-	bot_btn.position = Vector2(nav_x, 392)
+	var bot_btn = _make_tri_button("ui/crafting/uber_bot", NAV_BTN_FALLBACK_SIZE)
+	bot_btn.position = Vector2(NAV_BTN_X, NAV_BOT_Y)
 	bot_btn.pressed.connect(func(): _jump_selection(max(0, _filtered_recipes.size() - 1)))
 	_panel_root.add_child(bot_btn)
 
 	_status_label = Label.new()
-	_status_label.position = Vector2(106, 558)
-	_status_label.size = Vector2(400, 26)
-	_style_label(_status_label, font, 14, Color(0.15, 0.1, 0.05))
+	_status_label.position = STATUS_LABEL_RECT.position
+	_status_label.size = STATUS_LABEL_RECT.size
+	_style_label(_status_label, font, STATUS_FONT_SIZE, Color(0.15, 0.1, 0.05))
 	_panel_root.add_child(_status_label)
 
 	_tooltip_panel = PanelContainer.new()
@@ -322,16 +382,16 @@ func _build_ui():
 	var tip_style = StyleBoxFlat.new()
 	tip_style.bg_color = Color(0.08, 0.06, 0.05, 0.94)
 	tip_style.border_color = Color(0.7, 0.56, 0.34, 0.95)
-	tip_style.set_border_width_all(2)
-	tip_style.set_content_margin_all(10)
+	tip_style.set_border_width_all(TOOLTIP_BORDER_WIDTH)
+	tip_style.set_content_margin_all(TOOLTIP_CONTENT_MARGIN)
 	_tooltip_panel.add_theme_stylebox_override("panel", tip_style)
 	add_child(_tooltip_panel)
 
 	_tooltip_label = Label.new()
-	_tooltip_label.custom_minimum_size = Vector2(220, 0)
+	_tooltip_label.custom_minimum_size = Vector2(TOOLTIP_MIN_WIDTH, 0)
 	_tooltip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_tooltip_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_style_label(_tooltip_label, font, 13, Color(0.95, 0.92, 0.84))
+	_style_label(_tooltip_label, font, TOOLTIP_FONT_SIZE, Color(0.95, 0.92, 0.84))
 	_tooltip_panel.add_child(_tooltip_label)
 
 func _set_mode(new_mode):
@@ -498,13 +558,13 @@ func _rebuild_recipe_rows():
 		var row_tex = _load_tex(row_tex_path)
 
 		var row_ctrl = Control.new()
-		row_ctrl.position = Vector2(0, row_slot * 80)
-		row_ctrl.size = Vector2(384, 80)
+		row_ctrl.position = Vector2(0, row_slot * ROW_STEP_Y)
+		row_ctrl.size = ROW_SIZE
 		_rows_container.add_child(row_ctrl)
 
 		var row_bg = TextureButton.new()
 		row_bg.texture_normal = row_tex
-		row_bg.size = Vector2(384, 80)
+		row_bg.size = ROW_SIZE
 		row_bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		var target_idx = rec_idx
 		row_bg.pressed.connect(func():
@@ -526,9 +586,9 @@ func _rebuild_recipe_rows():
 			if _player != null:
 				have_amt = _player.count_item_in_inventory_excluding(inp_name, excluded_target) if _mode == "encrust" else _player.count_item_in_inventory(inp_name)
 			var has_ing = have_amt >= seen
-			var slot_x = 304 - (ing_count - ii) * 74
+			var slot_x = INGREDIENT_BASE_X - (ing_count - ii) * INGREDIENT_STEP_X
 			var item_def = OD.Database.get_item(inp_name)
-			_add_item_slot_icon(row_ctrl, item_def, inp_name, Vector2(slot_x, 8), has_ing, "Have: %d / Need: %d" % [have_amt, seen], font)
+			_add_item_slot_icon(row_ctrl, item_def, inp_name, Vector2(slot_x, INGREDIENT_Y), has_ing, "Have: %d / Need: %d" % [have_amt, seen], font)
 
 		var min_sk = int(recipe.get("min_skill", 0))
 		var skill_ok = skill_lvl >= min_sk
@@ -536,7 +596,7 @@ func _rebuild_recipe_rows():
 			var slots_arr = recipe.get("slots", [])
 			var slot_icon_path = OD.Database.get_encrust_slot_icon(slots_arr[0] if not slots_arr.is_empty() else "weapon")
 			var slot_tex = _load_tex(slot_icon_path)
-			_add_encrust_slot_icon(row_ctrl, slot_tex, recipe, Vector2(310, 8), skill_ok, font, str(min_sk))
+			_add_encrust_slot_icon(row_ctrl, slot_tex, recipe, OUTPUT_SLOT_POS, skill_ok, font, str(min_sk))
 		else:
 			var out_def = OD.Database.get_craft_output_for_skill(recipe, max(skill_lvl, int(recipe.get("min_skill", 0))))
 			if out_def == null and not recipe.outputs.is_empty():
@@ -545,12 +605,12 @@ func _rebuild_recipe_rows():
 			var out_amt = max(1, int(out_def.get("amount", 1))) if out_def != null else 1
 			var out_item = OD.Database.get_item(out_name)
 			var extra = ("x" + str(out_amt) + " | " if out_amt > 1 else "") + "Skill Required: " + str(min_sk)
-			_add_item_slot_icon(row_ctrl, out_item, out_name, Vector2(310, 8), skill_ok, extra, font, str(min_sk))
+			_add_item_slot_icon(row_ctrl, out_item, out_name, OUTPUT_SLOT_POS, skill_ok, extra, font, str(min_sk))
 
 func _add_item_slot_icon(parent_ctrl, item_def, item_name, pos, is_ok, extra_tip, font, skill_text = ""):
 	var icon_btn = TextureRect.new()
 	icon_btn.position = pos
-	icon_btn.size = Vector2(56, 56)
+	icon_btn.size = SLOT_ICON_SIZE
 	icon_btn.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	if item_def != null and item_def.get("icon", "") != "":
@@ -565,18 +625,18 @@ func _add_item_slot_icon(parent_ctrl, item_def, item_name, pos, is_ok, extra_tip
 
 	if skill_text != "":
 		var sk_lbl = Label.new()
-		sk_lbl.position = pos + Vector2(6, 48)
-		sk_lbl.size = Vector2(24, 16)
+		sk_lbl.position = pos + SLOT_SKILL_LABEL_OFFSET
+		sk_lbl.size = SLOT_SKILL_LABEL_SIZE
 		sk_lbl.text = skill_text
-		_style_label(sk_lbl, font, 12, Color(0.95, 0.92, 0.78))
+		_style_label(sk_lbl, font, SLOT_SKILL_FONT_SIZE, Color(0.95, 0.92, 0.78))
 		parent_ctrl.add_child(sk_lbl)
 
 	var mark = Label.new()
-	mark.position = pos + Vector2(24, 46)
-	mark.size = Vector2(20, 18)
+	mark.position = pos + SLOT_MARK_OFFSET
+	mark.size = SLOT_MARK_SIZE
 	mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	mark.text = "v" if is_ok else "x"
-	_style_label(mark, font, 14, Color(0.25, 0.9, 0.25) if is_ok else Color(0.95, 0.25, 0.25))
+	_style_label(mark, font, SLOT_MARK_FONT_SIZE, Color(0.25, 0.9, 0.25) if is_ok else Color(0.95, 0.25, 0.25))
 	parent_ctrl.add_child(mark)
 
 func _update_craft_button_state():
@@ -590,7 +650,7 @@ func _update_craft_button_state():
 	var check = _player.can_encrust_item(recipe, _selected_encrust_target) if _mode == "encrust" else _player.can_craft_recipe(recipe)
 	_craft_btn.disabled = not check.ok
 	_craft_btn.modulate = Color.WHITE if check.ok else Color(0.6, 0.6, 0.6, 0.9)
-	_craft_btn.position.y = 230
+	_craft_btn.position.y = CRAFT_BTN_POS.y
 
 func _move_selection(delta):
 	if _filtered_recipes.is_empty():
@@ -642,7 +702,7 @@ func _execute_craft():
 func _add_encrust_slot_icon(parent_ctrl, slot_tex, encrust_def, pos, skill_ok, font, skill_text):
 	var icon_btn = TextureRect.new()
 	icon_btn.position = pos
-	icon_btn.size = Vector2(56, 56)
+	icon_btn.size = SLOT_ICON_SIZE
 	icon_btn.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	icon_btn.texture = slot_tex
@@ -653,18 +713,18 @@ func _add_encrust_slot_icon(parent_ctrl, slot_tex, encrust_def, pos, skill_ok, f
 
 	if skill_text != "":
 		var sk_lbl = Label.new()
-		sk_lbl.position = pos + Vector2(6, 48)
-		sk_lbl.size = Vector2(24, 16)
+		sk_lbl.position = pos + SLOT_SKILL_LABEL_OFFSET
+		sk_lbl.size = SLOT_SKILL_LABEL_SIZE
 		sk_lbl.text = skill_text
-		_style_label(sk_lbl, font, 12, Color(0.95, 0.92, 0.78))
+		_style_label(sk_lbl, font, SLOT_SKILL_FONT_SIZE, Color(0.95, 0.92, 0.78))
 		parent_ctrl.add_child(sk_lbl)
 
 	var mark = Label.new()
-	mark.position = pos + Vector2(24, 46)
-	mark.size = Vector2(20, 18)
+	mark.position = pos + SLOT_MARK_OFFSET
+	mark.size = SLOT_MARK_SIZE
 	mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	mark.text = "v" if skill_ok else "x"
-	_style_label(mark, font, 14, Color(0.25, 0.9, 0.25) if skill_ok else Color(0.95, 0.25, 0.25))
+	_style_label(mark, font, SLOT_MARK_FONT_SIZE, Color(0.25, 0.9, 0.25) if skill_ok else Color(0.95, 0.25, 0.25))
 	parent_ctrl.add_child(mark)
 
 func _format_encrust_tooltip(encrust_def):

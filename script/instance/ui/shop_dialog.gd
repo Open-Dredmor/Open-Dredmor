@@ -2,6 +2,47 @@ extends CanvasLayer
 
 class_name ShopDialog
 
+const DEFAULT_VIEWPORT_SIZE = Vector2(1280, 720)
+const CLOSE_BTN_SCALE = 2.0
+
+const DIALOG_TEXTURE_MARGIN = 44
+const DIALOG_CONTENT_MARGIN_LEFT = 36
+const DIALOG_CONTENT_MARGIN_RIGHT = 36
+const DIALOG_CONTENT_MARGIN_TOP = 30
+const DIALOG_CONTENT_MARGIN_BOTTOM = 32
+
+const PEDESTAL_WIDTH_RATIO = 0.48
+const PEDESTAL_MIN_WIDTH = 460.0
+const PEDESTAL_MAX_WIDTH = 620.0
+const PEDESTAL_CONTENT_SEPARATION = 12
+const PEDESTAL_TITLE_FONT_SIZE = 26
+const PEDESTAL_ICON_SIZE = Vector2(56, 56)
+const PEDESTAL_DESC_FONT_SIZE = 18
+const PEDESTAL_PRICE_FONT_SIZE = 19
+const PEDESTAL_STATUS_FONT_SIZE = 17
+const PEDESTAL_BTN_SEPARATION = 12
+
+const BRAX_WIDTH_RATIO = 0.58
+const BRAX_MIN_WIDTH = 560.0
+const BRAX_MAX_WIDTH = 780.0
+const BRAX_HEIGHT_RATIO = 0.72
+const BRAX_MIN_HEIGHT = 420.0
+const BRAX_MAX_HEIGHT = 660.0
+const BRAX_CONTENT_SEPARATION = 10
+const BRAX_TITLE_FONT_SIZE = 28
+const BRAX_STATUS_FONT_SIZE = 18
+const BRAX_WALLET_FONT_SIZE = 20
+const BRAX_TAB_BAR_SEPARATION = 10
+const BRAX_SUMMARY_SEPARATION = 16
+const BRAX_SUMMARY_DESC_FONT_SIZE = 18
+const BRAX_SUMMARY_ACTIONS_SEPARATION = 18
+const BRAX_LIST_MARGIN_RIGHT = 12
+const BRAX_LIST_SEPARATION = 8
+const BRAX_ROW_SEPARATION = 10
+const BRAX_ROW_ICON_SIZE = Vector2(32, 32)
+const BRAX_ROW_FONT_SIZE = 17
+const BRAX_EMPTY_FONT_SIZE = 16
+
 var _on_close_callback = null
 
 func _add_to_bag(player_bag, item):
@@ -26,13 +67,13 @@ func show_pedestal_dialog(pedestal, shop, zorkmids_ref, player_bag, on_close = C
 	var dialog_assets = OD.Assets.dialog()
 	var ink_color = Color(0.12, 0.08, 0.05)
 	var viewport_size = _get_viewport_size()
-	var target_width = clamp(viewport_size.x * 0.48, 460.0, 620.0)
+	var target_width = clamp(viewport_size.x * PEDESTAL_WIDTH_RATIO, PEDESTAL_MIN_WIDTH, PEDESTAL_MAX_WIDTH)
 	var panel = _create_nine_patch_dialog(dialog_assets.textures.alert_bigger, Vector2(target_width, 0))
 
 	var content_vbox = VBoxContainer.new()
 	content_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content_vbox.add_theme_constant_override("separation", 12)
+	content_vbox.add_theme_constant_override("separation", PEDESTAL_CONTENT_SEPARATION)
 	panel.add_child(content_vbox)
 
 	var header_hbox = HBoxContainer.new()
@@ -50,7 +91,7 @@ func show_pedestal_dialog(pedestal, shop, zorkmids_ref, player_bag, on_close = C
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_style_label(title_label, dialog_assets.font, 26, ink_color)
+	_style_label(title_label, dialog_assets.font, PEDESTAL_TITLE_FONT_SIZE, ink_color)
 	header_hbox.add_child(title_label)
 
 	header_hbox.add_child(close_btn)
@@ -58,7 +99,7 @@ func show_pedestal_dialog(pedestal, shop, zorkmids_ref, player_bag, on_close = C
 	if item != null and item.icon != "" and OD.Load.exists(item.icon):
 		var icon_rect = TextureRect.new()
 		icon_rect.texture = OD.Load.image(item.icon)
-		icon_rect.custom_minimum_size = Vector2(56, 56)
+		icon_rect.custom_minimum_size = PEDESTAL_ICON_SIZE
 		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon_rect.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		content_vbox.add_child(icon_rect)
@@ -68,14 +109,14 @@ func show_pedestal_dialog(pedestal, shop, zorkmids_ref, player_bag, on_close = C
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_style_label(desc_label, dialog_assets.font, 18, ink_color)
+	_style_label(desc_label, dialog_assets.font, PEDESTAL_DESC_FONT_SIZE, ink_color)
 	content_vbox.add_child(desc_label)
 
 	var price_label = Label.new()
 	price_label.text = "Price: " + str(item.price) + " zm   |   Your Zorkmids: " + str(zorkmids_ref.value)
 	price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	price_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_style_label(price_label, dialog_assets.font, 19, ink_color)
+	_style_label(price_label, dialog_assets.font, PEDESTAL_PRICE_FONT_SIZE, ink_color)
 	content_vbox.add_child(price_label)
 
 	var status_label = Label.new()
@@ -83,13 +124,13 @@ func show_pedestal_dialog(pedestal, shop, zorkmids_ref, player_bag, on_close = C
 	status_label.visible = false
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_style_label(status_label, dialog_assets.font, 17, Color(0.55, 0.1, 0.1))
+	_style_label(status_label, dialog_assets.font, PEDESTAL_STATUS_FONT_SIZE, Color(0.55, 0.1, 0.1))
 	content_vbox.add_child(status_label)
 
 	var btn_hbox = HBoxContainer.new()
 	btn_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	btn_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn_hbox.add_theme_constant_override("separation", 12)
+	btn_hbox.add_theme_constant_override("separation", PEDESTAL_BTN_SEPARATION)
 	content_vbox.add_child(btn_hbox)
 
 	var buy_btn = OD.Chrome.button(dialog_assets.textures.buy)
@@ -145,14 +186,14 @@ func show_brax_dialog(shop, zorkmids_ref, player_bag, on_close = Callable(), on_
 	var dialog_assets = OD.Assets.dialog()
 	var ink_color = Color(0.12, 0.08, 0.05)
 	var viewport_size = _get_viewport_size()
-	var target_width = clamp(viewport_size.x * 0.58, 560.0, 780.0)
-	var target_height = clamp(viewport_size.y * 0.72, 420.0, 660.0)
+	var target_width = clamp(viewport_size.x * BRAX_WIDTH_RATIO, BRAX_MIN_WIDTH, BRAX_MAX_WIDTH)
+	var target_height = clamp(viewport_size.y * BRAX_HEIGHT_RATIO, BRAX_MIN_HEIGHT, BRAX_MAX_HEIGHT)
 	var panel = _create_nine_patch_dialog(dialog_assets.textures.alert_bigger, Vector2(target_width, target_height))
 
 	var content_vbox = VBoxContainer.new()
 	content_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content_vbox.add_theme_constant_override("separation", 10)
+	content_vbox.add_theme_constant_override("separation", BRAX_CONTENT_SEPARATION)
 	panel.add_child(content_vbox)
 
 	var header_hbox = HBoxContainer.new()
@@ -168,7 +209,7 @@ func show_brax_dialog(shop, zorkmids_ref, player_bag, on_close = Callable(), on_
 	title_label.text = "Brax's Emporium"
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_style_label(title_label, dialog_assets.font, 28, ink_color)
+	_style_label(title_label, dialog_assets.font, BRAX_TITLE_FONT_SIZE, ink_color)
 	header_hbox.add_child(title_label)
 
 	header_hbox.add_child(close_btn)
@@ -177,12 +218,12 @@ func show_brax_dialog(shop, zorkmids_ref, player_bag, on_close = Callable(), on_
 	status_label.text = "Welcome! Browse my wares or sell your loot."
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_style_label(status_label, dialog_assets.font, 18, ink_color)
+	_style_label(status_label, dialog_assets.font, BRAX_STATUS_FONT_SIZE, ink_color)
 	content_vbox.add_child(status_label)
 
 	var wallet_label = Label.new()
 	wallet_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_style_label(wallet_label, dialog_assets.font, 20, ink_color)
+	_style_label(wallet_label, dialog_assets.font, BRAX_WALLET_FONT_SIZE, ink_color)
 	content_vbox.add_child(wallet_label)
 
 	var pay_tab_btn = _make_styled_button("Pay Tab", dialog_assets.font, ink_color, dialog_assets)
@@ -211,7 +252,7 @@ func show_brax_dialog(shop, zorkmids_ref, player_bag, on_close = Callable(), on_
 	var tab_bar = HBoxContainer.new()
 	tab_bar.alignment = BoxContainer.ALIGNMENT_CENTER
 	tab_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tab_bar.add_theme_constant_override("separation", 10)
+	tab_bar.add_theme_constant_override("separation", BRAX_TAB_BAR_SEPARATION)
 	content_vbox.add_child(tab_bar)
 
 	var summary_tab_btn = _make_styled_button("Summary", dialog_assets.font, ink_color, dialog_assets)
@@ -229,7 +270,7 @@ func show_brax_dialog(shop, zorkmids_ref, player_bag, on_close = Callable(), on_
 	var summary_page = VBoxContainer.new()
 	summary_page.set_anchors_preset(Control.PRESET_FULL_RECT)
 	summary_page.alignment = BoxContainer.ALIGNMENT_CENTER
-	summary_page.add_theme_constant_override("separation", 16)
+	summary_page.add_theme_constant_override("separation", BRAX_SUMMARY_SEPARATION)
 	tab_pages.add_child(summary_page)
 
 	var summary_desc = Label.new()
@@ -237,7 +278,7 @@ func show_brax_dialog(shop, zorkmids_ref, player_bag, on_close = Callable(), on_
 	summary_desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	summary_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	summary_desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_style_label(summary_desc, dialog_assets.font, 18, ink_color)
+	_style_label(summary_desc, dialog_assets.font, BRAX_SUMMARY_DESC_FONT_SIZE, ink_color)
 	summary_page.add_child(summary_desc)
 
 	summary_page.add_child(pay_tab_btn)
@@ -245,7 +286,7 @@ func show_brax_dialog(shop, zorkmids_ref, player_bag, on_close = Callable(), on_
 	var summary_actions = HBoxContainer.new()
 	summary_actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	summary_actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	summary_actions.add_theme_constant_override("separation", 18)
+	summary_actions.add_theme_constant_override("separation", BRAX_SUMMARY_ACTIONS_SEPARATION)
 	summary_page.add_child(summary_actions)
 
 	var steal_btn = _make_styled_button("Attempt Theft", dialog_assets.font, Color(0.55, 0.08, 0.08), dialog_assets)
@@ -270,12 +311,12 @@ func show_brax_dialog(shop, zorkmids_ref, player_bag, on_close = Callable(), on_
 
 	var buy_margin = MarginContainer.new()
 	buy_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	buy_margin.add_theme_constant_override("margin_right", 12)
+	buy_margin.add_theme_constant_override("margin_right", BRAX_LIST_MARGIN_RIGHT)
 	buy_scroll.add_child(buy_margin)
 
 	var buy_vbox = VBoxContainer.new()
 	buy_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	buy_vbox.add_theme_constant_override("separation", 8)
+	buy_vbox.add_theme_constant_override("separation", BRAX_LIST_SEPARATION)
 	buy_margin.add_child(buy_vbox)
 
 	var sell_scroll = ScrollContainer.new()
@@ -285,12 +326,12 @@ func show_brax_dialog(shop, zorkmids_ref, player_bag, on_close = Callable(), on_
 
 	var sell_margin = MarginContainer.new()
 	sell_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sell_margin.add_theme_constant_override("margin_right", 12)
+	sell_margin.add_theme_constant_override("margin_right", BRAX_LIST_MARGIN_RIGHT)
 	sell_scroll.add_child(sell_margin)
 
 	var sell_vbox = VBoxContainer.new()
 	sell_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sell_vbox.add_theme_constant_override("separation", 8)
+	sell_vbox.add_theme_constant_override("separation", BRAX_LIST_SEPARATION)
 	sell_margin.add_child(sell_vbox)
 
 	_populate_buy_list(buy_vbox, shop, zorkmids_ref, player_bag, dialog_assets, ink_color, status_label, refresh_wallet, sell_vbox)
@@ -320,12 +361,12 @@ func _populate_buy_list(buy_vbox, shop, zorkmids_ref, player_bag, dialog_assets,
 		var item = pedestal.item_data
 		var row = HBoxContainer.new()
 		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_theme_constant_override("separation", 10)
+		row.add_theme_constant_override("separation", BRAX_ROW_SEPARATION)
 		buy_vbox.add_child(row)
 		if item.icon != "" and OD.Load.exists(item.icon):
 			var icon_rect = TextureRect.new()
 			icon_rect.texture = OD.Load.image(item.icon)
-			icon_rect.custom_minimum_size = Vector2(32, 32)
+			icon_rect.custom_minimum_size = BRAX_ROW_ICON_SIZE
 			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			icon_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			row.add_child(icon_rect)
@@ -334,7 +375,7 @@ func _populate_buy_list(buy_vbox, shop, zorkmids_ref, player_bag, dialog_assets,
 		item_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		item_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		item_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_style_label(item_label, dialog_assets.font, 17, ink_color)
+		_style_label(item_label, dialog_assets.font, BRAX_ROW_FONT_SIZE, ink_color)
 		row.add_child(item_label)
 		var buy_btn = OD.Chrome.button(dialog_assets.textures.buy)
 		buy_btn.offset_left = 0
@@ -361,7 +402,7 @@ func _populate_buy_list(buy_vbox, shop, zorkmids_ref, player_bag, dialog_assets,
 		var empty_buy = Label.new()
 		empty_buy.text = "No items remaining on pedestals."
 		empty_buy.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_style_label(empty_buy, dialog_assets.font, 16, ink_color)
+		_style_label(empty_buy, dialog_assets.font, BRAX_EMPTY_FONT_SIZE, ink_color)
 		buy_vbox.add_child(empty_buy)
 
 func _populate_sell_list(sell_vbox, shop, zorkmids_ref, player_bag, dialog_assets, ink_color, status_label, refresh_wallet):
@@ -377,7 +418,7 @@ func _populate_sell_list(sell_vbox, shop, zorkmids_ref, player_bag, dialog_asset
 		var empty_sell = Label.new()
 		empty_sell.text = "Your bag is empty."
 		empty_sell.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_style_label(empty_sell, dialog_assets.font, 16, ink_color)
+		_style_label(empty_sell, dialog_assets.font, BRAX_EMPTY_FONT_SIZE, ink_color)
 		sell_vbox.add_child(empty_sell)
 		return
 	for entry in entries:
@@ -385,12 +426,12 @@ func _populate_sell_list(sell_vbox, shop, zorkmids_ref, player_bag, dialog_asset
 		var bag_item = entry.item
 		var row = HBoxContainer.new()
 		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_theme_constant_override("separation", 10)
+		row.add_theme_constant_override("separation", BRAX_ROW_SEPARATION)
 		sell_vbox.add_child(row)
 		if bag_item.get("icon", "") != "" and OD.Load.exists(bag_item.icon):
 			var icon_rect = TextureRect.new()
 			icon_rect.texture = OD.Load.image(bag_item.icon)
-			icon_rect.custom_minimum_size = Vector2(32, 32)
+			icon_rect.custom_minimum_size = BRAX_ROW_ICON_SIZE
 			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			icon_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			row.add_child(icon_rect)
@@ -402,7 +443,7 @@ func _populate_sell_list(sell_vbox, shop, zorkmids_ref, player_bag, dialog_asset
 		item_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		item_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		item_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_style_label(item_label, dialog_assets.font, 17, ink_color)
+		_style_label(item_label, dialog_assets.font, BRAX_ROW_FONT_SIZE, ink_color)
 		row.add_child(item_label)
 		var sell_btn = OD.Chrome.button(dialog_assets.textures.sell)
 		sell_btn.offset_left = 0
@@ -430,7 +471,7 @@ func _get_viewport_size():
 	var vp = get_viewport()
 	if vp != null:
 		return vp.get_visible_rect().size
-	return Vector2(1280, 720)
+	return DEFAULT_VIEWPORT_SIZE
 
 func _style_label(label, font, font_size, color):
 	label.add_theme_font_override("font", font)
@@ -439,7 +480,7 @@ func _style_label(label, font, font_size, color):
 
 func _make_close_button(dialog_assets):
 	var close_btn = OD.Chrome.button(dialog_assets.textures.close)
-	var scaled_size = close_btn.texture_normal.get_size() * 2.0
+	var scaled_size = close_btn.texture_normal.get_size() * CLOSE_BTN_SCALE
 	close_btn.ignore_texture_size = true
 	close_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 	close_btn.custom_minimum_size = scaled_size
@@ -470,14 +511,14 @@ func _create_nine_patch_dialog(bg_texture, min_size):
 
 	var style_box = StyleBoxTexture.new()
 	style_box.texture = bg_texture
-	style_box.texture_margin_left = 44
-	style_box.texture_margin_right = 44
-	style_box.texture_margin_top = 44
-	style_box.texture_margin_bottom = 44
-	style_box.content_margin_left = 36
-	style_box.content_margin_right = 36
-	style_box.content_margin_top = 30
-	style_box.content_margin_bottom = 32
+	style_box.texture_margin_left = DIALOG_TEXTURE_MARGIN
+	style_box.texture_margin_right = DIALOG_TEXTURE_MARGIN
+	style_box.texture_margin_top = DIALOG_TEXTURE_MARGIN
+	style_box.texture_margin_bottom = DIALOG_TEXTURE_MARGIN
+	style_box.content_margin_left = DIALOG_CONTENT_MARGIN_LEFT
+	style_box.content_margin_right = DIALOG_CONTENT_MARGIN_RIGHT
+	style_box.content_margin_top = DIALOG_CONTENT_MARGIN_TOP
+	style_box.content_margin_bottom = DIALOG_CONTENT_MARGIN_BOTTOM
 
 	var panel = PanelContainer.new()
 	panel.custom_minimum_size = min_size

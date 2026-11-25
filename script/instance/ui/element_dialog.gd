@@ -1,5 +1,46 @@
 extends CanvasLayer
 
+const NINE_PATCH_MARGIN = 24
+const CLOSE_BTN_SCALE = 2.0
+const CLOSE_BTN_MARGIN = Vector2(8, 8)
+const OK_BTN_BOTTOM_MARGIN = 14
+const LUTEFISK_OK_BTN_BOTTOM_MARGIN = 18
+
+const CONTENT_MARGINS = { left = 28, top = 24, right = -28, bottom = -68 }
+
+const KRONG_SELECT_SIZE = Vector2(460, 380)
+const KRONG_SELECT_SEPARATION = 10
+const KRONG_SELECT_TITLE_FONT_SIZE = 26
+const KRONG_SELECT_MSG_FONT_SIZE = 18
+const KRONG_SELECT_LIST_SEPARATION = 8
+const KRONG_SELECT_ROW_SEPARATION = 10
+const KRONG_SELECT_ICON_SIZE = Vector2(32, 32)
+const KRONG_SELECT_ITEM_FONT_SIZE = 18
+
+const KRONG_FRAME_SIZE = Vector2(560, 440)
+const KRONG_PANEL_POS = Vector2(20, 20)
+const KRONG_ITEM_ICON_RECT = Rect2(154, 174, 56, 56)
+const KRONG_STATS_BOX_RECT = Rect2(298, 200, 184, 164)
+const KRONG_MSG_FONT_SIZE = 18
+const KRONG_DISMISS_BTN_CENTER_X = 182
+const KRONG_DISMISS_BTN_Y = 356
+
+const LUTEFISK_REWARD_ICON_RECT = Rect2(228, 106, 64, 64)
+const LUTEFISK_MSG_RECT = Rect2(110, 174, 300, 78)
+const LUTEFISK_MSG_FONT_SIZE = 20
+const LUTEFISK_OFFER_BTN_RECT = Rect2(160, 260, 200, 32)
+
+const VENDING_WINDOW_SIZE = Vector2(580, 520)
+const STANDARD_CONTENT_SEPARATION = 8
+const STANDARD_TITLE_FONT_SIZE = 26
+const STANDARD_ICON_SIZE = Vector2(64, 64)
+const STANDARD_MSG_FONT_SIZE = 20
+const VENDING_ZORKMID_FONT_SIZE = 20
+const VENDING_STOCK_SEPARATION = 6
+const VENDING_ROW_SEPARATION = 10
+const VENDING_ITEM_ICON_SIZE = Vector2(32, 32)
+const VENDING_ITEM_FONT_SIZE = 18
+
 var _on_close_callback = null
 var _on_broken_callback = null
 var _on_item_granted_callback = null
@@ -65,10 +106,10 @@ func _create_base_overlay(bg_texture, custom_size = null):
 	if custom_size != null:
 		var nine_patch = NinePatchRect.new()
 		nine_patch.texture = bg_texture
-		nine_patch.patch_margin_left = 24
-		nine_patch.patch_margin_right = 24
-		nine_patch.patch_margin_top = 24
-		nine_patch.patch_margin_bottom = 24
+		nine_patch.patch_margin_left = NINE_PATCH_MARGIN
+		nine_patch.patch_margin_right = NINE_PATCH_MARGIN
+		nine_patch.patch_margin_top = NINE_PATCH_MARGIN
+		nine_patch.patch_margin_bottom = NINE_PATCH_MARGIN
 		panel = nine_patch
 	else:
 		var tex_rect = TextureRect.new()
@@ -87,44 +128,44 @@ func _create_base_overlay(bg_texture, custom_size = null):
 
 func _add_close_button(panel, dialog_assets):
 	var close_btn = OD.Chrome.button(dialog_assets.textures.close)
-	var scaled_size = close_btn.texture_normal.get_size() * 2.0
+	var scaled_size = close_btn.texture_normal.get_size() * CLOSE_BTN_SCALE
 	close_btn.ignore_texture_size = true
 	close_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 	close_btn.custom_minimum_size = scaled_size
 	close_btn.size = scaled_size
 	close_btn.anchor_left = 1.0
 	close_btn.anchor_top = 0.0
-	close_btn.offset_left = -scaled_size.x - 8
-	close_btn.offset_top = 8
+	close_btn.offset_left = -scaled_size.x - CLOSE_BTN_MARGIN.x
+	close_btn.offset_top = CLOSE_BTN_MARGIN.y
 	close_btn.pressed.connect(_dismiss)
 	panel.add_child(close_btn)
 
 func _build_krong_select_window(element, result, zorkmids_ref, lutefisk_ref, dialog_assets):
 	var ink_color = Color(0.12, 0.08, 0.05)
-	var panel = _create_base_overlay(dialog_assets.textures.alert_bigger, Vector2(460, 380))
+	var panel = _create_base_overlay(dialog_assets.textures.alert_bigger, KRONG_SELECT_SIZE)
 	_add_close_button(panel, dialog_assets)
 
 	var content_vbox = VBoxContainer.new()
 	content_vbox.anchor_right = 1.0
 	content_vbox.anchor_bottom = 1.0
-	content_vbox.offset_left = 28
-	content_vbox.offset_top = 24
-	content_vbox.offset_right = -28
-	content_vbox.offset_bottom = -68
-	content_vbox.add_theme_constant_override("separation", 10)
+	content_vbox.offset_left = CONTENT_MARGINS.left
+	content_vbox.offset_top = CONTENT_MARGINS.top
+	content_vbox.offset_right = CONTENT_MARGINS.right
+	content_vbox.offset_bottom = CONTENT_MARGINS.bottom
+	content_vbox.add_theme_constant_override("separation", KRONG_SELECT_SEPARATION)
 	panel.add_child(content_vbox)
 
 	var title_label = Label.new()
 	title_label.text = result.get("title", "Anvil of Krong")
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_style_label(title_label, dialog_assets.font, 26, ink_color)
+	_style_label(title_label, dialog_assets.font, KRONG_SELECT_TITLE_FONT_SIZE, ink_color)
 	content_vbox.add_child(title_label)
 
 	var msg_label = Label.new()
 	msg_label.text = result.get("message", "")
 	msg_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	msg_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_style_label(msg_label, dialog_assets.font, 18, ink_color)
+	_style_label(msg_label, dialog_assets.font, KRONG_SELECT_MSG_FONT_SIZE, ink_color)
 	content_vbox.add_child(msg_label)
 
 	var candidate_items = []
@@ -146,19 +187,19 @@ func _build_krong_select_window(element, result, zorkmids_ref, lutefisk_ref, dia
 
 	var items_vbox = VBoxContainer.new()
 	items_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	items_vbox.add_theme_constant_override("separation", 8)
+	items_vbox.add_theme_constant_override("separation", KRONG_SELECT_LIST_SEPARATION)
 	items_scroll.add_child(items_vbox)
 
 	for gear in candidate_items:
 		var row = HBoxContainer.new()
 		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_theme_constant_override("separation", 10)
+		row.add_theme_constant_override("separation", KRONG_SELECT_ROW_SEPARATION)
 		items_vbox.add_child(row)
 
 		if gear.icon != "" and OD.Load.exists(gear.icon):
 			var icon_rect = TextureRect.new()
 			icon_rect.texture = OD.Load.image(gear.icon)
-			icon_rect.custom_minimum_size = Vector2(32, 32)
+			icon_rect.custom_minimum_size = KRONG_SELECT_ICON_SIZE
 			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 			row.add_child(icon_rect)
 
@@ -166,7 +207,7 @@ func _build_krong_select_window(element, result, zorkmids_ref, lutefisk_ref, dia
 		name_label.text = gear.name
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_style_label(name_label, dialog_assets.font, 18, ink_color)
+		_style_label(name_label, dialog_assets.font, KRONG_SELECT_ITEM_FONT_SIZE, ink_color)
 		row.add_child(name_label)
 
 		var select_btn = Button.new()
@@ -183,7 +224,7 @@ func _build_krong_select_window(element, result, zorkmids_ref, lutefisk_ref, dia
 	cancel_btn.anchor_left = 0.5
 	cancel_btn.anchor_top = 1.0
 	cancel_btn.offset_left = -cancel_btn.texture_normal.get_width() / 2.0
-	cancel_btn.offset_top = -cancel_btn.texture_normal.get_height() - 14
+	cancel_btn.offset_top = -cancel_btn.texture_normal.get_height() - OK_BTN_BOTTOM_MARGIN
 	cancel_btn.pressed.connect(_dismiss)
 	panel.add_child(cancel_btn)
 
@@ -191,13 +232,12 @@ func _build_krong_window(result, dialog_assets):
 	var is_cursed = result.get("cursed", false)
 	var krong_texture = dialog_assets.textures.krong_displeased if is_cursed else dialog_assets.textures.krong_pleased
 	var dismiss_textures = dialog_assets.textures.shucks if is_cursed else dialog_assets.textures.awesome
-	var frame_size = Vector2(560, 440)
-	var frame_panel = _create_base_overlay(dialog_assets.textures.alert_bigger, frame_size)
+	var frame_panel = _create_base_overlay(dialog_assets.textures.alert_bigger, KRONG_FRAME_SIZE)
 	_add_close_button(frame_panel, dialog_assets)
 
 	var panel = TextureRect.new()
 	panel.texture = krong_texture
-	panel.position = Vector2(20, 20)
+	panel.position = KRONG_PANEL_POS
 	panel.size = Vector2(krong_texture.get_width(), krong_texture.get_height())
 	frame_panel.add_child(panel)
 
@@ -205,14 +245,14 @@ func _build_krong_window(result, dialog_assets):
 	if icon_path != "" and OD.Load.exists(icon_path):
 		var slot_icon = TextureRect.new()
 		slot_icon.texture = OD.Load.image(icon_path)
-		slot_icon.position = Vector2(154, 174)
-		slot_icon.size = Vector2(56, 56)
+		slot_icon.position = KRONG_ITEM_ICON_RECT.position
+		slot_icon.size = KRONG_ITEM_ICON_RECT.size
 		slot_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		panel.add_child(slot_icon)
 
 	var stats_box = VBoxContainer.new()
-	stats_box.position = Vector2(298, 200)
-	stats_box.size = Vector2(184, 164)
+	stats_box.position = KRONG_STATS_BOX_RECT.position
+	stats_box.size = KRONG_STATS_BOX_RECT.size
 	stats_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	panel.add_child(stats_box)
 
@@ -220,11 +260,11 @@ func _build_krong_window(result, dialog_assets):
 	msg_label.text = result.get("message", "")
 	msg_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	msg_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_style_label(msg_label, dialog_assets.font, 18, Color(0.95, 0.9, 0.8), 2)
+	_style_label(msg_label, dialog_assets.font, KRONG_MSG_FONT_SIZE, Color(0.95, 0.9, 0.8), 2)
 	stats_box.add_child(msg_label)
 
 	var dismiss_btn = OD.Chrome.button(dismiss_textures)
-	dismiss_btn.position = Vector2(182 - dismiss_btn.texture_normal.get_width() / 2.0, 356)
+	dismiss_btn.position = Vector2(KRONG_DISMISS_BTN_CENTER_X - dismiss_btn.texture_normal.get_width() / 2.0, KRONG_DISMISS_BTN_Y)
 	dismiss_btn.pressed.connect(_dismiss)
 	panel.add_child(dismiss_btn)
 
@@ -233,25 +273,25 @@ func _build_lutefisk_window(element, result, lutefisk_ref, dialog_assets):
 	_add_close_button(panel, dialog_assets)
 
 	var reward_icon = TextureRect.new()
-	reward_icon.position = Vector2(228, 106)
-	reward_icon.size = Vector2(64, 64)
+	reward_icon.position = LUTEFISK_REWARD_ICON_RECT.position
+	reward_icon.size = LUTEFISK_REWARD_ICON_RECT.size
 	reward_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	reward_icon.modulate.a = 0.0
 	panel.add_child(reward_icon)
 
 	var msg_label = Label.new()
-	msg_label.position = Vector2(110, 174)
-	msg_label.size = Vector2(300, 78)
+	msg_label.position = LUTEFISK_MSG_RECT.position
+	msg_label.size = LUTEFISK_MSG_RECT.size
 	msg_label.text = result.get("message", "")
 	msg_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	msg_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	msg_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_style_label(msg_label, dialog_assets.font, 20, Color(0.96, 0.94, 0.86), 3)
+	_style_label(msg_label, dialog_assets.font, LUTEFISK_MSG_FONT_SIZE, Color(0.96, 0.94, 0.86), 3)
 	panel.add_child(msg_label)
 
 	var offer_btn = Button.new()
-	offer_btn.position = Vector2(160, 260)
-	offer_btn.size = Vector2(200, 32)
+	offer_btn.position = LUTEFISK_OFFER_BTN_RECT.position
+	offer_btn.size = LUTEFISK_OFFER_BTN_RECT.size
 	offer_btn.text = "Offer 5 Lutefisk (Have: " + str(lutefisk_ref.value) + ")"
 	offer_btn.pressed.connect(func():
 		if element == null:
@@ -278,7 +318,7 @@ func _build_lutefisk_window(element, result, lutefisk_ref, dialog_assets):
 	ok_btn.anchor_left = 0.5
 	ok_btn.anchor_top = 1.0
 	ok_btn.offset_left = -ok_btn.texture_normal.get_width() / 2.0
-	ok_btn.offset_top = -ok_btn.texture_normal.get_height() - 18
+	ok_btn.offset_top = -ok_btn.texture_normal.get_height() - LUTEFISK_OK_BTN_BOTTOM_MARGIN
 	ok_btn.pressed.connect(_dismiss)
 	panel.add_child(ok_btn)
 
@@ -286,7 +326,7 @@ func _build_standard_window(element, result, zorkmids_ref, dialog_assets):
 	var kind = result.get("kind", "info")
 	var ink_color = Color(0.12, 0.08, 0.05)
 	var bg_texture = dialog_assets.textures.alert_bigger if kind == "vending" else dialog_assets.textures.alert
-	var custom_size = Vector2(580, 520) if kind == "vending" else null
+	var custom_size = VENDING_WINDOW_SIZE if kind == "vending" else null
 
 	var panel = _create_base_overlay(bg_texture, custom_size)
 	_add_close_button(panel, dialog_assets)
@@ -294,24 +334,24 @@ func _build_standard_window(element, result, zorkmids_ref, dialog_assets):
 	var content_vbox = VBoxContainer.new()
 	content_vbox.anchor_right = 1.0
 	content_vbox.anchor_bottom = 1.0
-	content_vbox.offset_left = 28
-	content_vbox.offset_top = 24
-	content_vbox.offset_right = -28
-	content_vbox.offset_bottom = -68
-	content_vbox.add_theme_constant_override("separation", 8)
+	content_vbox.offset_left = CONTENT_MARGINS.left
+	content_vbox.offset_top = CONTENT_MARGINS.top
+	content_vbox.offset_right = CONTENT_MARGINS.right
+	content_vbox.offset_bottom = CONTENT_MARGINS.bottom
+	content_vbox.add_theme_constant_override("separation", STANDARD_CONTENT_SEPARATION)
 	panel.add_child(content_vbox)
 
 	var title_label = Label.new()
 	title_label.text = result.get("title", "Element")
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_style_label(title_label, dialog_assets.font, 26, ink_color)
+	_style_label(title_label, dialog_assets.font, STANDARD_TITLE_FONT_SIZE, ink_color)
 	content_vbox.add_child(title_label)
 
 	var icon_path = result.get("icon", "")
 	if icon_path != "" and OD.Load.exists(icon_path):
 		var item_icon = TextureRect.new()
 		item_icon.texture = OD.Load.image(icon_path)
-		item_icon.custom_minimum_size = Vector2(64, 64)
+		item_icon.custom_minimum_size = STANDARD_ICON_SIZE
 		item_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		item_icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		item_icon.tooltip_text = result.get("tooltip", "")
@@ -321,7 +361,7 @@ func _build_standard_window(element, result, zorkmids_ref, dialog_assets):
 	msg_label.text = result.get("message", "")
 	msg_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	msg_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_style_label(msg_label, dialog_assets.font, 20, ink_color)
+	_style_label(msg_label, dialog_assets.font, STANDARD_MSG_FONT_SIZE, ink_color)
 	content_vbox.add_child(msg_label)
 
 	if kind == "broken":
@@ -331,7 +371,7 @@ func _build_standard_window(element, result, zorkmids_ref, dialog_assets):
 		var zorkmid_label = Label.new()
 		zorkmid_label.text = "Zorkmids: " + str(zorkmids_ref.value)
 		zorkmid_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_style_label(zorkmid_label, dialog_assets.font, 20, ink_color)
+		_style_label(zorkmid_label, dialog_assets.font, VENDING_ZORKMID_FONT_SIZE, ink_color)
 		content_vbox.add_child(zorkmid_label)
 
 		var stock_scroll = ScrollContainer.new()
@@ -342,18 +382,18 @@ func _build_standard_window(element, result, zorkmids_ref, dialog_assets):
 
 		var stock_vbox = VBoxContainer.new()
 		stock_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		stock_vbox.add_theme_constant_override("separation", 6)
+		stock_vbox.add_theme_constant_override("separation", VENDING_STOCK_SEPARATION)
 		stock_scroll.add_child(stock_vbox)
 
 		for item in result.get("stock", []):
 			var item_row = HBoxContainer.new()
 			item_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			item_row.add_theme_constant_override("separation", 10)
+			item_row.add_theme_constant_override("separation", VENDING_ROW_SEPARATION)
 			stock_vbox.add_child(item_row)
 			if item.has("icon") and item.icon != "" and OD.Load.exists(item.icon):
 				var icon_rect = TextureRect.new()
 				icon_rect.texture = OD.Load.image(item.icon)
-				icon_rect.custom_minimum_size = Vector2(32, 32)
+				icon_rect.custom_minimum_size = VENDING_ITEM_ICON_SIZE
 				icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 				icon_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 				item_row.add_child(icon_rect)
@@ -362,7 +402,7 @@ func _build_standard_window(element, result, zorkmids_ref, dialog_assets):
 			item_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			item_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			item_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			_style_label(item_label, dialog_assets.font, 18, ink_color)
+			_style_label(item_label, dialog_assets.font, VENDING_ITEM_FONT_SIZE, ink_color)
 			item_row.add_child(item_label)
 			var buy_btn = OD.Chrome.button(dialog_assets.textures.buy)
 			buy_btn.offset_left = 0
@@ -398,6 +438,6 @@ func _build_standard_window(element, result, zorkmids_ref, dialog_assets):
 	dismiss_btn.anchor_left = 0.5
 	dismiss_btn.anchor_top = 1.0
 	dismiss_btn.offset_left = -dismiss_btn.texture_normal.get_width() / 2.0
-	dismiss_btn.offset_top = -dismiss_btn.texture_normal.get_height() - 14
+	dismiss_btn.offset_top = -dismiss_btn.texture_normal.get_height() - OK_BTN_BOTTOM_MARGIN
 	dismiss_btn.pressed.connect(_dismiss)
 	panel.add_child(dismiss_btn)

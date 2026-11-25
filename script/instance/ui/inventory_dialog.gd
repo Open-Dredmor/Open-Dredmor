@@ -106,6 +106,90 @@ const SECONDARY_STAT_LABELS = {
 	wandcrafting_level = "Wandcraft"
 }
 
+const DEFAULT_VIEWPORT_SIZE = Vector2(1280, 720)
+const UI_SCALE_REF_SIZE = Vector2(960.0, 580.0)
+const UI_SCALE_MARGIN = Vector2(40.0, 80.0)
+const UI_SCALE_MIN = 0.72
+const UI_SCALE_MAX = 1.15
+const CHAR_PANEL_EXTRA_SCALE = 1.12
+
+const ROOT_VBOX_SEPARATION = 10
+const WINDOWS_HBOX_SEPARATION = 16
+
+const CHAR_PANEL_SIZE = Vector2(288, 512)
+const CHAR_NAME_RECT = Rect2(20, 10, 236, 20)
+const CHAR_NAME_FONT_SIZE = 14
+const CHAR_CLOSE_BTN_RECT = Rect2(265, 2, 20, 20)
+const RESIST_SCROLL_RECT = Rect2(51, 62, 54, 160)
+const RESIST_VBOX_SEPARATION = 2
+const RESIST_ROW_SEPARATION = 4
+const RESIST_ICON_SIZE = Vector2(14, 14)
+const RESIST_FONT_SIZE = 12
+
+const MELEE_LABEL_RECT = Rect2(112, 227, 162, 16)
+const RANGED_LABEL_RECT = Rect2(112, 249, 162, 16)
+const COMBAT_STAT_FONT_SIZE = 11
+const LEVEL_LABEL_RECT = Rect2(20, 300, 36, 18)
+const LEVEL_FONT_SIZE = 13
+
+const SKILLBAR_Y = { warrior = 273.5, wizard = 290, rogue = 305.5 }
+const SKILLNUM_Y = { warrior = 270, wizard = 285, rogue = 300 }
+const SKILLNUM_X = 124
+const SKILLNUM_SIZE = Vector2(19, 14)
+const SKILLNUM_FONT_SIZE = 11
+const SKILLBAR_X = 146
+const SKILLBAR_SIZE = Vector2(130, 12)
+const SKILL_PIP_SIZE = Vector2(4, 12)
+const SKILL_PIP_MAX = 28
+
+const PRIMARY_STAT_SIZE = Vector2(22, 16)
+const PRIMARY_STAT_FONT_SIZE = 12
+const SECONDARY_COL_X = [168, 214, 260]
+const SECONDARY_START_Y = 327
+const SECONDARY_ROW_STEP_Y = 18
+const SECONDARY_STAT_SIZE = Vector2(22, 16)
+const SECONDARY_STAT_FONT_SIZE = 12
+
+const LIFE_LABEL_RECT = Rect2(100, 443, 48, 15)
+const MANA_LABEL_RECT = Rect2(210, 443, 48, 15)
+const HP_REGEN_LABEL_RECT = Rect2(119, 461, 28, 15)
+const MP_REGEN_LABEL_RECT = Rect2(229, 461, 28, 15)
+const VITALS_FONT_SIZE = 10
+
+const INV_PANEL_SIZE = Vector2(608, 552)
+const INV_CLOSE_BTN_RECT = Rect2(562, 10, 32, 32)
+const SORT_BTN_RECT = Rect2(387, 485, 84, 30)
+const INV_SLOT_START = Vector2(45, 68)
+const INV_SLOT_STEP = Vector2(66, 66)
+const INV_SLOT_SIZE = Vector2(64, 64)
+
+const ACTION_BAR_BORDER_WIDTH = 2
+const ACTION_BAR_CORNER_RADIUS = 4
+const ACTION_BAR_MARGIN_H = 12
+const ACTION_BAR_MARGIN_V = 6
+const ACTION_BAR_SEPARATION = 10
+const AMMO_LABEL_FONT_SIZE = 14
+const AMMO_SLOT_SIZE = Vector2(36, 36)
+const SELECTED_INFO_FONT_SIZE = 16
+
+const SLOT_ICON_INSET = 2
+const SLOT_COUNT_OFFSET_LEFT = -28
+const SLOT_COUNT_OFFSET_TOP = -18
+const SLOT_COUNT_OFFSET_RIGHT = -3
+const SLOT_COUNT_OFFSET_BOTTOM = -1
+const SLOT_COUNT_FONT_SIZE = 12
+const SLOT_COUNT_OUTLINE_SIZE = 2
+
+const TOOLTIP_OFFSET = Vector2(16, 16)
+const TOOLTIP_SCREEN_MARGIN = 8
+const TOOLTIP_FLIP_MARGIN = 12
+const TOOLTIP_BORDER_WIDTH = 2
+const TOOLTIP_CORNER_RADIUS = 6
+const TOOLTIP_MARGIN_H = 10
+const TOOLTIP_MARGIN_V = 8
+const TOOLTIP_MIN_WIDTH = 240
+const TOOLTIP_FONT_SIZE = 14
+
 var _player = null
 var _drop_inv_cb = Callable()
 var _drop_equip_cb = Callable()
@@ -168,7 +252,7 @@ func _get_viewport_size():
 	var vp = get_viewport()
 	if vp != null:
 		return vp.get_visible_rect().size
-	return Vector2(1280, 720)
+	return DEFAULT_VIEWPORT_SIZE
 
 func _style_label(label, font, font_size, color):
 	if font != null:
@@ -204,7 +288,7 @@ func _build_ui():
 	var dialog_assets = OD.Assets.dialog()
 	var font = dialog_assets.font if dialog_assets != null else null
 	var vp_size = _get_viewport_size()
-	var ui_scale = clamp(min((vp_size.x - 40.0) / 960.0, (vp_size.y - 80.0) / 580.0), 0.72, 1.15)
+	var ui_scale = clamp(min((vp_size.x - UI_SCALE_MARGIN.x) / UI_SCALE_REF_SIZE.x, (vp_size.y - UI_SCALE_MARGIN.y) / UI_SCALE_REF_SIZE.y), UI_SCALE_MIN, UI_SCALE_MAX)
 
 	var backdrop = ColorRect.new()
 	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -217,52 +301,52 @@ func _build_ui():
 	backdrop.add_child(center)
 
 	var root_vbox = VBoxContainer.new()
-	root_vbox.add_theme_constant_override("separation", 10)
+	root_vbox.add_theme_constant_override("separation", ROOT_VBOX_SEPARATION)
 	center.add_child(root_vbox)
 
 	var windows_hbox = HBoxContainer.new()
 	windows_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	windows_hbox.add_theme_constant_override("separation", 16)
+	windows_hbox.add_theme_constant_override("separation", WINDOWS_HBOX_SEPARATION)
 	root_vbox.add_child(windows_hbox)
 
-	var char_scale = ui_scale * 1.12
+	var char_scale = ui_scale * CHAR_PANEL_EXTRA_SCALE
 	var char_holder = Control.new()
-	char_holder.custom_minimum_size = Vector2(288.0 * char_scale, 512.0 * char_scale)
+	char_holder.custom_minimum_size = CHAR_PANEL_SIZE * char_scale
 	windows_hbox.add_child(char_holder)
 
 	var char_panel = Control.new()
-	char_panel.custom_minimum_size = Vector2(288, 512)
-	char_panel.size = Vector2(288, 512)
+	char_panel.custom_minimum_size = CHAR_PANEL_SIZE
+	char_panel.size = CHAR_PANEL_SIZE
 	char_panel.scale = Vector2(char_scale, char_scale)
 	char_holder.add_child(char_panel)
 
 	var char_bg = TextureRect.new()
 	char_bg.texture = _load_tex(CHAR_PANEL_TEX)
-	char_bg.size = Vector2(288, 512)
+	char_bg.size = CHAR_PANEL_SIZE
 	char_bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	char_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	char_panel.add_child(char_bg)
 
 	_char_name_label = Label.new()
-	_char_name_label.position = Vector2(20, 10)
-	_char_name_label.size = Vector2(236, 20)
+	_char_name_label.position = CHAR_NAME_RECT.position
+	_char_name_label.size = CHAR_NAME_RECT.size
 	_char_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_style_label(_char_name_label, font, 14, Color(0.95, 0.9, 0.72))
+	_style_label(_char_name_label, font, CHAR_NAME_FONT_SIZE, Color(0.95, 0.9, 0.72))
 	char_panel.add_child(_char_name_label)
 
-	var char_close = _make_texture_button(CLOSE_BTN_TEXS, Vector2(20, 20))
-	char_close.position = Vector2(265, 2)
+	var char_close = _make_texture_button(CLOSE_BTN_TEXS, CHAR_CLOSE_BTN_RECT.size)
+	char_close.position = CHAR_CLOSE_BTN_RECT.position
 	char_close.pressed.connect(dismiss)
 	char_panel.add_child(char_close)
 
 	var resist_scroll = ScrollContainer.new()
-	resist_scroll.position = Vector2(51, 62)
-	resist_scroll.size = Vector2(54, 160)
+	resist_scroll.position = RESIST_SCROLL_RECT.position
+	resist_scroll.size = RESIST_SCROLL_RECT.size
 	resist_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	char_panel.add_child(resist_scroll)
 
 	_resist_vbox = VBoxContainer.new()
-	_resist_vbox.add_theme_constant_override("separation", 2)
+	_resist_vbox.add_theme_constant_override("separation", RESIST_VBOX_SEPARATION)
 	resist_scroll.add_child(_resist_vbox)
 
 	var slot_fill = _load_tex(SLOT_FILL_TEX)
@@ -279,45 +363,43 @@ func _build_ui():
 		_equip_buttons[slot_name] = slot_btn
 
 	_melee_label = Label.new()
-	_melee_label.position = Vector2(112, 227)
-	_melee_label.size = Vector2(162, 16)
+	_melee_label.position = MELEE_LABEL_RECT.position
+	_melee_label.size = MELEE_LABEL_RECT.size
 	_melee_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_melee_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_style_label(_melee_label, font, 11, Color(0.95, 0.92, 0.84))
+	_style_label(_melee_label, font, COMBAT_STAT_FONT_SIZE, Color(0.95, 0.92, 0.84))
 	char_panel.add_child(_melee_label)
 
 	_ranged_label = Label.new()
-	_ranged_label.position = Vector2(112, 249)
-	_ranged_label.size = Vector2(162, 16)
+	_ranged_label.position = RANGED_LABEL_RECT.position
+	_ranged_label.size = RANGED_LABEL_RECT.size
 	_ranged_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_ranged_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_style_label(_ranged_label, font, 11, Color(0.95, 0.92, 0.84))
+	_style_label(_ranged_label, font, COMBAT_STAT_FONT_SIZE, Color(0.95, 0.92, 0.84))
 	char_panel.add_child(_ranged_label)
 
 	_level_label = Label.new()
-	_level_label.position = Vector2(20, 300)
-	_level_label.size = Vector2(36, 18)
+	_level_label.position = LEVEL_LABEL_RECT.position
+	_level_label.size = LEVEL_LABEL_RECT.size
 	_level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_style_label(_level_label, font, 13, Color(0.96, 0.92, 0.8))
+	_style_label(_level_label, font, LEVEL_FONT_SIZE, Color(0.96, 0.92, 0.8))
 	char_panel.add_child(_level_label)
 
-	var bar_y = { warrior = 273.5, wizard = 290, rogue = 305.5 }
-	var num_y = { warrior = 270, wizard = 285, rogue = 300 }
 	_skillbar_labels.clear()
-	for branch_key in bar_y:
+	for branch_key in SKILLBAR_Y:
 		var num_lbl = Label.new()
-		num_lbl.position = Vector2(124, num_y[branch_key])
-		num_lbl.size = Vector2(19, 14)
+		num_lbl.position = Vector2(SKILLNUM_X, SKILLNUM_Y[branch_key])
+		num_lbl.size = SKILLNUM_SIZE
 		num_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		num_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		_style_label(num_lbl, font, 11, Color(0.96, 0.94, 0.88))
+		_style_label(num_lbl, font, SKILLNUM_FONT_SIZE, Color(0.96, 0.94, 0.88))
 		char_panel.add_child(num_lbl)
 		_skillbar_labels[branch_key] = num_lbl
 
 		var bar_hbox = HBoxContainer.new()
-		bar_hbox.position = Vector2(146, bar_y[branch_key])
-		bar_hbox.size = Vector2(130, 12)
+		bar_hbox.position = Vector2(SKILLBAR_X, SKILLBAR_Y[branch_key])
+		bar_hbox.size = SKILLBAR_SIZE
 		bar_hbox.add_theme_constant_override("separation", 0)
 		char_panel.add_child(bar_hbox)
 		_skillbar_containers[branch_key] = bar_hbox
@@ -326,84 +408,83 @@ func _build_ui():
 	for p_info in PRIMARY_STAT_POSITIONS:
 		var lbl = Label.new()
 		lbl.position = p_info.pos
-		lbl.size = Vector2(22, 16)
+		lbl.size = PRIMARY_STAT_SIZE
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		_style_label(lbl, font, 12, Color(0.96, 0.94, 0.88))
+		_style_label(lbl, font, PRIMARY_STAT_FONT_SIZE, Color(0.96, 0.94, 0.88))
 		char_panel.add_child(lbl)
 		_primary_labels[p_info.key] = lbl
 
 	_secondary_labels.clear()
-	var col_x = [168, 214, 260]
 	for row_idx in range(SECONDARY_GRID_KEYS.size()):
 		for col_idx in range(3):
 			var sec_key = SECONDARY_GRID_KEYS[row_idx][col_idx]
 			var lbl = Label.new()
-			lbl.position = Vector2(col_x[col_idx], 327 + row_idx * 18)
-			lbl.size = Vector2(22, 16)
+			lbl.position = Vector2(SECONDARY_COL_X[col_idx], SECONDARY_START_Y + row_idx * SECONDARY_ROW_STEP_Y)
+			lbl.size = SECONDARY_STAT_SIZE
 			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			_style_label(lbl, font, 12, Color(0.96, 0.94, 0.88))
+			_style_label(lbl, font, SECONDARY_STAT_FONT_SIZE, Color(0.96, 0.94, 0.88))
 			char_panel.add_child(lbl)
 			_secondary_labels[sec_key] = lbl
 
 	_life_label = Label.new()
-	_life_label.position = Vector2(100, 443)
-	_life_label.size = Vector2(48, 15)
+	_life_label.position = LIFE_LABEL_RECT.position
+	_life_label.size = LIFE_LABEL_RECT.size
 	_life_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_life_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_style_label(_life_label, font, 10, Color(0.98, 0.92, 0.9))
+	_style_label(_life_label, font, VITALS_FONT_SIZE, Color(0.98, 0.92, 0.9))
 	char_panel.add_child(_life_label)
 
 	_mana_label = Label.new()
-	_mana_label.position = Vector2(210, 443)
-	_mana_label.size = Vector2(48, 15)
+	_mana_label.position = MANA_LABEL_RECT.position
+	_mana_label.size = MANA_LABEL_RECT.size
 	_mana_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_mana_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_style_label(_mana_label, font, 10, Color(0.9, 0.94, 0.98))
+	_style_label(_mana_label, font, VITALS_FONT_SIZE, Color(0.9, 0.94, 0.98))
 	char_panel.add_child(_mana_label)
 
 	_hp_regen_label = Label.new()
-	_hp_regen_label.position = Vector2(119, 461)
-	_hp_regen_label.size = Vector2(28, 15)
+	_hp_regen_label.position = HP_REGEN_LABEL_RECT.position
+	_hp_regen_label.size = HP_REGEN_LABEL_RECT.size
 	_hp_regen_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_hp_regen_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_style_label(_hp_regen_label, font, 10, Color(0.95, 0.85, 0.85))
+	_style_label(_hp_regen_label, font, VITALS_FONT_SIZE, Color(0.95, 0.85, 0.85))
 	char_panel.add_child(_hp_regen_label)
 
 	_mp_regen_label = Label.new()
-	_mp_regen_label.position = Vector2(229, 461)
-	_mp_regen_label.size = Vector2(28, 15)
+	_mp_regen_label.position = MP_REGEN_LABEL_RECT.position
+	_mp_regen_label.size = MP_REGEN_LABEL_RECT.size
 	_mp_regen_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_mp_regen_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_style_label(_mp_regen_label, font, 10, Color(0.85, 0.9, 0.98))
+	_style_label(_mp_regen_label, font, VITALS_FONT_SIZE, Color(0.85, 0.9, 0.98))
 	char_panel.add_child(_mp_regen_label)
 
 	var inv_holder = Control.new()
-	inv_holder.custom_minimum_size = Vector2(608.0 * ui_scale, 552.0 * ui_scale)
+	inv_holder.custom_minimum_size = INV_PANEL_SIZE * ui_scale
 	windows_hbox.add_child(inv_holder)
 
 	var inv_panel = Control.new()
-	inv_panel.custom_minimum_size = Vector2(608, 552)
-	inv_panel.size = Vector2(608, 552)
+	inv_panel.custom_minimum_size = INV_PANEL_SIZE
+	inv_panel.size = INV_PANEL_SIZE
 	inv_panel.scale = Vector2(ui_scale, ui_scale)
 	inv_holder.add_child(inv_panel)
 
 	var inv_bg = TextureRect.new()
 	inv_bg.texture = _load_tex(INV_PANEL_TEX)
-	inv_bg.size = Vector2(608, 552)
+	inv_bg.size = INV_PANEL_SIZE
 	inv_bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	inv_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	inv_panel.add_child(inv_bg)
 
-	var inv_close = _make_texture_button(CLOSE_BTN_TEXS, Vector2(32, 32))
-	inv_close.position = Vector2(562, 10)
+	var inv_close = _make_texture_button(CLOSE_BTN_TEXS, INV_CLOSE_BTN_RECT.size)
+	inv_close.position = INV_CLOSE_BTN_RECT.position
 	inv_close.pressed.connect(dismiss)
 	inv_panel.add_child(inv_close)
 
-	var sort_btn = _make_texture_button(SORT_BTN_TEXS, Vector2(84, 30))
-	sort_btn.position = Vector2(387, 485)
-	sort_btn.size = Vector2(84, 30)
+	var sort_btn = _make_texture_button(SORT_BTN_TEXS, SORT_BTN_RECT.size)
+	sort_btn.position = SORT_BTN_RECT.position
+	sort_btn.size = SORT_BTN_RECT.size
 	sort_btn.pressed.connect(func():
 		if _player != null:
 			_selected_source = null
@@ -416,9 +497,9 @@ func _build_ui():
 		var slot_idx = ii
 		var row_idx = ii / PlayerCharacter.INVENTORY_COLS
 		var col_idx = ii % PlayerCharacter.INVENTORY_COLS
-		var inv_btn = _make_slot_button(Vector2(64, 64), null, font)
-		inv_btn.position = Vector2(45 + col_idx * 66, 68 + row_idx * 66)
-		inv_btn.size = Vector2(64, 64)
+		var inv_btn = _make_slot_button(INV_SLOT_SIZE, null, font)
+		inv_btn.position = Vector2(INV_SLOT_START.x + col_idx * INV_SLOT_STEP.x, INV_SLOT_START.y + row_idx * INV_SLOT_STEP.y)
+		inv_btn.size = INV_SLOT_SIZE
 		inv_btn.gui_input.connect(func(ev): _on_inv_slot_gui_input(ev, slot_idx))
 		inv_btn.mouse_entered.connect(func(): _show_tooltip_for_inv(slot_idx))
 		inv_btn.mouse_exited.connect(_hide_tooltip)
@@ -429,25 +510,25 @@ func _build_ui():
 	var action_style = StyleBoxFlat.new()
 	action_style.bg_color = Color(0.14, 0.11, 0.08, 0.92)
 	action_style.border_color = Color(0.55, 0.45, 0.28)
-	action_style.set_border_width_all(2)
-	action_style.set_corner_radius_all(4)
-	action_style.content_margin_left = 12
-	action_style.content_margin_right = 12
-	action_style.content_margin_top = 6
-	action_style.content_margin_bottom = 6
+	action_style.set_border_width_all(ACTION_BAR_BORDER_WIDTH)
+	action_style.set_corner_radius_all(ACTION_BAR_CORNER_RADIUS)
+	action_style.content_margin_left = ACTION_BAR_MARGIN_H
+	action_style.content_margin_right = ACTION_BAR_MARGIN_H
+	action_style.content_margin_top = ACTION_BAR_MARGIN_V
+	action_style.content_margin_bottom = ACTION_BAR_MARGIN_V
 	action_bar.add_theme_stylebox_override("panel", action_style)
 	root_vbox.add_child(action_bar)
 
 	var action_hbox = HBoxContainer.new()
-	action_hbox.add_theme_constant_override("separation", 10)
+	action_hbox.add_theme_constant_override("separation", ACTION_BAR_SEPARATION)
 	action_bar.add_child(action_hbox)
 
 	for ammo_slot in AMMO_SLOTS:
 		var ammo_lbl = Label.new()
 		ammo_lbl.text = SLOT_LABELS.get(ammo_slot, ammo_slot) + ":"
-		_style_label(ammo_lbl, font, 14, Color(0.88, 0.82, 0.68))
+		_style_label(ammo_lbl, font, AMMO_LABEL_FONT_SIZE, Color(0.88, 0.82, 0.68))
 		action_hbox.add_child(ammo_lbl)
-		var ammo_btn = _make_slot_button(Vector2(36, 36), slot_fill, font)
+		var ammo_btn = _make_slot_button(AMMO_SLOT_SIZE, slot_fill, font)
 		ammo_btn.gui_input.connect(func(ev): _on_equip_slot_gui_input(ev, ammo_slot))
 		ammo_btn.mouse_entered.connect(func(): _show_tooltip_for_equip(ammo_slot))
 		ammo_btn.mouse_exited.connect(_hide_tooltip)
@@ -457,7 +538,7 @@ func _build_ui():
 	_selected_info_label = Label.new()
 	_selected_info_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_selected_info_label.text = "Click to select/move, Right-click or Double-click to equip/unequip."
-	_style_label(_selected_info_label, font, 16, Color(0.95, 0.9, 0.78))
+	_style_label(_selected_info_label, font, SELECTED_INFO_FONT_SIZE, Color(0.95, 0.9, 0.78))
 	action_hbox.add_child(_selected_info_label)
 
 	_use_btn = Button.new()
@@ -501,20 +582,20 @@ func _build_ui():
 	var tip_style = StyleBoxFlat.new()
 	tip_style.bg_color = Color(0.11, 0.09, 0.07, 0.96)
 	tip_style.border_color = Color(0.75, 0.62, 0.35, 1.0)
-	tip_style.set_border_width_all(2)
-	tip_style.set_corner_radius_all(6)
-	tip_style.content_margin_left = 10
-	tip_style.content_margin_right = 10
-	tip_style.content_margin_top = 8
-	tip_style.content_margin_bottom = 8
+	tip_style.set_border_width_all(TOOLTIP_BORDER_WIDTH)
+	tip_style.set_corner_radius_all(TOOLTIP_CORNER_RADIUS)
+	tip_style.content_margin_left = TOOLTIP_MARGIN_H
+	tip_style.content_margin_right = TOOLTIP_MARGIN_H
+	tip_style.content_margin_top = TOOLTIP_MARGIN_V
+	tip_style.content_margin_bottom = TOOLTIP_MARGIN_V
 	_tooltip_panel.add_theme_stylebox_override("panel", tip_style)
 	add_child(_tooltip_panel)
 
 	_tooltip_label = Label.new()
-	_tooltip_label.custom_minimum_size = Vector2(240, 0)
+	_tooltip_label.custom_minimum_size = Vector2(TOOLTIP_MIN_WIDTH, 0)
 	_tooltip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_tooltip_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_style_label(_tooltip_label, font, 14, Color(0.95, 0.92, 0.84))
+	_style_label(_tooltip_label, font, TOOLTIP_FONT_SIZE, Color(0.95, 0.92, 0.84))
 	_tooltip_panel.add_child(_tooltip_label)
 
 func _make_slot_button(min_size, bg_tex, font):
@@ -540,10 +621,10 @@ func _make_slot_button(min_size, bg_tex, font):
 	var icon_rect = TextureRect.new()
 	icon_rect.name = "Icon"
 	icon_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-	icon_rect.offset_left = 2
-	icon_rect.offset_top = 2
-	icon_rect.offset_right = -2
-	icon_rect.offset_bottom = -2
+	icon_rect.offset_left = SLOT_ICON_INSET
+	icon_rect.offset_top = SLOT_ICON_INSET
+	icon_rect.offset_right = -SLOT_ICON_INSET
+	icon_rect.offset_bottom = -SLOT_ICON_INSET
 	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -552,14 +633,14 @@ func _make_slot_button(min_size, bg_tex, font):
 	var count_label = Label.new()
 	count_label.name = "Count"
 	count_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	count_label.offset_left = -28
-	count_label.offset_top = -18
-	count_label.offset_right = -3
-	count_label.offset_bottom = -1
+	count_label.offset_left = SLOT_COUNT_OFFSET_LEFT
+	count_label.offset_top = SLOT_COUNT_OFFSET_TOP
+	count_label.offset_right = SLOT_COUNT_OFFSET_RIGHT
+	count_label.offset_bottom = SLOT_COUNT_OFFSET_BOTTOM
 	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	count_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_style_label(count_label, font, 12, Color(1.0, 0.96, 0.72))
-	count_label.add_theme_constant_override("outline_size", 2)
+	_style_label(count_label, font, SLOT_COUNT_FONT_SIZE, Color(1.0, 0.96, 0.72))
+	count_label.add_theme_constant_override("outline_size", SLOT_COUNT_OUTLINE_SIZE)
 	count_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
 	btn.add_child(count_label)
 	return btn
@@ -569,11 +650,11 @@ func _process(_delta):
 		var vp_size = _get_viewport_size()
 		var mouse_pos = get_viewport().get_mouse_position()
 		var tip_size = _tooltip_panel.size
-		var target_pos = mouse_pos + Vector2(16, 16)
-		if target_pos.x + tip_size.x > vp_size.x - 8:
-			target_pos.x = max(8.0, mouse_pos.x - tip_size.x - 12)
-		if target_pos.y + tip_size.y > vp_size.y - 8:
-			target_pos.y = max(8.0, mouse_pos.y - tip_size.y - 12)
+		var target_pos = mouse_pos + TOOLTIP_OFFSET
+		if target_pos.x + tip_size.x > vp_size.x - TOOLTIP_SCREEN_MARGIN:
+			target_pos.x = max(float(TOOLTIP_SCREEN_MARGIN), mouse_pos.x - tip_size.x - TOOLTIP_FLIP_MARGIN)
+		if target_pos.y + tip_size.y > vp_size.y - TOOLTIP_SCREEN_MARGIN:
+			target_pos.y = max(float(TOOLTIP_SCREEN_MARGIN), mouse_pos.y - tip_size.y - TOOLTIP_FLIP_MARGIN)
 		_tooltip_panel.position = target_pos
 
 func _unhandled_input(ev):
@@ -860,11 +941,11 @@ func _refresh_stats():
 		for child in container.get_children():
 			child.queue_free()
 		var bar_tex = _load_tex(SKILLBAR_TEXS.get(branch_key, ""))
-		var pip_count = clamp(int(branch_levels.get(branch_key, 0)), 0, 28)
+		var pip_count = clamp(int(branch_levels.get(branch_key, 0)), 0, SKILL_PIP_MAX)
 		for ii in range(pip_count):
 			var pip = TextureRect.new()
 			pip.texture = bar_tex
-			pip.custom_minimum_size = Vector2(4, 12)
+			pip.custom_minimum_size = SKILL_PIP_SIZE
 			pip.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			pip.stretch_mode = TextureRect.STRETCH_SCALE
 			pip.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -879,21 +960,21 @@ func _refresh_stats():
 		if res_val == 0:
 			continue
 		var row = HBoxContainer.new()
-		row.add_theme_constant_override("separation", 4)
+		row.add_theme_constant_override("separation", RESIST_ROW_SEPARATION)
 		_resist_vbox.add_child(row)
 		var icon_path = RESIST_ICON_OVERRIDES.get(dmg_type, "ui/icons/dmg_" + dmg_type + "_resist.png")
 		var icon_tex = _load_tex(icon_path)
 		if icon_tex != null:
 			var icon_rect = TextureRect.new()
 			icon_rect.texture = icon_tex
-			icon_rect.custom_minimum_size = Vector2(14, 14)
+			icon_rect.custom_minimum_size = RESIST_ICON_SIZE
 			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 			row.add_child(icon_rect)
 		var res_lbl = Label.new()
 		res_lbl.text = str(res_val)
 		var res_color = Color(0.45, 0.9, 0.45) if res_val > 0 else Color(0.95, 0.35, 0.35)
-		_style_label(res_lbl, font, 12, res_color)
+		_style_label(res_lbl, font, RESIST_FONT_SIZE, res_color)
 		row.add_child(res_lbl)
 
 func _show_tooltip_for_inv(slot_idx):

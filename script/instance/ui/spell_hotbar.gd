@@ -6,6 +6,35 @@ const SpellEngineScript = preload("res://script/instance/combat/spell_engine.gd"
 
 const HOTBAR_KEYS = [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0]
 
+const HOTBAR_OFFSET_TOP = -84
+const HOTBAR_OFFSET_BOTTOM = -12
+const HOTBAR_SEPARATION = 6
+const HOTBAR_SLOT_SIZE = Vector2(56, 56)
+const SPELLBOOK_BTN_SIZE = Vector2(72, 56)
+const HOTBAR_BORDER_WIDTH = 2
+const HOTBAR_CONTENT_MARGIN = 6
+
+const TARGETING_LABEL_OFFSET_TOP = 12
+const TARGETING_LABEL_FONT_SIZE = 18
+
+const DIALOG_TEXTURE_MARGIN = 44
+const DIALOG_CONTENT_MARGIN_LEFT = 36
+const DIALOG_CONTENT_MARGIN_RIGHT = 36
+const DIALOG_CONTENT_MARGIN_TOP = 30
+const DIALOG_CONTENT_MARGIN_BOTTOM = 32
+
+const SPELLBOOK_WIDTH_RATIO = 0.55
+const SPELLBOOK_MIN_WIDTH = 480.0
+const SPELLBOOK_MAX_WIDTH = 760.0
+const SPELLBOOK_HEIGHT_RATIO = 0.65
+const SPELLBOOK_MIN_HEIGHT = 360.0
+const SPELLBOOK_MAX_HEIGHT = 560.0
+const SPELLBOOK_ROOT_SEPARATION = 10
+const SPELLBOOK_TITLE_FONT_SIZE = 22
+const SPELLBOOK_LIST_SEPARATION = 8
+const SPELLBOOK_ROW_SEPARATION = 10
+const SPELLBOOK_DESC_FONT_SIZE = 13
+
 var _dungeon = null
 var _hotbar_buttons = []
 var _targeting_label = null
@@ -24,8 +53,8 @@ func init(dungeon):
 func _build_ui():
 	var bottom_center = CenterContainer.new()
 	bottom_center.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	bottom_center.offset_top = -84
-	bottom_center.offset_bottom = -12
+	bottom_center.offset_top = HOTBAR_OFFSET_TOP
+	bottom_center.offset_bottom = HOTBAR_OFFSET_BOTTOM
 	bottom_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bottom_center)
 
@@ -34,14 +63,14 @@ func _build_ui():
 	bottom_center.add_child(bar_panel)
 
 	var bar_hbox = HBoxContainer.new()
-	bar_hbox.add_theme_constant_override("separation", 6)
+	bar_hbox.add_theme_constant_override("separation", HOTBAR_SEPARATION)
 	bar_panel.add_child(bar_hbox)
 
 	_hotbar_buttons.clear()
 	for ii in range(PlayerCharacter.HOTBAR_SIZE):
 		var slot_idx = ii
 		var btn = Button.new()
-		btn.custom_minimum_size = Vector2(56, 56)
+		btn.custom_minimum_size = HOTBAR_SLOT_SIZE
 		btn.clip_text = true
 		btn.pressed.connect(func(): _activate_slot(slot_idx))
 		bar_hbox.add_child(btn)
@@ -49,15 +78,15 @@ func _build_ui():
 
 	var book_btn = Button.new()
 	book_btn.text = "Spells\n(M)"
-	book_btn.custom_minimum_size = Vector2(72, 56)
+	book_btn.custom_minimum_size = SPELLBOOK_BTN_SIZE
 	book_btn.pressed.connect(toggle_spellbook)
 	bar_hbox.add_child(book_btn)
 
 	_targeting_label = Label.new()
 	_targeting_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	_targeting_label.offset_top = 12
+	_targeting_label.offset_top = TARGETING_LABEL_OFFSET_TOP
 	_targeting_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_targeting_label.add_theme_font_size_override("font_size", 18)
+	_targeting_label.add_theme_font_size_override("font_size", TARGETING_LABEL_FONT_SIZE)
 	_targeting_label.add_theme_color_override("font_color", Color(0.55, 0.9, 1.0))
 	_targeting_label.visible = false
 	add_child(_targeting_label)
@@ -131,8 +160,8 @@ func _create_hotbar_style():
 	var box = StyleBoxFlat.new()
 	box.bg_color = Color(0.12, 0.1, 0.09, 0.88)
 	box.border_color = Color(0.55, 0.45, 0.3, 0.9)
-	box.set_border_width_all(2)
-	box.set_content_margin_all(6)
+	box.set_border_width_all(HOTBAR_BORDER_WIDTH)
+	box.set_content_margin_all(HOTBAR_CONTENT_MARGIN)
 	return box
 
 func _create_dialog_style():
@@ -143,22 +172,22 @@ func _create_dialog_style():
 	if bg_tex != null:
 		var style_box = StyleBoxTexture.new()
 		style_box.texture = bg_tex
-		style_box.texture_margin_left = 44
-		style_box.texture_margin_right = 44
-		style_box.texture_margin_top = 44
-		style_box.texture_margin_bottom = 44
-		style_box.content_margin_left = 36
-		style_box.content_margin_right = 36
-		style_box.content_margin_top = 30
-		style_box.content_margin_bottom = 32
+		style_box.texture_margin_left = DIALOG_TEXTURE_MARGIN
+		style_box.texture_margin_right = DIALOG_TEXTURE_MARGIN
+		style_box.texture_margin_top = DIALOG_TEXTURE_MARGIN
+		style_box.texture_margin_bottom = DIALOG_TEXTURE_MARGIN
+		style_box.content_margin_left = DIALOG_CONTENT_MARGIN_LEFT
+		style_box.content_margin_right = DIALOG_CONTENT_MARGIN_RIGHT
+		style_box.content_margin_top = DIALOG_CONTENT_MARGIN_TOP
+		style_box.content_margin_bottom = DIALOG_CONTENT_MARGIN_BOTTOM
 		return style_box
 	return _create_hotbar_style()
 
 func _open_spellbook():
 	_close_spellbook()
 	var viewport_size = get_viewport_rect().size
-	var panel_w = clamp(viewport_size.x * 0.55, 480.0, 760.0)
-	var panel_h = clamp(viewport_size.y * 0.65, 360.0, 560.0)
+	var panel_w = clamp(viewport_size.x * SPELLBOOK_WIDTH_RATIO, SPELLBOOK_MIN_WIDTH, SPELLBOOK_MAX_WIDTH)
+	var panel_h = clamp(viewport_size.y * SPELLBOOK_HEIGHT_RATIO, SPELLBOOK_MIN_HEIGHT, SPELLBOOK_MAX_HEIGHT)
 
 	var center = CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -171,7 +200,7 @@ func _open_spellbook():
 	center.add_child(panel)
 
 	var root_vbox = VBoxContainer.new()
-	root_vbox.add_theme_constant_override("separation", 10)
+	root_vbox.add_theme_constant_override("separation", SPELLBOOK_ROOT_SEPARATION)
 	panel.add_child(root_vbox)
 
 	var header = HBoxContainer.new()
@@ -179,7 +208,7 @@ func _open_spellbook():
 	var title = Label.new()
 	title.text = "Spellbook"
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_font_size_override("font_size", SPELLBOOK_TITLE_FONT_SIZE)
 	header.add_child(title)
 	var close_btn = Button.new()
 	close_btn.text = "Close"
@@ -193,7 +222,7 @@ func _open_spellbook():
 
 	_spellbook_list_vbox = VBoxContainer.new()
 	_spellbook_list_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_spellbook_list_vbox.add_theme_constant_override("separation", 8)
+	_spellbook_list_vbox.add_theme_constant_override("separation", SPELLBOOK_LIST_SEPARATION)
 	scroll.add_child(_spellbook_list_vbox)
 
 	_populate_spellbook()
@@ -217,7 +246,7 @@ func _populate_spellbook():
 		if spell_def == null:
 			continue
 		var row = HBoxContainer.new()
-		row.add_theme_constant_override("separation", 10)
+		row.add_theme_constant_override("separation", SPELLBOOK_ROW_SEPARATION)
 		_spellbook_list_vbox.add_child(row)
 
 		var info_vbox = VBoxContainer.new()
@@ -235,7 +264,7 @@ func _populate_spellbook():
 			var desc_lbl = Label.new()
 			desc_lbl.text = str(spell_def.description)
 			desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			desc_lbl.add_theme_font_size_override("font_size", 13)
+			desc_lbl.add_theme_font_size_override("font_size", SPELLBOOK_DESC_FONT_SIZE)
 			info_vbox.add_child(desc_lbl)
 
 		var cast_btn = Button.new()

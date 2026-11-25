@@ -2,22 +2,35 @@ extends Control
 
 class_name BuffBar
 
+const BAR_OFFSET_LEFT = -460
+const BAR_OFFSET_TOP = 12
+const BAR_OFFSET_RIGHT = -12
+const BAR_OFFSET_BOTTOM = 84
+const ROW_SEPARATION = 6
+
+const BADGE_MIN_SIZE = Vector2(44, 52)
+const BADGE_BORDER_WIDTH = 2
+const BADGE_CONTENT_MARGIN = 4
+const BADGE_VBOX_SEPARATION = 2
+const BADGE_ICON_SIZE = Vector2(32, 32)
+const BADGE_FONT_SIZE = 11
+
 var _player = null
 var _row = null
 
 func init(player):
 	_player = player
 	set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	offset_left = -460
-	offset_top = 12
-	offset_right = -12
-	offset_bottom = 84
+	offset_left = BAR_OFFSET_LEFT
+	offset_top = BAR_OFFSET_TOP
+	offset_right = BAR_OFFSET_RIGHT
+	offset_bottom = BAR_OFFSET_BOTTOM
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	_row = HBoxContainer.new()
 	_row.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_row.alignment = BoxContainer.ALIGNMENT_END
-	_row.add_theme_constant_override("separation", 6)
+	_row.add_theme_constant_override("separation", ROW_SEPARATION)
 	_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_row)
 
@@ -33,8 +46,8 @@ func _make_badge_style(is_bad):
 	var box = StyleBoxFlat.new()
 	box.bg_color = Color(0.14, 0.08, 0.08, 0.88) if is_bad else Color(0.09, 0.14, 0.18, 0.88)
 	box.border_color = Color(0.85, 0.25, 0.2, 0.95) if is_bad else Color(0.35, 0.72, 0.95, 0.95)
-	box.set_border_width_all(2)
-	box.set_content_margin_all(4)
+	box.set_border_width_all(BADGE_BORDER_WIDTH)
+	box.set_content_margin_all(BADGE_CONTENT_MARGIN)
 	return box
 
 func _load_icon_texture(icon_path):
@@ -46,19 +59,19 @@ func _load_icon_texture(icon_path):
 
 func _add_badge(title, icon_path, counter_text, tooltip_str, is_bad, on_click = Callable()):
 	var panel = PanelContainer.new()
-	panel.custom_minimum_size = Vector2(44, 52)
+	panel.custom_minimum_size = BADGE_MIN_SIZE
 	panel.add_theme_stylebox_override("panel", _make_badge_style(is_bad))
 	panel.tooltip_text = tooltip_str
 
 	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 2)
+	vbox.add_theme_constant_override("separation", BADGE_VBOX_SEPARATION)
 	panel.add_child(vbox)
 
 	var tex = _load_icon_texture(icon_path)
 	if tex != null:
 		var icon_rect = TextureRect.new()
 		icon_rect.texture = tex
-		icon_rect.custom_minimum_size = Vector2(32, 32)
+		icon_rect.custom_minimum_size = BADGE_ICON_SIZE
 		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		vbox.add_child(icon_rect)
@@ -66,13 +79,13 @@ func _add_badge(title, icon_path, counter_text, tooltip_str, is_bad, on_click = 
 		var fallback = Label.new()
 		fallback.text = title.substr(0, 4)
 		fallback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		fallback.add_theme_font_size_override("font_size", 11)
+		fallback.add_theme_font_size_override("font_size", BADGE_FONT_SIZE)
 		vbox.add_child(fallback)
 
 	var dur_lbl = Label.new()
 	dur_lbl.text = counter_text
 	dur_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	dur_lbl.add_theme_font_size_override("font_size", 11)
+	dur_lbl.add_theme_font_size_override("font_size", BADGE_FONT_SIZE)
 	vbox.add_child(dur_lbl)
 
 	if on_click.is_valid():
