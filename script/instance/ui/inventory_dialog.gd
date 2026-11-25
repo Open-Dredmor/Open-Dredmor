@@ -982,6 +982,17 @@ func _show_tooltip(item):
 			var sign_str = "+" if amt >= 0 else ""
 			lines.append(sign_str + str(amt) + " " + str(dmg_type).capitalize() + " Damage")
 
+	var encrusts = item.get("encrusts", [])
+	if typeof(encrusts) == TYPE_ARRAY and not encrusts.is_empty():
+		lines.append("Encrusts: " + ", ".join(encrusts))
+		lines.append("Instability: " + str(int(item.get("instability", 0))))
+		var unstable_list = item.get("unstable_effects", [])
+		if typeof(unstable_list) == TYPE_ARRAY and not unstable_list.is_empty():
+			var u_names = []
+			for u_entry in unstable_list:
+				u_names.append(str(u_entry.get("name", "")))
+			lines.append("Unstable: " + ", ".join(u_names))
+
 	var desc = str(item.get("description", ""))
 	if desc != "":
 		lines.append("")

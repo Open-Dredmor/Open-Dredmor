@@ -175,6 +175,7 @@ func _interact_bookshelf():
 		title = "Bookshelf",
 		icon = icon_path,
 		tooltip = item_desc,
+		discovered_recipe = recipe,
 		message = "Discovered crafting recipe: " + out_name + " (" + recipe.tool + ")"
 	}
 

@@ -3,12 +3,14 @@ extends CanvasLayer
 var _on_close_callback = null
 var _on_broken_callback = null
 var _on_item_granted_callback = null
+var _on_recipe_learned_callback = null
 
-func show_element_dialog(element, zorkmids_ref, lutefisk_ref, on_close = Callable(), on_broken = Callable(), on_item_granted = Callable()):
+func show_element_dialog(element, zorkmids_ref, lutefisk_ref, on_close = Callable(), on_broken = Callable(), on_item_granted = Callable(), on_recipe_learned = Callable()):
 	layer = 10
 	_on_close_callback = on_close
 	_on_broken_callback = on_broken
 	_on_item_granted_callback = on_item_granted
+	_on_recipe_learned_callback = on_recipe_learned
 	var result = element.interact()
 	_build_from_result(element, result, zorkmids_ref, lutefisk_ref)
 
@@ -34,6 +36,8 @@ func _style_label(label, font, font_size, color, outline_size = 0):
 func _build_from_result(element, result, zorkmids_ref, lutefisk_ref):
 	if result.has("granted_item") and result.granted_item != null and _on_item_granted_callback != null and _on_item_granted_callback.is_valid():
 		_on_item_granted_callback.call(result.granted_item)
+	if result.has("discovered_recipe") and result.discovered_recipe != null and _on_recipe_learned_callback != null and _on_recipe_learned_callback.is_valid():
+		_on_recipe_learned_callback.call(result.discovered_recipe)
 	var dialog_assets = OD.Assets.dialog()
 	var kind = result.get("kind", "info")
 	match kind:

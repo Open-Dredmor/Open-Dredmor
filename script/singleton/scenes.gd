@@ -5,6 +5,7 @@ var BOOTSTRAP = "Bootstrap"
 var BUFF_TEST = "dev/buff_test"
 var CHARACTER_MENU = "game/character_menu"
 var CONSUMABLE_TEST = "dev/consumable_test"
+var CRAFTING_TEST = "dev/crafting_test"
 var DATABASE_TEST = "dev/database_test"
 var DEATH_TEST = "dev/death_test"
 var DIFFICULTY_MENU = "game/difficulty_menu"
@@ -30,7 +31,7 @@ var UI_TEST = "dev/ui_test"
 #var FIRST_SCENE = PRELOAD_ASSETS
 
 # For debugging specific levels or gameplay features
-var FIRST_SCENE = LOOT_TEST
+var FIRST_SCENE = CRAFTING_TEST
 
 func quit():
 	get_tree().quit()

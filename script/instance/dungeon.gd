@@ -3,6 +3,7 @@ extends Node2D
 class_name Dungeon
 
 const ElementDialogScript = preload("res://script/instance/ui/element_dialog.gd")
+const CraftingDialogScript = preload("res://script/instance/ui/crafting_dialog.gd")
 const ShopDialogScript = preload("res://script/instance/ui/shop_dialog.gd")
 const PocketDimensionScript = preload("res://script/instance/room_placement/pocket_dimension.gd")
 const CommandProcessorScript = preload("res://script/instance/command/command_processor.gd")
@@ -40,6 +41,7 @@ var _zorkmids_ref = { value = 150 }
 var _lutefisk_ref = { value = 10 }
 var _player_bag = []
 var _interaction_dialog = null
+var _crafting_dialog = null
 var _pending_spell_name = ""
 var _pending_wand_inv_idx = -1
 var _monsters_killed = 0
@@ -273,6 +275,9 @@ func begin_use_inventory_item(inv_idx):
 	if item == null or not _player.is_item_usable(item):
 		return { targeting = false, executed = false }
 	var cat = str(item.get("category", ""))
+	if cat == "toolkit":
+		var tool_tag = OD.Database.get_toolkit_tag_for_item(item) if OD.Database != null else ""
+		return { targeting = false, executed = true, open_crafting = true, tool_tag = tool_tag }
 	if cat == "wand":
 		var wand_spell = str(item.get("wand_spell", ""))
 		var spell_def = OD.Database.get_spell(wand_spell) if OD.Database != null and wand_spell != "" else null
@@ -729,7 +734,31 @@ func _spawn_floating_text(grid_pos, text, color):
 	)
 
 func is_dialog_open():
-	return is_instance_valid(_interaction_dialog)
+	return is_instance_valid(_interaction_dialog) or is_instance_valid(_crafting_dialog)
+
+func open_crafting_dialog(tool_tag = ""):
+	if _player == null:
+		return false
+	if is_instance_valid(_crafting_dialog):
+		_crafting_dialog.dismiss()
+		_crafting_dialog = null
+		return false
+	var possessed = _player.get_possessed_toolkits()
+	if possessed.is_empty():
+		var p_pos = _player.get_grid_position()
+		if p_pos != null:
+			_spawn_floating_text(Vector2i(int(p_pos.x), int(p_pos.y)), "No crafting tools in inventory!", Color(1.0, 0.55, 0.35))
+		return false
+	_crafting_dialog = CraftingDialogScript.new().init(_player, tool_tag, {
+		on_drop_overflow = func(drop_item):
+			var p_pos = _player.get_grid_position()
+			if p_pos != null and _entity_grid != null:
+				_entity_grid.add_loot_item(int(p_pos.x), int(p_pos.y), { kind = "item", item = drop_item }),
+		on_close = func():
+			_crafting_dialog = null
+	})
+	add_child(_crafting_dialog)
+	return true
 
 func _close_element_dialog():
 	if is_instance_valid(_interaction_dialog):
@@ -757,7 +786,10 @@ func _handle_element_interaction(element, grid_coords):
 		_lutefisk_ref,
 		func(): _interaction_dialog = null,
 		func(): _entity_grid.unblock_cell(grid_coords.x, grid_coords.y),
-		func(granted_item): _grant_loot_to_player(granted_item, grid_coords)
+		func(granted_item): _grant_loot_to_player(granted_item, grid_coords),
+		func(discovered_recipe):
+			if _player != null:
+				_player.learn_recipe(discovered_recipe)
 	)
 
 func _grant_loot_to_player(item_inst, fallback_pos):

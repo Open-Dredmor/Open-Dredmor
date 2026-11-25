@@ -272,7 +272,10 @@ func toggle_inventory():
 		on_drop_equipped = func(slot_name): _dungeon.drop_equipped_item(slot_name),
 		on_use_inventory = func(inv_idx):
 			var use_res = _dungeon.begin_use_inventory_item(inv_idx)
-			if typeof(use_res) == TYPE_DICTIONARY and use_res.get("targeting", false):
+			if typeof(use_res) == TYPE_DICTIONARY and use_res.get("open_crafting", false):
+				toggle_inventory()
+				_dungeon.open_crafting_dialog(str(use_res.get("tool_tag", "")))
+			elif typeof(use_res) == TYPE_DICTIONARY and use_res.get("targeting", false):
 				toggle_inventory(),
 		on_pickup = func(): _dungeon.pickup_loot_at_player(),
 		on_close = func(): _inventory_dialog = null
@@ -287,6 +290,10 @@ func _input(ev):
 	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_I:
 		if not _dungeon.is_dialog_open() and (_spell_hotbar == null or not _spell_hotbar.is_spellbook_open()):
 			toggle_inventory()
+			return
+	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_C:
+		if not _dungeon.is_dialog_open() and (_spell_hotbar == null or not _spell_hotbar.is_spellbook_open()):
+			_dungeon.open_crafting_dialog()
 			return
 	if _spell_hotbar != null and _spell_hotbar.handle_key_input(ev):
 		return

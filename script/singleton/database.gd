@@ -25,6 +25,7 @@ func _empty_pack_data():
 		tutorial_db = {},
 		tweak_db = {},
 		encrusts = [],
+		unstable_effects = [],
 		wizard_rooms = []
 	}
 
@@ -79,8 +80,11 @@ func _load_pack_data(base_path):
 		pack_data.tweak_db = OD.Load.xml(base_path + "tweakDB.xml")
 	if OD.Load.exists(base_path + "encrustDB.xml"):
 		var parsed = OD.Load.xml(base_path + "encrustDB.xml")
-		if parsed.has("encrustDB") and parsed.encrustDB.has("encrust"):
-			pack_data.encrusts = OD.DataStructure.arrayify(parsed.encrustDB.encrust)
+		if parsed.has("encrustDB"):
+			if parsed.encrustDB.has("encrust"):
+				pack_data.encrusts = OD.DataStructure.arrayify(parsed.encrustDB.encrust)
+			if parsed.encrustDB.has("unstableEffect"):
+				pack_data.unstable_effects = OD.DataStructure.arrayify(parsed.encrustDB.unstableEffect)
 	if OD.Load.exists(base_path + "wizardRoomDB.xml"):
 		var parsed = OD.Load.xml(base_path + "wizardRoomDB.xml")
 		for root_key in ["roomDB", "roomdb", "wizardRoomDB"]:
@@ -98,6 +102,7 @@ func _append_pack_into_cache(pack_data):
 	cache.skills += pack_data.skills
 	cache.abilities += pack_data.abilities
 	cache.encrusts += pack_data.encrusts
+	cache.unstable_effects += pack_data.unstable_effects
 	cache.wizard_rooms += pack_data.wizard_rooms
 	cache.magic_box_rooms_db = OD.DataStructure.merge(cache.magic_box_rooms_db, pack_data.magic_box_rooms_db)
 	cache.quest_item_db = OD.DataStructure.merge(cache.quest_item_db, pack_data.quest_item_db)
@@ -127,6 +132,7 @@ func set_active_packs(pack_ids = []):
 			_active_pack_prefixes.append(available_by_id[pack_id].prefix)
 	result_cache = null
 	_build_craft_info()
+	_build_encrust_info()
 	_build_item_info()
 	_build_loot_info()
 	_build_skill_info()
@@ -429,6 +435,18 @@ func get_loot(loot_kind, loot_sub_kind = null, floor_level = -1):
 		return null
 	return picked.get("raw", picked) if typeof(picked) == TYPE_DICTIONARY and picked.has("raw") else picked
 	
+func get_craft_skill_key(tool_tag):
+	match str(tool_tag):
+		"smithing", "ingot":
+			return "smithing_level"
+		"tinkerer":
+			return "tinkering_level"
+		"alchemy", "still", "grinder":
+			return "alchemy_level"
+		"lathe":
+			return "wandcrafting_level"
+	return ""
+
 func _build_craft_info():
 	var reagents = {
 		lookup = {},
@@ -444,12 +462,23 @@ func _build_craft_info():
 	for craft in cache.crafts:
 		if not craft.has('tool') or not craft.has('input'):
 			continue
-		# TODO I don't know if this is correct or not, but it will do for a best guess at the moment
-		var kind = 'reagent' if craft.tool.tag == 'still' or craft.tool.tag == 'alchemy' else 'component'		
+		var tool_tag = str(craft.tool.tag) if typeof(craft.tool) == TYPE_DICTIONARY and craft.tool.has('tag') else ""
+		var kind = 'reagent' if tool_tag == 'still' or tool_tag == 'alchemy' else 'component'
 		var inputs = OD.DataStructure.arrayify(craft.input)
 		var outputs = OD.DataStructure.arrayify(craft.output) if craft.has('output') else []
+		var min_skill = 999
+		for out_entry in outputs:
+			var req = int(out_entry.get("skill", 0)) if typeof(out_entry) == TYPE_DICTIONARY else 0
+			if req < min_skill:
+				min_skill = req
+		if min_skill == 999:
+			min_skill = 0
+		var primary_out = str(outputs[0].get("name", "")) if not outputs.is_empty() and typeof(outputs[0]) == TYPE_DICTIONARY else ""
 		var recipe = {
-			tool = craft.tool.tag if craft.tool.has('tag') else "",
+			id = tool_tag + ":" + primary_out + ":" + str(recipes.size()),
+			tool = tool_tag,
+			tool_skill = get_craft_skill_key(tool_tag),
+			min_skill = min_skill,
 			outputs = outputs,
 			inputs = inputs,
 			hidden = craft.has('hidden') and int(craft.hidden) == 1,
@@ -477,6 +506,44 @@ func _build_craft_info():
 		by_tool = recipes_by_tool
 	})
 
+func get_craft_output_for_skill(recipe, skill_level):
+	if recipe == null or not recipe.has("outputs"):
+		return null
+	var best_out = null
+	var best_skill = -1
+	for out_entry in recipe.outputs:
+		if typeof(out_entry) != TYPE_DICTIONARY:
+			continue
+		var req = int(out_entry.get("skill", 0))
+		if req <= skill_level and req >= best_skill:
+			best_skill = req
+			best_out = out_entry
+	return best_out
+
+func get_toolkit_info(tool_tag):
+	for item_entry in get_items_by_category("toolkit"):
+		var raw_tk = item_entry.get("raw", {}).get("toolkit", null)
+		if typeof(raw_tk) == TYPE_DICTIONARY and str(raw_tk.get("tag", "")) == str(tool_tag):
+			return {
+				tag = str(raw_tk.get("tag", "")),
+				name = str(item_entry.get("name", tool_tag)),
+				icon = str(item_entry.get("icon", "")),
+				numslots = int(raw_tk.get("numslots", 4)),
+				sound = str(raw_tk.get("sound", "")),
+				bg = str(raw_tk.get("bg", "ui/crafting/generic_bg.png")),
+				craftbutton = str(raw_tk.get("craftbutton", "ui/crafting/generic_but_craft"))
+			}
+	return null
+
+func get_toolkit_tag_for_item(item_name_or_def):
+	var item_def = get_item(str(item_name_or_def.get("name", item_name_or_def))) if typeof(item_name_or_def) == TYPE_DICTIONARY else get_item(str(item_name_or_def))
+	if item_def == null:
+		return ""
+	var raw_tk = item_def.get("raw", {}).get("toolkit", null)
+	if typeof(raw_tk) == TYPE_DICTIONARY:
+		return str(raw_tk.get("tag", ""))
+	return ""
+
 func get_all_crafts():
 	if result_cache == null or not result_cache.has("craft_info"):
 		return []
@@ -493,6 +560,138 @@ func get_crafts_by_tool(tool_tag):
 		return []
 	var by_tool = result_cache["craft_info"].by_tool
 	return by_tool[tool_tag] if by_tool.has(tool_tag) else []
+
+const ENCRUST_SLOT_ICON_MAP = {
+	"neck": "expansion3/ui/encrusting/encrust_amulet.png",
+	"chest": "expansion3/ui/encrusting/encrust_armour.png",
+	"waist": "expansion3/ui/encrusting/encrust_belt.png",
+	"feet": "expansion3/ui/encrusting/encrust_boots.png",
+	"ranged": "expansion3/ui/encrusting/encrust_crossbow.png",
+	"hands": "expansion3/ui/encrusting/encrust_gauntlets.png",
+	"head": "expansion3/ui/encrusting/encrust_helm.png",
+	"legs": "expansion3/ui/encrusting/encrust_pants.png",
+	"ring": "expansion3/ui/encrusting/encrust_ring.png",
+	"shield": "expansion3/ui/encrusting/encrust_shield.png",
+	"weapon": "expansion3/ui/encrusting/encrust_weapon.png"
+}
+
+func get_encrust_slot_icon(slot_type):
+	return str(ENCRUST_SLOT_ICON_MAP.get(str(slot_type), "expansion3/ui/encrusting/encrust_weapon.png"))
+
+func _build_encrust_info():
+	var encrust_list = []
+	var by_name = {}
+	var by_tool = {}
+	for raw_encrust in cache.encrusts:
+		if typeof(raw_encrust) != TYPE_DICTIONARY or not raw_encrust.has("name"):
+			continue
+		var tool_tag = ""
+		if raw_encrust.has("tool") and typeof(raw_encrust.tool) == TYPE_DICTIONARY:
+			tool_tag = str(raw_encrust.tool.get("tag", ""))
+		var slots = []
+		for slot_entry in OD.DataStructure.arrayify(raw_encrust.get("slot", [])):
+			if typeof(slot_entry) == TYPE_DICTIONARY and slot_entry.has("type"):
+				slots.append(str(slot_entry.type))
+		var inputs = OD.DataStructure.arrayify(raw_encrust.get("input", []))
+		var min_skill = 0
+		if raw_encrust.has("skill") and typeof(raw_encrust.skill) == TYPE_DICTIONARY:
+			min_skill = int(raw_encrust.skill.get("level", 0))
+		var instability = 0
+		if raw_encrust.has("instability") and typeof(raw_encrust.instability) == TYPE_DICTIONARY:
+			instability = int(raw_encrust.instability.get("amount", 0))
+		var desc = ""
+		if raw_encrust.has("description") and typeof(raw_encrust.description) == TYPE_DICTIONARY:
+			desc = str(raw_encrust.description.get("text", ""))
+		var encrust_with = []
+		for tag_entry in OD.DataStructure.arrayify(raw_encrust.get("encrustwith", [])):
+			if typeof(tag_entry) == TYPE_DICTIONARY and tag_entry.has("name"):
+				encrust_with.append(str(tag_entry.name))
+		var primary_buffs = []
+		for entry in _extract_item_tag_array(raw_encrust, "primarybuff", "primaryBuff"):
+			if typeof(entry) == TYPE_DICTIONARY and entry.has("id"):
+				primary_buffs.append({ id = int(entry.id), amount = int(entry.get("amount", 0)) })
+		var secondary_buffs = []
+		for entry in _extract_item_tag_array(raw_encrust, "secondarybuff", "secondaryBuff"):
+			if typeof(entry) == TYPE_DICTIONARY and entry.has("id"):
+				secondary_buffs.append({ id = int(entry.id), amount = int(entry.get("amount", 0)) })
+		var resist_buffs = {}
+		for entry in _extract_item_tag_array(raw_encrust, "resistbuff", "resistBuff"):
+			if typeof(entry) == TYPE_DICTIONARY:
+				for dmg_type in ITEM_DAMAGE_TYPES:
+					if entry.has(dmg_type):
+						resist_buffs[dmg_type] = int(resist_buffs.get(dmg_type, 0)) + int(entry[dmg_type])
+		var damage_buffs = {}
+		for entry in _extract_item_tag_array(raw_encrust, "damagebuff", "damageBuff"):
+			if typeof(entry) == TYPE_DICTIONARY:
+				for dmg_type in ITEM_DAMAGE_TYPES:
+					if entry.has(dmg_type):
+						damage_buffs[dmg_type] = int(damage_buffs.get(dmg_type, 0)) + int(entry[dmg_type])
+		var powers = []
+		for entry in OD.DataStructure.arrayify(raw_encrust.get("power", [])):
+			if typeof(entry) == TYPE_DICTIONARY and entry.has("name"):
+				powers.append({
+					name = str(entry.name),
+					chance = float(entry.get("chance", 1.0))
+				})
+		var encrust_entry = {
+			id = "encrust:" + str(raw_encrust.name),
+			name = str(raw_encrust.name),
+			description = desc,
+			tool = tool_tag,
+			tool_skill = get_craft_skill_key(tool_tag),
+			min_skill = min_skill,
+			slots = slots,
+			inputs = inputs,
+			instability = instability,
+			encrust_with = encrust_with,
+			primary_buffs = primary_buffs,
+			secondary_buffs = secondary_buffs,
+			resist_buffs = resist_buffs,
+			damage_buffs = damage_buffs,
+			powers = powers,
+			hidden = raw_encrust.has("hidden") and int(raw_encrust.hidden) == 1,
+			raw = raw_encrust
+		}
+		encrust_list.append(encrust_entry)
+		by_name[encrust_entry.name] = encrust_entry
+		if not by_tool.has(tool_tag):
+			by_tool[tool_tag] = []
+		by_tool[tool_tag].append(encrust_entry)
+	var unstable_list = []
+	for unstable_entry in cache.unstable_effects:
+		if typeof(unstable_entry) == TYPE_DICTIONARY and unstable_entry.has("name"):
+			unstable_list.append({
+				name = str(unstable_entry.name),
+				spell = str(unstable_entry.get("spell", ""))
+			})
+	cache_result("encrust_info", {
+		list = encrust_list,
+		by_name = by_name,
+		by_tool = by_tool,
+		unstable_effects = unstable_list
+	})
+
+func get_all_encrusts():
+	if result_cache == null or not result_cache.has("encrust_info"):
+		return []
+	return result_cache["encrust_info"].list
+
+func get_encrust(encrust_name):
+	if result_cache == null or not result_cache.has("encrust_info"):
+		return null
+	var by_name = result_cache["encrust_info"].by_name
+	return by_name[encrust_name] if by_name.has(encrust_name) else null
+
+func get_encrusts_by_tool(tool_tag):
+	if result_cache == null or not result_cache.has("encrust_info"):
+		return []
+	var by_tool = result_cache["encrust_info"].by_tool
+	return by_tool[tool_tag] if by_tool.has(tool_tag) else []
+
+func get_unstable_effects():
+	if result_cache == null or not result_cache.has("encrust_info"):
+		return []
+	return result_cache["encrust_info"].unstable_effects
 
 func _build_skill_info():
 	var by_id = {}

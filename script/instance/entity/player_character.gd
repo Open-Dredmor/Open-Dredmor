@@ -157,6 +157,7 @@ var resistances = {}
 
 var equipment = {}
 var inventory = []
+var known_recipes = {}
 
 func _init_stat_tables():
 	base_primary_stats.clear()
@@ -1266,7 +1267,7 @@ func is_item_usable(item_data):
 	if item_data == null or typeof(item_data) != TYPE_DICTIONARY:
 		return false
 	var cat = str(item_data.get("category", ""))
-	return cat in ["food", "potion", "mushroom", "wand"]
+	return cat in ["food", "potion", "mushroom", "wand", "toolkit"]
 
 func get_item_spell_name(item_data):
 	if item_data == null or typeof(item_data) != TYPE_DICTIONARY:
@@ -1406,4 +1407,357 @@ func use_consumable_at(inv_idx, target_cell = Vector2i.ZERO, context = {}):
 			spell_result = res
 		}
 
+	if cat == "toolkit":
+		var tool_tag = OD.Database.get_toolkit_tag_for_item(item) if OD.Database != null else ""
+		return {
+			executed = true,
+			kind = "toolkit",
+			tool_tag = tool_tag,
+			item_name = str(item.get("name", "Toolkit"))
+		}
+
 	return { executed = false, reason = "Unsupported consumable" }
+
+func learn_recipe(recipe_or_id):
+	if typeof(recipe_or_id) == TYPE_DICTIONARY:
+		if recipe_or_id.has("id"):
+			known_recipes[str(recipe_or_id.id)] = true
+		if recipe_or_id.has("outputs"):
+			for out_entry in recipe_or_id.outputs:
+				if typeof(out_entry) == TYPE_DICTIONARY and out_entry.has("name"):
+					known_recipes[str(out_entry.name)] = true
+	else:
+		known_recipes[str(recipe_or_id)] = true
+
+func knows_recipe(recipe):
+	if recipe == null:
+		return false
+	if not bool(recipe.get("hidden", false)):
+		return true
+	if known_recipes.has(str(recipe.get("id", ""))):
+		return true
+	for out_entry in recipe.get("outputs", []):
+		if typeof(out_entry) == TYPE_DICTIONARY and known_recipes.has(str(out_entry.get("name", ""))):
+			return true
+	return false
+
+func get_crafting_skill_level(tool_tag):
+	if OD.Database == null:
+		return 0
+	var skill_key = OD.Database.get_craft_skill_key(tool_tag)
+	if skill_key == "":
+		return 0
+	return max(0, int(get_secondary_stat(skill_key)))
+
+func get_possessed_toolkits():
+	var found = {}
+	if OD.Database == null:
+		return found
+	for item in inventory:
+		if item == null or str(item.get("category", "")) != "toolkit":
+			continue
+		var tag = OD.Database.get_toolkit_tag_for_item(item)
+		if tag != "" and tag != "lutefisk" and not found.has(tag):
+			found[tag] = item
+	return found
+
+func has_toolkit(tool_tag):
+	return get_possessed_toolkits().has(str(tool_tag))
+
+func count_item_in_inventory(item_name):
+	var total = 0
+	for item in inventory:
+		if item != null and str(item.get("name", "")) == str(item_name):
+			total += max(1, int(item.get("count", 1)))
+	return total
+
+func _required_input_counts(recipe):
+	var counts = {}
+	for inp in recipe.get("inputs", []):
+		var inp_name = str(inp.get("name", "")) if typeof(inp) == TYPE_DICTIONARY else str(inp)
+		if inp_name != "":
+			counts[inp_name] = int(counts.get(inp_name, 0)) + 1
+	return counts
+
+func can_craft_recipe(recipe, ignore_toolkit_check = false):
+	if recipe == null or OD.Database == null:
+		return { ok = false, reason = "Invalid recipe" }
+	var tool_tag = str(recipe.get("tool", ""))
+	if not ignore_toolkit_check and tool_tag != "" and not has_toolkit(tool_tag):
+		return { ok = false, reason = "Missing required tool (" + tool_tag + ")" }
+	var skill_lvl = get_crafting_skill_level(tool_tag)
+	var min_skill = int(recipe.get("min_skill", 0))
+	if skill_lvl < min_skill:
+		return { ok = false, reason = "Requires skill level " + str(min_skill) + " (have " + str(skill_lvl) + ")" }
+	var req_counts = _required_input_counts(recipe)
+	for req_name in req_counts:
+		var have_amt = count_item_in_inventory(req_name)
+		var need_amt = int(req_counts[req_name])
+		if have_amt < need_amt:
+			return { ok = false, reason = "Missing " + req_name + " (" + str(have_amt) + "/" + str(need_amt) + ")" }
+	return { ok = true, reason = "" }
+
+func _consume_inventory_item_by_name(item_name, amount):
+	var remaining = amount
+	for idx in range(inventory.size()):
+		if remaining <= 0:
+			break
+		var item = inventory[idx]
+		if item == null or str(item.get("name", "")) != str(item_name):
+			continue
+		var cnt = max(1, int(item.get("count", 1)))
+		var take = min(cnt, remaining)
+		remaining -= take
+		if cnt - take <= 0:
+			inventory[idx] = null
+		else:
+			item["count"] = cnt - take
+	return remaining == 0
+
+func craft_recipe(recipe, ignore_toolkit_check = false):
+	var check = can_craft_recipe(recipe, ignore_toolkit_check)
+	if not check.ok:
+		return check
+	var tool_tag = str(recipe.get("tool", ""))
+	var skill_lvl = get_crafting_skill_level(tool_tag)
+	var out_def = OD.Database.get_craft_output_for_skill(recipe, skill_lvl)
+	if out_def == null:
+		return { ok = false, reason = "No valid output for current skill level" }
+	var out_name = str(out_def.get("name", ""))
+	var out_amount = max(1, int(out_def.get("amount", 1)))
+
+	var req_counts = _required_input_counts(recipe)
+	for req_name in req_counts:
+		_consume_inventory_item_by_name(req_name, int(req_counts[req_name]))
+
+	var created_items = []
+	var leftover_items = []
+	var sample = OD.Database.create_item_instance(out_name, 1)
+	if sample != null:
+		if int(sample.get("max_stack", 1)) > 1:
+			var stacked = OD.Database.create_item_instance(out_name, out_amount)
+			var add_res = add_item(stacked)
+			created_items.append(stacked)
+			if not add_res.added or add_res.remaining > 0:
+				var rem_cnt = add_res.remaining if add_res.added else out_amount
+				var drop_inst = OD.Database.create_item_instance(out_name, rem_cnt)
+				if drop_inst != null:
+					leftover_items.append(drop_inst)
+		else:
+			for _ii in range(out_amount):
+				var inst = OD.Database.create_item_instance(out_name, 1)
+				if inst != null:
+					created_items.append(inst)
+					var add_res = add_item(inst)
+					if not add_res.added:
+						leftover_items.append(inst)
+
+	var toolkit_info = OD.Database.get_toolkit_info(tool_tag)
+	if toolkit_info != null and toolkit_info.sound != "":
+		OD.Audio.play_sfx(toolkit_info.sound)
+	inventory_changed.emit()
+	return {
+		ok = true,
+		output_name = out_name,
+		amount = out_amount,
+		items = created_items,
+		leftover_items = leftover_items
+	}
+
+func craft_from_slots(tool_tag, placed_names):
+	if OD.Database == null:
+		return { ok = false, reason = "Database unavailable" }
+	var cleaned = []
+	for entry in placed_names:
+		var item_name = str(entry)
+		if item_name != "":
+			cleaned.append(item_name)
+	if cleaned.is_empty():
+		return { ok = false, reason = "Place ingredients in the slots first." }
+	cleaned.sort()
+	var recipes = OD.Database.get_crafts_by_tool(tool_tag)
+	for recipe in recipes:
+		var req_names = []
+		for inp in recipe.get("inputs", []):
+			var inp_name = str(inp.get("name", "")) if typeof(inp) == TYPE_DICTIONARY else str(inp)
+			if inp_name != "":
+				req_names.append(inp_name)
+		req_names.sort()
+		if req_names == cleaned:
+			return craft_recipe(recipe)
+	return { ok = false, reason = "No matching recipe for those ingredients." }
+
+func get_item_encrust_slot(item):
+	if item == null:
+		return ""
+	var item_slot = str(item.get("slot", ""))
+	if item_slot == "":
+		return ""
+	if item_slot == "belt":
+		return "waist"
+	if item_slot == "off_hand":
+		return "shield"
+	if item_slot == "missile_weapon":
+		return "ranged"
+	if item_slot in ["weapon", "head", "chest", "legs", "feet", "hands", "neck", "ring"]:
+		return item_slot
+	return ""
+
+func is_item_eligible_for_encrust(item, encrust_def):
+	if item == null or encrust_def == null:
+		return false
+	var encrust_slot = get_item_encrust_slot(item)
+	if encrust_slot == "":
+		return false
+	return encrust_slot in encrust_def.get("slots", [])
+
+func get_eligible_items_for_encrust(encrust_def):
+	var eligible = []
+	var seen = {}
+	if encrust_def == null:
+		return eligible
+	for equip_slot in EQUIPMENT_SLOTS:
+		var eq_item = equipment.get(equip_slot, null)
+		if eq_item != null and not seen.has(eq_item) and is_item_eligible_for_encrust(eq_item, encrust_def):
+			seen[eq_item] = true
+			eligible.append({ item = eq_item, location = "equipped", slot = equip_slot })
+	for idx in range(inventory.size()):
+		var inv_item = inventory[idx]
+		if inv_item != null and not seen.has(inv_item) and is_item_eligible_for_encrust(inv_item, encrust_def):
+			seen[inv_item] = true
+			eligible.append({ item = inv_item, location = "inventory", index = idx })
+	return eligible
+
+func count_item_in_inventory_excluding(item_name, excluded_item = null):
+	var total = 0
+	for item in inventory:
+		if item == null or item == excluded_item:
+			continue
+		if str(item.get("name", "")) == str(item_name) or str(item.get("base_name", "")) == str(item_name):
+			total += max(1, int(item.get("count", 1)))
+	return total
+
+func _consume_inventory_item_excluding(item_name, amount, excluded_item = null):
+	var remaining = amount
+	for idx in range(inventory.size()):
+		if remaining <= 0:
+			break
+		var item = inventory[idx]
+		if item == null or item == excluded_item:
+			continue
+		if str(item.get("name", "")) != str(item_name) and str(item.get("base_name", "")) != str(item_name):
+			continue
+		var cnt = max(1, int(item.get("count", 1)))
+		var take = min(cnt, remaining)
+		remaining -= take
+		if cnt - take <= 0:
+			inventory[idx] = null
+		else:
+			item["count"] = cnt - take
+	return remaining == 0
+
+func can_encrust_item(encrust_def, target_item, ignore_toolkit_check = false):
+	if encrust_def == null or OD.Database == null:
+		return { ok = false, reason = "Invalid encrusting recipe" }
+	var tool_tag = str(encrust_def.get("tool", ""))
+	if not ignore_toolkit_check and tool_tag != "" and not has_toolkit(tool_tag):
+		return { ok = false, reason = "Missing required tool (" + tool_tag + ")" }
+	var skill_lvl = get_crafting_skill_level(tool_tag)
+	var min_skill = int(encrust_def.get("min_skill", 0))
+	if skill_lvl < min_skill:
+		return { ok = false, reason = "Requires skill level " + str(min_skill) + " (have " + str(skill_lvl) + ")" }
+	if target_item == null:
+		return { ok = false, reason = "Select an eligible item to encrust" }
+	if not is_item_eligible_for_encrust(target_item, encrust_def):
+		return { ok = false, reason = "Item cannot receive this encrust" }
+	var req_counts = _required_input_counts(encrust_def)
+	for req_name in req_counts:
+		var have_amt = count_item_in_inventory_excluding(req_name, target_item)
+		var need_amt = int(req_counts[req_name])
+		if have_amt < need_amt:
+			return { ok = false, reason = "Missing " + req_name + " (" + str(have_amt) + "/" + str(need_amt) + ")" }
+	return { ok = true, reason = "" }
+
+func _merge_buff_list(target_list, source_list):
+	for src in source_list:
+		var src_id = int(src.get("id", -1))
+		var src_amt = int(src.get("amount", 0))
+		var merged = false
+		for dst in target_list:
+			if int(dst.get("id", -1)) == src_id:
+				dst["amount"] = int(dst.get("amount", 0)) + src_amt
+				merged = true
+				break
+		if not merged:
+			target_list.append({ id = src_id, amount = src_amt })
+
+func _merge_buff_map(target_map, source_map):
+	for key in source_map:
+		target_map[key] = int(target_map.get(key, 0)) + int(source_map[key])
+
+func encrust_item(encrust_def, target_item, ignore_toolkit_check = false):
+	var check = can_encrust_item(encrust_def, target_item, ignore_toolkit_check)
+	if not check.ok:
+		return check
+	var req_counts = _required_input_counts(encrust_def)
+	for req_name in req_counts:
+		_consume_inventory_item_excluding(req_name, int(req_counts[req_name]), target_item)
+
+	var applied = target_item.get("encrusts", [])
+	applied.append(str(encrust_def.get("name", "Encrust")))
+	target_item["encrusts"] = applied
+
+	var tags = target_item.get("encrust_tags", [])
+	for tag_str in encrust_def.get("encrust_with", []):
+		if not (tag_str in tags):
+			tags.append(tag_str)
+	target_item["encrust_tags"] = tags
+
+	var total_instability = int(target_item.get("instability", 0)) + int(encrust_def.get("instability", 0))
+	target_item["instability"] = total_instability
+
+	if not target_item.has("primary_buffs"):
+		target_item["primary_buffs"] = []
+	_merge_buff_list(target_item["primary_buffs"], encrust_def.get("primary_buffs", []))
+
+	if not target_item.has("secondary_buffs"):
+		target_item["secondary_buffs"] = []
+	_merge_buff_list(target_item["secondary_buffs"], encrust_def.get("secondary_buffs", []))
+
+	if not target_item.has("resist_buffs"):
+		target_item["resist_buffs"] = {}
+	_merge_buff_map(target_item["resist_buffs"], encrust_def.get("resist_buffs", {}))
+
+	if not target_item.has("damage_buffs"):
+		target_item["damage_buffs"] = {}
+	_merge_buff_map(target_item["damage_buffs"], encrust_def.get("damage_buffs", {}))
+
+	var base_nm = str(target_item.get("base_name", target_item.get("name", "Item")))
+	target_item["base_name"] = base_nm
+	if applied.size() == 1 and not str(target_item.get("name", "")).begins_with("Encrusted "):
+		target_item["name"] = "Encrusted " + base_nm
+
+	var unstable_added = ""
+	var unstable_pool = OD.Database.get_unstable_effects()
+	if total_instability >= 4 and not unstable_pool.is_empty():
+		var proc_chance = min(0.85, float(total_instability) * 0.04)
+		if randf() < proc_chance:
+			var picked = unstable_pool[randi() % unstable_pool.size()]
+			var unstable_list = target_item.get("unstable_effects", [])
+			unstable_list.append(picked)
+			target_item["unstable_effects"] = unstable_list
+			unstable_added = str(picked.get("name", ""))
+
+	var tool_tag = str(encrust_def.get("tool", ""))
+	var toolkit_info = OD.Database.get_toolkit_info(tool_tag)
+	if toolkit_info != null and toolkit_info.sound != "":
+		OD.Audio.play_sfx(toolkit_info.sound)
+	recalculate_stats()
+	inventory_changed.emit()
+	return {
+		ok = true,
+		encrust_name = str(encrust_def.get("name", "")),
+		item_name = str(target_item.get("name", "")),
+		instability = total_instability,
+		unstable_added = unstable_added
+	}
