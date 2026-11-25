@@ -4,6 +4,22 @@ class_name ShopDialog
 
 var _on_close_callback = null
 
+func _add_to_bag(player_bag, item):
+	var instance = OD.Database.create_item_instance(item.name) if OD.Database != null else null
+	if instance == null:
+		instance = {
+			name = item.name,
+			icon = item.icon,
+			sell_price = item.sell_price,
+			description = item.description
+		}
+	if typeof(player_bag) == TYPE_ARRAY:
+		player_bag.append(instance)
+		return true
+	if player_bag != null and player_bag.has_method("add_item"):
+		return player_bag.add_item(instance).added
+	return false
+
 func show_pedestal_dialog(pedestal, shop, zorkmids_ref, player_bag, on_close = Callable(), on_steal = Callable(), on_tab = Callable()):
 	layer = 10
 	_on_close_callback = on_close
@@ -82,15 +98,14 @@ func show_pedestal_dialog(pedestal, shop, zorkmids_ref, player_bag, on_close = C
 	buy_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	buy_btn.pressed.connect(func():
 		if zorkmids_ref.value >= item.price:
+			if not _add_to_bag(player_bag, item):
+				status_label.text = "Inventory is full!"
+				status_label.visible = true
+				return
 			zorkmids_ref.value -= item.price
 			OD.Audio.play_sfx("item_purchase")
-			player_bag.append({
-				name = item.name,
-				icon = item.icon,
-				sell_price = item.sell_price,
-				description = item.description
-			})
 			pedestal.clear_item(true)
+			status_label.visible = false
 			_dismiss()
 		else:
 			OD.Audio.play_sfx("zorkmidslow1")
@@ -101,14 +116,12 @@ func show_pedestal_dialog(pedestal, shop, zorkmids_ref, player_bag, on_close = C
 
 	var tab_btn = _make_styled_button("Take (Tab)", dialog_assets.font, ink_color, dialog_assets)
 	tab_btn.pressed.connect(func():
+		if not _add_to_bag(player_bag, item):
+			status_label.text = "Inventory is full!"
+			status_label.visible = true
+			return
 		if shop != null:
 			shop.unpaid_total += item.price
-		player_bag.append({
-			name = item.name,
-			icon = item.icon,
-			sell_price = item.sell_price,
-			description = item.description
-		})
 		pedestal.clear_item(false)
 		OD.Audio.play_sfx("metal_get")
 		if shop != null and not shop.is_hostile and on_tab.is_valid():
@@ -329,14 +342,11 @@ func _populate_buy_list(buy_vbox, shop, zorkmids_ref, player_bag, dialog_assets,
 		buy_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		buy_btn.pressed.connect(func():
 			if zorkmids_ref.value >= item.price:
+				if not _add_to_bag(player_bag, item):
+					status_label.text = "Inventory is full!"
+					return
 				zorkmids_ref.value -= item.price
 				OD.Audio.play_sfx("item_purchase")
-				player_bag.append({
-					name = item.name,
-					icon = item.icon,
-					sell_price = item.sell_price,
-					description = item.description
-				})
 				pedestal.clear_item(true)
 				status_label.text = "Purchased " + item.name + "!"
 				refresh_wallet.call()
@@ -357,15 +367,22 @@ func _populate_buy_list(buy_vbox, shop, zorkmids_ref, player_bag, dialog_assets,
 func _populate_sell_list(sell_vbox, shop, zorkmids_ref, player_bag, dialog_assets, ink_color, status_label, refresh_wallet):
 	for child in sell_vbox.get_children():
 		child.queue_free()
-	if player_bag.is_empty():
+	var entries = []
+	if typeof(player_bag) == TYPE_ARRAY:
+		for idx in range(player_bag.size()):
+			entries.append({ slot_index = idx, item = player_bag[idx] })
+	elif player_bag != null and player_bag.has_method("get_inventory_items"):
+		entries = player_bag.get_inventory_items()
+	if entries.is_empty():
 		var empty_sell = Label.new()
 		empty_sell.text = "Your bag is empty."
 		empty_sell.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_style_label(empty_sell, dialog_assets.font, 16, ink_color)
 		sell_vbox.add_child(empty_sell)
 		return
-	for idx in range(player_bag.size()):
-		var bag_item = player_bag[idx]
+	for entry in entries:
+		var slot_idx = entry.slot_index
+		var bag_item = entry.item
 		var row = HBoxContainer.new()
 		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_theme_constant_override("separation", 10)
@@ -377,9 +394,11 @@ func _populate_sell_list(sell_vbox, shop, zorkmids_ref, player_bag, dialog_asset
 			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			icon_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			row.add_child(icon_rect)
-		var sell_val = int(bag_item.get("sell_price", 5))
+		var sell_val = max(1, int(bag_item.get("sell_price", 5)))
+		var item_count = int(bag_item.get("count", 1))
+		var count_suffix = " x" + str(item_count) if item_count > 1 else ""
 		var item_label = Label.new()
-		item_label.text = bag_item.name + " (+" + str(sell_val) + " zm)"
+		item_label.text = bag_item.name + count_suffix + " (+" + str(sell_val) + " zm)"
 		item_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		item_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		item_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -392,7 +411,10 @@ func _populate_sell_list(sell_vbox, shop, zorkmids_ref, player_bag, dialog_asset
 		sell_btn.pressed.connect(func():
 			zorkmids_ref.value += sell_val
 			OD.Audio.play_sfx("item_purchase")
-			player_bag.remove_at(idx)
+			if typeof(player_bag) == TYPE_ARRAY:
+				player_bag.remove_at(slot_idx)
+			elif player_bag != null and player_bag.has_method("remove_item_at"):
+				player_bag.remove_item_at(slot_idx, 1)
 			status_label.text = "Sold " + bag_item.name + " for " + str(sell_val) + " zm!"
 			refresh_wallet.call()
 			_populate_sell_list(sell_vbox, shop, zorkmids_ref, player_bag, dialog_assets, ink_color, status_label, refresh_wallet)

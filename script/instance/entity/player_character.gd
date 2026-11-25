@@ -11,6 +11,8 @@ signal skills_changed
 signal skill_unlocked(skill_id, level_entry)
 signal zorkmids_changed(amount)
 signal buffs_changed
+signal inventory_changed
+signal equipment_changed
 signal died(cause_of_death)
 
 const PRIMARY_STAT_KEYS = [
@@ -69,19 +71,40 @@ const DAMAGE_TYPES = [
 ]
 
 const EQUIPMENT_SLOTS = [
+	"weapon_right",
+	"weapon_left",
+	"missile_weapon",
+	"bolts",
+	"thrown",
 	"head",
 	"chest",
 	"legs",
 	"feet",
 	"hands",
-	"belt",
-	"neck",
 	"ring_left",
 	"ring_right",
-	"weapon_left",
-	"weapon_right",
-	"missile_weapon"
+	"neck",
+	"belt"
 ]
+
+const PASSIVE_EQUIPMENT_SLOTS = [
+	"weapon_right",
+	"weapon_left",
+	"missile_weapon",
+	"head",
+	"chest",
+	"legs",
+	"feet",
+	"hands",
+	"ring_left",
+	"ring_right",
+	"neck",
+	"belt"
+]
+
+const INVENTORY_COLS = 8
+const INVENTORY_ROWS = 6
+const INVENTORY_SIZE = 48
 
 var entity_kind = "player"
 
@@ -133,6 +156,7 @@ var damage_bonuses = {}
 var resistances = {}
 
 var equipment = {}
+var inventory = []
 
 func _init_stat_tables():
 	base_primary_stats.clear()
@@ -160,12 +184,16 @@ func _init_stat_tables():
 	for slot_name in EQUIPMENT_SLOTS:
 		equipment[slot_name] = null
 
+	inventory.clear()
+	for ii in range(INVENTORY_SIZE):
+		inventory.append(null)
+
 func recalculate_stats():
 	var prev_max_hp = max_hp
 	var prev_max_mp = max_mp
 
 	for stat_key in PRIMARY_STAT_KEYS:
-		primary_stats[stat_key] = int(base_primary_stats.get(stat_key, 10)) + int(bonus_primary_stats.get(stat_key, 0)) + _get_buff_primary_bonus(stat_key)
+		primary_stats[stat_key] = int(base_primary_stats.get(stat_key, 10)) + int(bonus_primary_stats.get(stat_key, 0)) + _get_buff_primary_bonus(stat_key) + _get_equipment_primary_bonus(stat_key)
 
 	var burliness = primary_stats["burliness"]
 	var sagacity = primary_stats["sagacity"]
@@ -206,7 +234,8 @@ func recalculate_stats():
 		var base_val = int(derived.get(stat_key, 0))
 		var bonus_val = int(bonus_secondary_stats.get(stat_key, 0))
 		var buff_val = _get_buff_secondary_bonus(stat_key)
-		secondary_stats[stat_key] = base_val + bonus_val + buff_val
+		var equip_val = _get_equipment_secondary_bonus(stat_key)
+		secondary_stats[stat_key] = base_val + bonus_val + buff_val + equip_val
 
 	max_hp = max(1, int(secondary_stats["hp_max"]))
 	max_mp = max(0, int(secondary_stats["mp_max"]))
@@ -255,7 +284,7 @@ func add_secondary_bonus(stat_key, amount):
 	recalculate_stats()
 
 func get_resistance(damage_type):
-	return int(resistances.get(damage_type, 0)) + _get_buff_resistance_bonus(damage_type)
+	return int(resistances.get(damage_type, 0)) + _get_buff_resistance_bonus(damage_type) + _get_equipment_resistance_bonus(damage_type)
 
 func add_resistance(damage_type, amount):
 	if not resistances.has(damage_type):
@@ -264,7 +293,7 @@ func add_resistance(damage_type, amount):
 	stats_changed.emit()
 
 func get_damage_bonus(damage_type):
-	return int(damage_bonuses.get(damage_type, 0)) + _get_buff_damage_bonus(damage_type)
+	return int(damage_bonuses.get(damage_type, 0)) + _get_buff_damage_bonus(damage_type) + _get_equipment_damage_bonus(damage_type)
 
 func add_damage_bonus(damage_type, amount):
 	if not damage_bonuses.has(damage_type):
@@ -784,6 +813,14 @@ func on_attack_performed():
 				active_buffs.remove_at(ii)
 				continue
 		ii += 1
+	for slot_name in PASSIVE_EQUIPMENT_SLOTS:
+		var item = equipment.get(slot_name, null)
+		if item == null or typeof(item) != TYPE_DICTIONARY:
+			continue
+		for proc in item.get("target_hit_effects", []):
+			var pct = clamp(int(proc.get("percentage", 100)), 0, 100)
+			if pct >= 100 or (randi() % 100) < pct:
+				procs.append(str(proc.name))
 	if changed:
 		recalculate_stats()
 		buffs_changed.emit()
@@ -808,6 +845,14 @@ func on_hit_received():
 				active_buffs.remove_at(ii)
 				continue
 		ii += 1
+	for slot_name in PASSIVE_EQUIPMENT_SLOTS:
+		var item = equipment.get(slot_name, null)
+		if item == null or typeof(item) != TYPE_DICTIONARY:
+			continue
+		for proc in item.get("player_hit_effects", []):
+			var pct = clamp(int(proc.get("percentage", 100)), 0, 100)
+			if pct >= 100 or (randi() % 100) < pct:
+				procs.append(str(proc.name))
 	if changed:
 		recalculate_stats()
 		buffs_changed.emit()
@@ -903,3 +948,304 @@ func tick_status_effects():
 	if ticked > 0 or buff_changed:
 		buffs_changed.emit()
 	return ticked
+
+func _get_equipment_primary_bonus(stat_key):
+	var total = 0
+	var stat_idx = PRIMARY_STAT_KEYS.find(stat_key)
+	if stat_idx < 0:
+		return 0
+	for slot_name in PASSIVE_EQUIPMENT_SLOTS:
+		var item = equipment.get(slot_name, null)
+		if item == null or typeof(item) != TYPE_DICTIONARY:
+			continue
+		for buff in item.get("primary_buffs", []):
+			if int(buff.get("id", -1)) == stat_idx:
+				total += int(buff.get("amount", 0))
+	return total
+
+func _get_equipment_secondary_bonus(stat_key):
+	var total = 0
+	for slot_name in PASSIVE_EQUIPMENT_SLOTS:
+		var item = equipment.get(slot_name, null)
+		if item == null or typeof(item) != TYPE_DICTIONARY:
+			continue
+		for buff in item.get("secondary_buffs", []):
+			var sec_id = int(buff.get("id", -1))
+			if SECONDARY_STAT_BY_ID.get(sec_id, "") == stat_key:
+				total += int(buff.get("amount", 0))
+	return total
+
+func _get_equipment_resistance_bonus(damage_type):
+	var total = 0
+	for slot_name in PASSIVE_EQUIPMENT_SLOTS:
+		var item = equipment.get(slot_name, null)
+		if item == null or typeof(item) != TYPE_DICTIONARY:
+			continue
+		var res_map = item.get("resist_buffs", {})
+		if typeof(res_map) == TYPE_DICTIONARY and res_map.has(damage_type):
+			total += int(res_map[damage_type])
+	return total
+
+func _get_equipment_damage_bonus(damage_type):
+	var total = 0
+	for slot_name in PASSIVE_EQUIPMENT_SLOTS:
+		var item = equipment.get(slot_name, null)
+		if item == null or typeof(item) != TYPE_DICTIONARY:
+			continue
+		var dmg_map = item.get("damage_buffs", {})
+		if typeof(dmg_map) == TYPE_DICTIONARY and dmg_map.has(damage_type):
+			total += int(dmg_map[damage_type])
+	return total
+
+func get_equipped_item(slot_name):
+	return equipment.get(slot_name, null)
+
+func can_equip_in_slot(item_data, slot_name):
+	if item_data == null or typeof(item_data) != TYPE_DICTIONARY:
+		return false
+	if not equipment.has(slot_name):
+		return false
+	var category = str(item_data.get("category", ""))
+	var item_slot = str(item_data.get("slot", ""))
+	var item_type = int(item_data.get("type", -1))
+	match slot_name:
+		"head", "chest", "legs", "feet", "hands", "belt", "neck":
+			return item_slot == slot_name
+		"ring_left", "ring_right":
+			return item_slot == "ring"
+		"weapon_right":
+			return category == "weapon" and item_type != OD.GameDataKind.WEAPON.BOW
+		"weapon_left":
+			return item_slot == "off_hand" or (category == "weapon" and item_type != OD.GameDataKind.WEAPON.BOW)
+		"missile_weapon":
+			return item_slot == "missile_weapon" or (category == "weapon" and item_type == OD.GameDataKind.WEAPON.BOW)
+		"bolts":
+			return category == "bolts" or item_slot == "bolts" or item_slot == "bolt"
+		"thrown":
+			return category == "thrown" or item_slot == "thrown"
+	return false
+
+func get_valid_slots_for_item(item_data):
+	var valid = []
+	for slot_name in EQUIPMENT_SLOTS:
+		if can_equip_in_slot(item_data, slot_name):
+			valid.append(slot_name)
+	return valid
+
+func _can_stack_items(item_a, item_b):
+	if item_a == null or item_b == null:
+		return false
+	if typeof(item_a) != TYPE_DICTIONARY or typeof(item_b) != TYPE_DICTIONARY:
+		return false
+	if int(item_a.get("max_stack", 1)) <= 1:
+		return false
+	return str(item_a.get("name", "")) == str(item_b.get("name", ""))
+
+func add_item(item_data):
+	if item_data == null or typeof(item_data) != TYPE_DICTIONARY:
+		return { added = false, remaining = 0, slot_index = -1 }
+	var remaining = max(1, int(item_data.get("count", 1)))
+	var max_stack = max(1, int(item_data.get("max_stack", 1)))
+	var first_slot = -1
+	if max_stack > 1:
+		for ii in range(inventory.size()):
+			var existing = inventory[ii]
+			if _can_stack_items(existing, item_data):
+				var cur_count = int(existing.get("count", 1))
+				var space = max_stack - cur_count
+				if space > 0:
+					var to_add = min(space, remaining)
+					existing["count"] = cur_count + to_add
+					remaining -= to_add
+					if first_slot == -1:
+						first_slot = ii
+					if remaining <= 0:
+						inventory_changed.emit()
+						return { added = true, remaining = 0, slot_index = first_slot }
+	for ii in range(inventory.size()):
+		if inventory[ii] == null:
+			var placed = item_data.duplicate(true)
+			var to_place = min(max_stack, remaining)
+			placed["count"] = to_place
+			inventory[ii] = placed
+			remaining -= to_place
+			if first_slot == -1:
+				first_slot = ii
+			if remaining <= 0:
+				inventory_changed.emit()
+				return { added = true, remaining = 0, slot_index = first_slot }
+	if first_slot != -1:
+		inventory_changed.emit()
+	return { added = (first_slot != -1), remaining = remaining, slot_index = first_slot }
+
+func remove_item_at(slot_index, count = 1):
+	if slot_index < 0 or slot_index >= inventory.size():
+		return null
+	var item = inventory[slot_index]
+	if item == null:
+		return null
+	var cur_count = max(1, int(item.get("count", 1)))
+	var to_remove = cur_count if count < 0 else min(cur_count, max(1, int(count)))
+	var removed = item.duplicate(true)
+	removed["count"] = to_remove
+	if cur_count - to_remove <= 0:
+		inventory[slot_index] = null
+	else:
+		item["count"] = cur_count - to_remove
+	inventory_changed.emit()
+	return removed
+
+func move_or_swap_inventory_slot(from_idx, to_idx):
+	if from_idx < 0 or from_idx >= inventory.size() or to_idx < 0 or to_idx >= inventory.size():
+		return false
+	if from_idx == to_idx:
+		return false
+	var from_item = inventory[from_idx]
+	if from_item == null:
+		return false
+	var to_item = inventory[to_idx]
+	if _can_stack_items(from_item, to_item):
+		var max_stack = max(1, int(to_item.get("max_stack", 1)))
+		var space = max_stack - int(to_item.get("count", 1))
+		if space > 0:
+			var from_count = int(from_item.get("count", 1))
+			var transfer = min(space, from_count)
+			to_item["count"] = int(to_item.get("count", 1)) + transfer
+			if from_count - transfer <= 0:
+				inventory[from_idx] = null
+			else:
+				from_item["count"] = from_count - transfer
+			inventory_changed.emit()
+			return true
+	inventory[from_idx] = to_item
+	inventory[to_idx] = from_item
+	inventory_changed.emit()
+	return true
+
+func equip_from_inventory(inv_idx, target_slot = ""):
+	if inv_idx < 0 or inv_idx >= inventory.size():
+		return false
+	var item = inventory[inv_idx]
+	if item == null:
+		return false
+	var valid_slots = get_valid_slots_for_item(item)
+	if valid_slots.is_empty():
+		return false
+	var chosen_slot = target_slot
+	if chosen_slot == "" or not (chosen_slot in valid_slots):
+		chosen_slot = valid_slots[0]
+		for candidate in valid_slots:
+			if equipment.get(candidate, null) == null:
+				chosen_slot = candidate
+				break
+	var prev_equipped = equipment.get(chosen_slot, null)
+	if _can_stack_items(prev_equipped, item):
+		var max_stack = max(1, int(prev_equipped.get("max_stack", 1)))
+		var cur_count = int(prev_equipped.get("count", 1))
+		var add_count = int(item.get("count", 1))
+		var transfer = min(max_stack - cur_count, add_count)
+		if transfer > 0:
+			prev_equipped["count"] = cur_count + transfer
+			if add_count - transfer <= 0:
+				inventory[inv_idx] = null
+			else:
+				item["count"] = add_count - transfer
+			recalculate_stats()
+			equipment_changed.emit()
+			inventory_changed.emit()
+			return true
+	equipment[chosen_slot] = item
+	inventory[inv_idx] = prev_equipped
+	recalculate_stats()
+	equipment_changed.emit()
+	inventory_changed.emit()
+	return true
+
+func unequip_slot(slot_name, target_inv_idx = -1):
+	if not equipment.has(slot_name):
+		return false
+	var equipped = equipment[slot_name]
+	if equipped == null:
+		return false
+	if target_inv_idx >= 0 and target_inv_idx < inventory.size():
+		var target_item = inventory[target_inv_idx]
+		if target_item == null:
+			inventory[target_inv_idx] = equipped
+			equipment[slot_name] = null
+			recalculate_stats()
+			equipment_changed.emit()
+			inventory_changed.emit()
+			return true
+		if can_equip_in_slot(target_item, slot_name):
+			equipment[slot_name] = target_item
+			inventory[target_inv_idx] = equipped
+			recalculate_stats()
+			equipment_changed.emit()
+			inventory_changed.emit()
+			return true
+	var res = add_item(equipped)
+	if not res.added:
+		return false
+	if res.remaining > 0:
+		equipped["count"] = res.remaining
+	else:
+		equipment[slot_name] = null
+	recalculate_stats()
+	equipment_changed.emit()
+	inventory_changed.emit()
+	return true
+
+func consume_equipped_ammo(slot_name, amount = 1):
+	if not equipment.has(slot_name):
+		return null
+	var ammo = equipment[slot_name]
+	if ammo == null:
+		return null
+	var cur_count = max(1, int(ammo.get("count", 1)))
+	var used = min(cur_count, max(1, int(amount)))
+	var single = ammo.duplicate(true)
+	single["count"] = used
+	if cur_count - used <= 0:
+		equipment[slot_name] = null
+	else:
+		ammo["count"] = cur_count - used
+	equipment_changed.emit()
+	return single
+
+func sort_inventory():
+	var merged = []
+	for slot_item in inventory:
+		if slot_item == null:
+			continue
+		var stacked = false
+		if int(slot_item.get("max_stack", 1)) > 1:
+			for existing in merged:
+				if _can_stack_items(existing, slot_item):
+					var max_s = int(existing.get("max_stack", 1))
+					var space = max_s - int(existing.get("count", 1))
+					if space > 0:
+						var move_amt = min(space, int(slot_item.get("count", 1)))
+						existing["count"] = int(existing.get("count", 1)) + move_amt
+						slot_item["count"] = int(slot_item.get("count", 1)) - move_amt
+						if int(slot_item.get("count", 1)) <= 0:
+							stacked = true
+							break
+		if not stacked:
+			merged.append(slot_item)
+	merged.sort_custom(func(item_a, item_b):
+		var cat_a = str(item_a.get("category", ""))
+		var cat_b = str(item_b.get("category", ""))
+		if cat_a != cat_b:
+			return cat_a < cat_b
+		return str(item_a.get("name", "")) < str(item_b.get("name", ""))
+	)
+	for ii in range(INVENTORY_SIZE):
+		inventory[ii] = merged[ii] if ii < merged.size() else null
+	inventory_changed.emit()
+
+func get_inventory_items():
+	var items = []
+	for ii in range(inventory.size()):
+		if inventory[ii] != null:
+			items.append({ slot_index = ii, item = inventory[ii] })
+	return items

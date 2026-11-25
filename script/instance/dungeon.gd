@@ -80,6 +80,8 @@ func submit_command(command):
 func execute_interact_command(command):
 	var kind = command.interaction_kind
 	var cell = command.target_cell
+	if kind == "pickup":
+		return pickup_loot_at_player()
 	if kind == "stairs":
 		var stairs = _entity_grid.get_stairs_at(cell.x, cell.y)
 		if stairs == null:
@@ -101,10 +103,11 @@ func _get_player_melee_weapon_damage():
 	for slot_name in ["weapon_right", "weapon_left"]:
 		var item = _player.equipment.get(slot_name, null)
 		if item != null and typeof(item) == TYPE_DICTIONARY:
-			has_weapon = true
+			var dmg_source = item.get("weapon_damage", item)
 			for dmg_type in CombatResolverScript.ALL_DAMAGE_TYPES:
-				if item.has(dmg_type):
-					combined[dmg_type] = int(combined.get(dmg_type, 0)) + int(item[dmg_type])
+				if dmg_source.has(dmg_type):
+					has_weapon = true
+					combined[dmg_type] = int(combined.get(dmg_type, 0)) + int(dmg_source[dmg_type])
 	return combined if has_weapon else null
 
 func _handle_enemy_death(enemy, grid_pos):
@@ -416,6 +419,7 @@ func _connect_grid_signals(grid):
 	grid.trap_triggered.connect(_on_trap_triggered)
 	grid.teleporter_stepped.connect(_on_teleporter_stepped)
 	grid.spell_mine_detonated.connect(_on_spell_mine_detonated)
+	grid.loot_stepped.connect(_on_loot_stepped)
 	grid.shop_manager.shop_alert.connect(_on_shop_alert)
 	grid.shop_manager.hostile_attack.connect(_on_hostile_attack)
 
@@ -700,19 +704,118 @@ func _handle_element_interaction(element, grid_coords):
 	)
 
 func _seed_player_bag():
-	if not _player_bag.is_empty():
+	if _player == null:
 		return
-	var sell_scaler = float(OD.Database.get_tweak("store sell price scaler", 0.63))
-	for item_entry in OD.Database.get_all_items():
-		if item_entry.price > 0 and item_entry.icon != "":
-			_player_bag.append({
-				name = item_entry.name,
-				icon = item_entry.icon,
-				sell_price = max(1, int(round(float(item_entry.price) * sell_scaler))),
-				description = item_entry.description
-			})
-			if _player_bag.size() >= 3:
-				break
+	var existing_items = _player.get_inventory_items()
+	if not existing_items.is_empty():
+		return
+	var starter_names = ["Crude Iron Sword", "Lutefisk", "Potion of Healing"]
+	for item_name in starter_names:
+		var inst = OD.Database.create_item_instance(item_name)
+		if inst != null:
+			_player.add_item(inst)
+
+func _on_loot_stepped(grid_pos):
+	pickup_loot_at_player(grid_pos)
+
+func pickup_loot_at_player(target_pos = null):
+	if _player == null or _entity_grid == null:
+		return false
+	var pos = target_pos
+	if pos == null:
+		var p_pos = _player.get_grid_position()
+		if p_pos == null:
+			return false
+		pos = Vector2i(int(p_pos.x), int(p_pos.y))
+	var loot_list = _entity_grid.get_loot_list_at(pos.x, pos.y)
+	if loot_list.is_empty():
+		return false
+	var picked_any = false
+	var idx = loot_list.size() - 1
+	while idx >= 0:
+		var entry = loot_list[idx]
+		var loot_data = entry.get("data", {})
+		var kind = str(loot_data.get("kind", "item"))
+		if kind == "zorkmids":
+			var amt = max(1, int(loot_data.get("amount", 1)))
+			_player.add_zorkmids(amt)
+			_entity_grid.remove_loot_at(pos.x, pos.y, idx)
+			OD.Audio.play_sfx("coin")
+			_spawn_floating_text(pos, "+" + str(amt) + " zm", Color(1.0, 0.85, 0.25))
+			picked_any = true
+		elif kind == "lockpick":
+			var lockpick_item = OD.Database.create_item_instance("Lockpick")
+			if lockpick_item == null:
+				lockpick_item = {
+					name = "Lockpick",
+					category = "misc",
+					slot = "",
+					level = 1,
+					icon = OD.Resources.paths.loot.lockpick,
+					price = 25,
+					sell_price = 15,
+					description = "Used to pick locked doors and chests.",
+					count = 1,
+					max_stack = 99
+				}
+			var lp_res = _player.add_item(lockpick_item)
+			if lp_res.added:
+				_entity_grid.remove_loot_at(pos.x, pos.y, idx)
+				OD.Audio.play_sfx("metal_get")
+				_spawn_floating_text(pos, "+Lockpick", Color(0.75, 0.92, 1.0))
+				picked_any = true
+			else:
+				_spawn_floating_text(pos, "Inventory full!", Color(1.0, 0.45, 0.35))
+		else:
+			var raw_item = loot_data.get("item", loot_data)
+			var item_inst = raw_item
+			if typeof(raw_item) == TYPE_DICTIONARY and not raw_item.has("max_stack") and raw_item.has("name"):
+				var created = OD.Database.create_item_instance(str(raw_item.name), int(raw_item.get("count", 1)))
+				if created != null:
+					item_inst = created
+			var add_res = _player.add_item(item_inst)
+			if add_res.added:
+				if add_res.remaining > 0:
+					item_inst["count"] = add_res.remaining
+					_spawn_floating_text(pos, "Inventory full!", Color(1.0, 0.45, 0.35))
+				else:
+					_entity_grid.remove_loot_at(pos.x, pos.y, idx)
+				OD.Audio.play_sfx("metal_get")
+				_spawn_floating_text(pos, "+" + str(item_inst.get("name", "Item")), Color(0.75, 0.92, 1.0))
+				picked_any = true
+			else:
+				_spawn_floating_text(pos, "Inventory full!", Color(1.0, 0.45, 0.35))
+		idx -= 1
+	return picked_any
+
+func drop_inventory_item(inv_idx, count = -1):
+	if _player == null or _entity_grid == null:
+		return false
+	var p_pos = _player.get_grid_position()
+	if p_pos == null:
+		return false
+	var removed = _player.remove_item_at(inv_idx, count)
+	if removed == null:
+		return false
+	_entity_grid.add_loot_item(int(p_pos.x), int(p_pos.y), { kind = "item", item = removed })
+	_spawn_floating_text(Vector2i(int(p_pos.x), int(p_pos.y)), "Dropped " + str(removed.get("name", "Item")), Color(0.85, 0.85, 0.7))
+	return true
+
+func drop_equipped_item(slot_name):
+	if _player == null or _entity_grid == null:
+		return false
+	var p_pos = _player.get_grid_position()
+	if p_pos == null:
+		return false
+	var equipped = _player.get_equipped_item(slot_name)
+	if equipped == null:
+		return false
+	_player.equipment[slot_name] = null
+	_player.recalculate_stats()
+	_player.equipment_changed.emit()
+	_entity_grid.add_loot_item(int(p_pos.x), int(p_pos.y), { kind = "item", item = equipped })
+	_spawn_floating_text(Vector2i(int(p_pos.x), int(p_pos.y)), "Dropped " + str(equipped.get("name", "Item")), Color(0.85, 0.85, 0.7))
+	return true
 
 func _on_shop_alert(message, grid_pos, color):
 	_spawn_floating_text(grid_pos, message, color)
@@ -779,7 +882,7 @@ func _handle_shopkeeper_interaction(keeper, pos):
 	_interaction_dialog.show_brax_dialog(
 		shop,
 		_zorkmids_ref,
-		_player_bag,
+		_player,
 		func(): _interaction_dialog = null,
 		func(): _entity_grid.shop_manager.make_shop_hostile(shop, _entity_grid, player_cell),
 		func(): _entity_grid.shop_manager.teleport_brax_home(shop, player_cell, _entity_grid)
@@ -799,7 +902,7 @@ func _handle_shop_pedestal_interaction(pedestal, pos):
 		pedestal,
 		shop,
 		_zorkmids_ref,
-		_player_bag,
+		_player,
 		func(): _interaction_dialog = null,
 		func(): _entity_grid.shop_manager.make_shop_hostile(shop, _entity_grid, player_cell),
 		func(): _entity_grid.shop_manager.teleport_brax_to_shop(shop, player_cell, _entity_grid)

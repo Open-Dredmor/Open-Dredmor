@@ -15,6 +15,7 @@ signal script_spell_cast(spell_name, grid_pos)
 signal trap_triggered(trap_result, grid_pos)
 signal teleporter_stepped(teleporter_info, grid_pos)
 signal spell_mine_detonated(mine_info, trigger_pos)
+signal loot_stepped(grid_pos)
 
 var layers = {
 	list = [],
@@ -826,17 +827,47 @@ func add_loot_item(grid_x, grid_y, loot_data):
 	var pixel_pos = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
 	loot_node.set_meta("grid_cell", cell_key)
 	add_animation(pixel_pos.x, pixel_pos.y, "loot", loot_node)
-	_loot_by_cell[cell_key] = {
+	var entry = {
 		node = loot_node,
 		data = loot_data
 	}
-	return _loot_by_cell[cell_key]
+	if not _loot_by_cell.has(cell_key):
+		_loot_by_cell[cell_key] = []
+	_loot_by_cell[cell_key].append(entry)
+	return entry
 
 func get_loot_at(grid_x, grid_y):
 	var cell_key = Vector2i(int(grid_x), int(grid_y))
 	if _loot_by_cell.has(cell_key):
-		return _loot_by_cell[cell_key]
+		var entries = _loot_by_cell[cell_key]
+		if typeof(entries) == TYPE_ARRAY and not entries.is_empty():
+			return entries[entries.size() - 1]
 	return null
+
+func get_loot_list_at(grid_x, grid_y):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	if _loot_by_cell.has(cell_key):
+		var entries = _loot_by_cell[cell_key]
+		if typeof(entries) == TYPE_ARRAY:
+			return entries
+	return []
+
+func remove_loot_at(grid_x, grid_y, index = -1):
+	var cell_key = Vector2i(int(grid_x), int(grid_y))
+	if not _loot_by_cell.has(cell_key):
+		return null
+	var entries = _loot_by_cell[cell_key]
+	if typeof(entries) != TYPE_ARRAY or entries.is_empty():
+		_loot_by_cell.erase(cell_key)
+		return null
+	var target_idx = entries.size() - 1 if index < 0 else clamp(int(index), 0, entries.size() - 1)
+	var removed = entries[target_idx]
+	entries.remove_at(target_idx)
+	if removed.has("node") and is_instance_valid(removed.node):
+		removed.node.queue_free()
+	if entries.is_empty():
+		_loot_by_cell.erase(cell_key)
+	return removed.get("data", null)
 
 func add_shop_pedestal(grid_x, grid_y, floor_level = 1):
 	var pedestal = ShopPedestalScript.new()
@@ -869,6 +900,9 @@ func on_player_step(player_pos):
 	var teleporter = get_teleporter_at(player_pos.x, player_pos.y)
 	if teleporter != null:
 		teleporter_stepped.emit(teleporter, Vector2i(int(player_pos.x), int(player_pos.y)))
+	var cell_key = Vector2i(int(player_pos.x), int(player_pos.y))
+	if _loot_by_cell.has(cell_key):
+		loot_stepped.emit(cell_key)
 
 func get_monsters():
 	var result = []

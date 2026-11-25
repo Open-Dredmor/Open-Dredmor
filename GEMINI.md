@@ -11,6 +11,7 @@
 - When finishing an item, make sure the scenes.gd `var FIRST_SCENE = <scene>` points to the correct scene for human verification
 
 ## UI & Nine-Patch Layout
+- When greating GUIs in the game, try when it makes sense to match the look and feel of the retail version of the game's experience and graphics.
 - Use nine-patch panels (`PanelContainer` with `StyleBoxTexture` or `NinePatchRect` inside layout containers like `CenterContainer`) for dialogs and windows instead of fixed-size `TextureRect` overlays.
 - Set generous `texture_margin_*` and `content_margin_*` values so decorative borders/corners are preserved and child controls are never squished or overflowing.
 - Scale dialog dimensions relative to the viewport size (with clamped min/max bounds) and use `ScrollContainer` + text autowrapping for dynamic content so UIs adapt cleanly when the window resizes.

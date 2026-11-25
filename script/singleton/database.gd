@@ -615,10 +615,24 @@ func get_template(template_id):
 
 func _classify_item(item, reagent_set, component_set):
 	if item.has("armour"):
-		return { category = "armour", slot = item.armour.type if typeof(item.armour) == TYPE_DICTIONARY and item.armour.has("type") else "" }
+		var raw_slot = str(item.armour.type) if typeof(item.armour) == TYPE_DICTIONARY and item.armour.has("type") else ""
+		var mapped_slot = raw_slot
+		if raw_slot == "waist":
+			mapped_slot = "belt"
+		elif raw_slot == "shield":
+			mapped_slot = "off_hand"
+		elif raw_slot == "sleeve":
+			mapped_slot = ""
+		return { category = "armour", slot = mapped_slot }
 	if item.has("weapon"):
-		if item.has("type") and int(item.type) == OD.GameDataKind.WEAPON.BOLT:
-			return { category = "bolts", slot = "bolt" }
+		var weapon_type = int(item.type) if item.has("type") else -1
+		var is_thrown = weapon_type == OD.GameDataKind.WEAPON.THROWN or (typeof(item.weapon) == TYPE_DICTIONARY and item.weapon.has("thrown"))
+		if weapon_type == OD.GameDataKind.WEAPON.BOLT:
+			return { category = "bolts", slot = "bolts" }
+		if is_thrown:
+			return { category = "thrown", slot = "thrown" }
+		if weapon_type == OD.GameDataKind.WEAPON.BOW:
+			return { category = "weapon", slot = "missile_weapon" }
 		return { category = "weapon", slot = "weapon" }
 	if item.has("food"):
 		return { category = "food", slot = "" }
@@ -702,6 +716,121 @@ func get_all_items():
 	if result_cache == null or not result_cache.has("item_info"):
 		return []
 	return result_cache["item_info"].list
+
+const ITEM_DAMAGE_TYPES = [
+	"acidic", "aethereal", "asphyxiative", "blasting",
+	"conflagratory", "crushing", "existential", "hyperborean",
+	"necromantic", "piercing", "putrefying", "righteous",
+	"slashing", "toxic", "transmutative", "voltaic"
+]
+
+const STACKABLE_ITEM_CATEGORIES = [
+	"food", "potion", "mushroom", "gem", "reagent",
+	"component", "trap", "bolts", "thrown", "misc"
+]
+
+func _extract_item_tag_array(raw_item, lower_key, camel_key):
+	var collected = []
+	if raw_item.has(lower_key):
+		collected.append_array(OD.DataStructure.arrayify(raw_item.get(lower_key)))
+	if raw_item.has(camel_key):
+		collected.append_array(OD.DataStructure.arrayify(raw_item.get(camel_key)))
+	return collected
+
+func create_item_instance(item_name_or_def, count = 1):
+	var item_def = null
+	if typeof(item_name_or_def) == TYPE_STRING:
+		item_def = get_item(item_name_or_def)
+	elif typeof(item_name_or_def) == TYPE_DICTIONARY:
+		if item_name_or_def.has("raw"):
+			item_def = item_name_or_def
+		elif item_name_or_def.has("name"):
+			item_def = get_item(str(item_name_or_def.name))
+	if item_def == null:
+		return null
+	var raw_item = item_def.get("raw", {})
+	var category = str(item_def.get("category", "misc"))
+	var max_stack = 1
+	if category in STACKABLE_ITEM_CATEGORIES:
+		max_stack = max(2, int(raw_item.get("maxstack", 99)))
+	var clamped_count = clamp(int(count), 1, max_stack)
+
+	var weapon_damage = {}
+	var raw_weapon = raw_item.get("weapon", null)
+	if typeof(raw_weapon) == TYPE_DICTIONARY:
+		for dmg_type in ITEM_DAMAGE_TYPES:
+			if raw_weapon.has(dmg_type):
+				var dmg_val = int(raw_weapon[dmg_type])
+				if dmg_val != 0:
+					weapon_damage[dmg_type] = dmg_val
+
+	var primary_buffs = []
+	for entry in _extract_item_tag_array(raw_item, "primarybuff", "primaryBuff"):
+		if typeof(entry) == TYPE_DICTIONARY and entry.has("id"):
+			primary_buffs.append({ id = int(entry.id), amount = int(entry.get("amount", 0)) })
+
+	var secondary_buffs = []
+	for entry in _extract_item_tag_array(raw_item, "secondarybuff", "secondaryBuff"):
+		if typeof(entry) == TYPE_DICTIONARY and entry.has("id"):
+			secondary_buffs.append({ id = int(entry.id), amount = int(entry.get("amount", 0)) })
+
+	var resist_buffs = {}
+	for entry in _extract_item_tag_array(raw_item, "resistbuff", "resistBuff"):
+		if typeof(entry) == TYPE_DICTIONARY:
+			for dmg_type in ITEM_DAMAGE_TYPES:
+				if entry.has(dmg_type):
+					resist_buffs[dmg_type] = int(resist_buffs.get(dmg_type, 0)) + int(entry[dmg_type])
+
+	var damage_buffs = {}
+	for entry in _extract_item_tag_array(raw_item, "damagebuff", "damageBuff"):
+		if typeof(entry) == TYPE_DICTIONARY:
+			for dmg_type in ITEM_DAMAGE_TYPES:
+				if entry.has(dmg_type):
+					damage_buffs[dmg_type] = int(damage_buffs.get(dmg_type, 0)) + int(entry[dmg_type])
+
+	var target_hit_effects = []
+	for entry in _extract_item_tag_array(raw_item, "targethiteffectbuff", "targetHitEffectBuff"):
+		if typeof(entry) == TYPE_DICTIONARY and entry.has("name"):
+			target_hit_effects.append({
+				name = str(entry.name),
+				percentage = int(entry.get("percentage", 100))
+			})
+
+	var player_hit_effects = []
+	for entry in _extract_item_tag_array(raw_item, "playerhiteffectbuff", "playerHitEffectBuff"):
+		if typeof(entry) == TYPE_DICTIONARY and entry.has("name"):
+			player_hit_effects.append({
+				name = str(entry.name),
+				percentage = int(entry.get("percentage", 100))
+			})
+
+	var base_price = int(item_def.get("price", 0))
+	var sell_scaler = float(get_tweak("store sell price scaler", 0.63))
+	var sell_price = max(1, int(round(float(base_price) * sell_scaler))) if base_price > 0 else 0
+
+	var instance = {
+		name = str(item_def.get("name", "Unknown Item")),
+		category = category,
+		slot = str(item_def.get("slot", "")),
+		type = int(item_def.get("type", -1)),
+		level = int(item_def.get("level", 1)),
+		icon = str(item_def.get("icon", "")),
+		price = base_price,
+		sell_price = sell_price,
+		description = str(item_def.get("description", "")),
+		count = clamped_count,
+		max_stack = max_stack,
+		weapon_damage = weapon_damage,
+		primary_buffs = primary_buffs,
+		secondary_buffs = secondary_buffs,
+		resist_buffs = resist_buffs,
+		damage_buffs = damage_buffs,
+		target_hit_effects = target_hit_effects,
+		player_hit_effects = player_hit_effects
+	}
+	for dmg_type in weapon_damage:
+		instance[dmg_type] = weapon_damage[dmg_type]
+	return instance
 
 func get_trap(trap_name = null, max_level = 99):
 	if trap_name != null and trap_name != "":

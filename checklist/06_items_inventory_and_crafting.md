@@ -4,8 +4,8 @@ Equipment slots, consumables, level-scaled loot/artifacts, and the 4 crafting sy
 
 ---
 
-- [ ] **Inventory & Equipment management**
-  - *Current state*: None.
+- [x] **Inventory & Equipment management**
+  - *Current state*: Implemented in [script/instance/entity/player_character.gd](../script/instance/entity/player_character.gd), [script/instance/ui/inventory_dialog.gd](../script/instance/ui/inventory_dialog.gd), [script/singleton/database.gd](../script/singleton/database.gd), [script/instance/entity_grid.gd](../script/instance/entity_grid.gd), [script/instance/dungeon.gd](../script/instance/dungeon.gd), and [script/scene/game/game.gd](../script/scene/game/game.gd). Verified via `INVENTORY_TEST`.
   - *Done when*: Player has a grid/slot inventory, can pick up, drop, stack, inspect tooltips, and equip items into all Dredmor slots (main hand, off hand, head, chest, legs, feet, hands, 2x ring, amulet, belt, bolts, thrown), updating stats immediately.
 
 - [ ] **Consumables & Wands**

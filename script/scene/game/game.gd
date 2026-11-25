@@ -2,6 +2,7 @@ extends Node2D
 
 const SpellHotbarScript = preload("res://script/instance/ui/spell_hotbar.gd")
 const BuffBarScript = preload("res://script/instance/ui/buff_bar.gd")
+const InventoryDialogScript = preload("res://script/instance/ui/inventory_dialog.gd")
 
 static func init_container():
 	return Node2D.new()
@@ -14,6 +15,7 @@ var _spell_hotbar = null
 var _buff_bar = null
 var _hud_layer = null
 var _death_dialog = null
+var _inventory_dialog = null
 
 func _ready():
 	call_deferred("_build_ui")
@@ -80,6 +82,21 @@ func _build_ui():
 	hud_layer.add_child(_spell_hotbar)
 	_buff_bar = BuffBarScript.new().init(_dungeon.get_player())
 	hud_layer.add_child(_buff_bar)
+	var inv_btn = TextureButton.new()
+	inv_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	inv_btn.offset_left = -128
+	inv_btn.offset_top = 12
+	inv_btn.offset_right = -16
+	inv_btn.offset_bottom = 60
+	inv_btn.ignore_texture_size = true
+	inv_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	inv_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	inv_btn.texture_normal = OD.Load.image("ui/gameplay/game_button_inventory0.png")
+	inv_btn.texture_hover = OD.Load.image("ui/gameplay/game_button_inventory1.png")
+	inv_btn.texture_pressed = OD.Load.image("ui/gameplay/game_button_inventory2.png")
+	inv_btn.tooltip_text = "Inventory (I)"
+	inv_btn.pressed.connect(toggle_inventory)
+	hud_layer.add_child(inv_btn)
 	_dungeon.floor_changed.connect(_on_floor_changed)
 	_dungeon.player_died.connect(_on_player_died)
 	_dungeon.get_turn_scheduler().turn_started.connect(_on_turn_started)
@@ -240,9 +257,33 @@ var _drag_press_time_ms = 0
 var _total_pan_px = 0.0
 var old_position
 
+func toggle_inventory():
+	if _dungeon == null or not is_instance_valid(_dungeon):
+		return
+	if is_instance_valid(_inventory_dialog):
+		_inventory_dialog.dismiss()
+		_inventory_dialog = null
+		return
+	var player = _dungeon.get_player()
+	if player == null:
+		return
+	_inventory_dialog = InventoryDialogScript.new().init(player, {
+		on_drop_inventory = func(inv_idx, count): _dungeon.drop_inventory_item(inv_idx, count),
+		on_drop_equipped = func(slot_name): _dungeon.drop_equipped_item(slot_name),
+		on_pickup = func(): _dungeon.pickup_loot_at_player(),
+		on_close = func(): _inventory_dialog = null
+	})
+	_hud_layer.add_child(_inventory_dialog)
+
 func _input(ev):
 	if _dungeon == null or not is_instance_valid(_dungeon):
 		return
+	if is_instance_valid(_inventory_dialog):
+		return
+	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_I:
+		if not _dungeon.is_dialog_open() and (_spell_hotbar == null or not _spell_hotbar.is_spellbook_open()):
+			toggle_inventory()
+			return
 	if _spell_hotbar != null and _spell_hotbar.handle_key_input(ev):
 		return
 	if _spell_hotbar != null and _spell_hotbar.is_spellbook_open():

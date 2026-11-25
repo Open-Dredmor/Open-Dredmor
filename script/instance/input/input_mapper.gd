@@ -13,6 +13,7 @@ var _key_bindings = {
 	move_up = [KEY_W, KEY_UP, KEY_KP_8],
 	move_down = [KEY_S, KEY_DOWN, KEY_KP_2],
 	wait = [KEY_SPACE, KEY_PERIOD, KEY_KP_5],
+	pickup = [KEY_G, KEY_COMMA],
 	restart_scene = [KEY_F5],
 	center_camera = [KEY_C]
 }
@@ -119,6 +120,10 @@ func translate_dungeon_input(ev, context):
 			return _bump_command_for_delta(player, entity_grid, move_delta)
 		if not ev.echo and is_action_key("wait", ev.keycode):
 			return WaitCmdScript.new().init(player)
+		if not ev.echo and is_action_key("pickup", ev.keycode):
+			var player_pos = player.get_grid_position()
+			if player_pos != null:
+				return InteractCmdScript.new().init(player, "pickup", Vector2i(int(player_pos.x), int(player_pos.y)))
 		if not ev.echo and (ev.unicode == ord(">") or ev.unicode == ord("<")):
 			var player_pos = player.get_grid_position()
 			var stairs = entity_grid.get_stairs_at(player_pos.x, player_pos.y)
