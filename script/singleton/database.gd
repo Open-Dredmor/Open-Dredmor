@@ -166,7 +166,7 @@ func ingest():
 		packs["vanilla"] = _load_pack_data("game/")
 
 		for pack_info in OD.Settings.get_available_content_packs():
-			print("Ingesting content pack [" + str(pack_info.get("title", pack_info.id)) + "] from " + pack_info.prefix)
+			print("Ingesting content pack [" + str(pack_info.get("name", pack_info.id)) + "] from " + pack_info.prefix)
 			packs[pack_info.id] = _load_pack_data(pack_info.prefix + pack_info.data_subdir)
 
 		var initial_packs = OD.DungeonSettings.get_active_packs()
@@ -193,8 +193,8 @@ func ingest_async(start_pct = 10.0, end_pct = 70.0):
 	for pack_info in available:
 		var pct = start_pct + pct_span * (float(step_idx) / float(total_steps))
 		if OD.Loading != null:
-			await OD.Loading.step("Ingesting " + str(pack_info.get("title", pack_info.id)) + "...", pct)
-		print("Ingesting content pack [" + str(pack_info.get("title", pack_info.id)) + "] from " + pack_info.prefix)
+			await OD.Loading.step("Ingesting " + str(pack_info.get("name", pack_info.id)) + "...", pct)
+		print("Ingesting content pack [" + str(pack_info.get("name", pack_info.id)) + "] from " + pack_info.prefix)
 		packs[pack_info.id] = _load_pack_data(pack_info.prefix + pack_info.data_subdir)
 		step_idx += 1
 	if OD.Loading != null:
