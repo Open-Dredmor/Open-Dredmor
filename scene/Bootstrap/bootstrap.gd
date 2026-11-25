@@ -18,6 +18,8 @@ func _init_global_state():
 		var validation = OD.Settings.validate_dredmor_dir(install_dir)
 		if validation.valid:
 			print("Installation dir set to [" + install_dir + "], load the game.")
+			if OD.Loading != null:
+				OD.Loading.show_progress("Starting Open Dredmor...", 5.0)
 			OD.Scenes.goto(OD.Scenes.FIRST_SCENE)
 			return
 		_initial_error = "Configured installation directory is invalid: " + install_dir + "\nMissing: " + ", ".join(validation.missing)

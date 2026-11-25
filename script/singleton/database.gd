@@ -177,6 +177,36 @@ func ingest():
 					initial_packs.append(pack_info.id)
 		set_active_packs(initial_packs)
 
+func ingest_async(start_pct = 10.0, end_pct = 70.0):
+	if packs != null:
+		return
+	packs = {}
+	var available = OD.Settings.get_available_content_packs()
+	var total_steps = 2 + available.size()
+	var step_idx = 0
+	var pct_span = end_pct - start_pct
+	if OD.Loading != null:
+		await OD.Loading.step("Ingesting base game XML data...", start_pct)
+	print("Ingesting vanilla game data")
+	packs["vanilla"] = _load_pack_data("game/")
+	step_idx += 1
+	for pack_info in available:
+		var pct = start_pct + pct_span * (float(step_idx) / float(total_steps))
+		if OD.Loading != null:
+			await OD.Loading.step("Ingesting " + str(pack_info.get("title", pack_info.id)) + "...", pct)
+		print("Ingesting content pack [" + pack_info.id + "] from " + pack_info.prefix)
+		packs[pack_info.id] = _load_pack_data(pack_info.prefix + pack_info.data_subdir)
+		step_idx += 1
+	if OD.Loading != null:
+		await OD.Loading.step("Building database indexes...", end_pct)
+	var initial_packs = OD.DungeonSettings.get_active_packs()
+	if not OD.DungeonSettings.has_initialized_packs():
+		initial_packs = []
+		for pack_info in available:
+			if pack_info.kind == "expansion":
+				initial_packs.append(pack_info.id)
+	set_active_packs(initial_packs)
+
 func cache_result(key,result):
 	if result_cache == null:
 		result_cache = {}

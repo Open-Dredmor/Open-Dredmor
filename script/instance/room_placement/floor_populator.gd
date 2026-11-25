@@ -413,36 +413,79 @@ static func _pick_floor_monster(floor_level):
 				return cand
 	return OD.Database.get_monster("Diggle")
 
+static func _populate_monsters_in_room(entity_grid, placement, floor_level, no_grind, min_per_room, max_extra):
+	var layout = placement.layout
+	if layout.shop or layout.name == "Starting Room":
+		return
+	var room_cells = []
+	for local_cell in layout.floor_cells:
+		var world_cell = Vector2i(placement.x + local_cell.x, placement.y + local_cell.y)
+		if entity_grid.is_walkable(world_cell.x, world_cell.y) and entity_grid.get_stairs_at(world_cell.x, world_cell.y) == null:
+			room_cells.append(world_cell)
+	if room_cells.is_empty():
+		return
+	room_cells.shuffle()
+	var target_count = min_per_room + randi_range(0, max_extra)
+	if layout.zoo:
+		target_count = max(target_count, min(room_cells.size() / 2, 12))
+	elif no_grind:
+		target_count = max(1, int(ceil(float(target_count) * 0.7)))
+	var spawned = 0
+	for cell in room_cells:
+		if spawned >= target_count:
+			break
+		var mon_def = _pick_floor_monster(floor_level)
+		if mon_def != null and mon_def.has("name"):
+			if entity_grid.spawn_monster_at(str(mon_def.name), cell.x, cell.y, floor_level, true) != null:
+				spawned += 1
+
 static func _populate_monsters(entity_grid, placements, floor_level, no_grind):
 	var min_per_room = max(1, int(OD.Database.get_tweak("minimum number of monsters in room", 1)))
 	var max_extra = max(1, int(OD.Database.get_tweak("maximum number of additional monsters", 3)))
 	for placement in placements:
-		var layout = placement.layout
-		if layout.shop or layout.name == "Starting Room":
-			continue
-		var room_cells = []
-		for local_cell in layout.floor_cells:
-			var world_cell = Vector2i(placement.x + local_cell.x, placement.y + local_cell.y)
-			if entity_grid.is_walkable(world_cell.x, world_cell.y) and entity_grid.get_stairs_at(world_cell.x, world_cell.y) == null:
-				room_cells.append(world_cell)
-		if room_cells.is_empty():
-			continue
-		room_cells.shuffle()
-		var target_count = min_per_room + randi_range(0, max_extra)
-		if layout.zoo:
-			target_count = max(target_count, min(room_cells.size() / 2, 12))
-		elif no_grind:
-			target_count = max(1, int(ceil(float(target_count) * 0.7)))
-		var spawned = 0
-		for cell in room_cells:
-			if spawned >= target_count:
-				break
-			var mon_def = _pick_floor_monster(floor_level)
-			if mon_def != null and mon_def.has("name"):
-				if entity_grid.spawn_monster_at(str(mon_def.name), cell.x, cell.y, floor_level, true) != null:
-					spawned += 1
+		_populate_monsters_in_room(entity_grid, placement, floor_level, no_grind, min_per_room, max_extra)
 
 static func populate(entity_grid, placements, _floor_level, no_grind = false):
+	var ctx = _prepare_populate_context(entity_grid, placements, no_grind)
+	_populate_elements_and_props(entity_grid, ctx, no_grind)
+	_populate_teleporters(entity_grid, ctx.all_eligible_cells, ctx.used_cells)
+	_populate_wizard_portal(entity_grid, ctx.all_eligible_cells, ctx.used_cells)
+	_populate_floor_loot_and_traps(entity_grid, placements, _floor_level, no_grind)
+	_populate_monsters(entity_grid, placements, _floor_level, no_grind)
+	_populate_floor_decals(entity_grid, placements, no_grind)
+
+static func populate_async(entity_grid, placements, floor_level, no_grind = false, progress_start = 88.0, progress_end = 94.0):
+	if OD.Loading != null:
+		await OD.Loading.step("Floor " + str(floor_level) + ": carving lakes & scanning rooms...", progress_start)
+	var ctx = _prepare_populate_context(entity_grid, placements, no_grind)
+
+	if OD.Loading != null:
+		await OD.Loading.step("Floor " + str(floor_level) + ": placing shrines, anvils & props...", lerp(progress_start, progress_end, 0.2))
+	_populate_elements_and_props(entity_grid, ctx, no_grind)
+
+	if OD.Loading != null:
+		await OD.Loading.step("Floor " + str(floor_level) + ": linking teleporters & portals...", lerp(progress_start, progress_end, 0.35))
+	_populate_teleporters(entity_grid, ctx.all_eligible_cells, ctx.used_cells)
+	_populate_wizard_portal(entity_grid, ctx.all_eligible_cells, ctx.used_cells)
+
+	if OD.Loading != null:
+		await OD.Loading.step("Floor " + str(floor_level) + ": placing traps, chests & loot...", lerp(progress_start, progress_end, 0.5))
+	_populate_floor_loot_and_traps(entity_grid, placements, floor_level, no_grind)
+
+	var total_rooms = max(1, placements.size())
+	var min_per_room = max(1, int(OD.Database.get_tweak("minimum number of monsters in room", 1)))
+	var max_extra = max(1, int(OD.Database.get_tweak("maximum number of additional monsters", 3)))
+	for idx in range(placements.size()):
+		if OD.Loading != null and (idx % 6 == 0 or idx == placements.size() - 1):
+			var frac = 0.6 + 0.32 * (float(idx + 1) / float(total_rooms))
+			await OD.Loading.step("Floor " + str(floor_level) + ": spawning monsters (room " + str(idx + 1) + "/" + str(total_rooms) + ")...", lerp(progress_start, progress_end, frac))
+		_populate_monsters_in_room(entity_grid, placements[idx], floor_level, no_grind, min_per_room, max_extra)
+
+	if OD.Loading != null:
+		await OD.Loading.step("Floor " + str(floor_level) + ": adding floor decals...", lerp(progress_start, progress_end, 0.96))
+	_populate_floor_decals(entity_grid, placements, no_grind)
+
+static func _prepare_populate_context(entity_grid, placements, no_grind):
 	var used_cells = {}
 	_populate_lakes(entity_grid, placements, used_cells, no_grind)
 	var eligible_rooms = []
@@ -463,6 +506,17 @@ static func populate(entity_grid, placements, _floor_level, no_grind = false):
 				layout = layout,
 				cells = room_cells
 			})
+
+	return {
+		used_cells = used_cells,
+		eligible_rooms = eligible_rooms,
+		all_eligible_cells = all_eligible_cells
+	}
+
+static func _populate_elements_and_props(entity_grid, ctx, no_grind):
+	var used_cells = ctx.used_cells
+	var eligible_rooms = ctx.eligible_rooms
+	var all_eligible_cells = ctx.all_eligible_cells
 
 	for room_info in eligible_rooms:
 		for rule in CHANCE_ELEMENT_RULES:
@@ -505,9 +559,3 @@ static func populate(entity_grid, placements, _floor_level, no_grind = false):
 		if cell == null:
 			break
 		_spawn_blocker_prop(entity_grid, cell)
-
-	_populate_teleporters(entity_grid, all_eligible_cells, used_cells)
-	_populate_wizard_portal(entity_grid, all_eligible_cells, used_cells)
-	_populate_floor_loot_and_traps(entity_grid, placements, _floor_level, no_grind)
-	_populate_monsters(entity_grid, placements, _floor_level, no_grind)
-	_populate_floor_decals(entity_grid, placements, no_grind)

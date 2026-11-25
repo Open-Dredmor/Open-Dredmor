@@ -18,8 +18,12 @@ func _ready():
 	call_deferred("_bootstrap_and_launch")
 
 func _bootstrap_and_launch():
+	if OD.Loading != null:
+		await OD.Loading.step("Initializing audio...", 8.0)
 	OD.Audio.setup(get_tree().get_root())
-	OD.Database.ingest()
+	await OD.Database.ingest_async(12.0, 65.0)
+	if OD.Loading != null:
+		await OD.Loading.step("Rolling random character & skills...", 72.0)
 	OD.DungeonSettings.reset()
 	OD.DungeonSettings.set_debug_teleport(true)
 
@@ -34,4 +38,6 @@ func _bootstrap_and_launch():
 		skill_ids.append(skill.id)
 	OD.DungeonSettings.set_starting_skill_ids(skill_ids)
 
+	if OD.Loading != null:
+		await OD.Loading.step("Entering the dungeon...", 78.0)
 	OD.Scenes.goto(OD.Scenes.GAME)

@@ -23,6 +23,8 @@ var stages = [
 ]
 
 func _ready():
+	if OD.Loading != null:
+		OD.Loading.hide_loading()
 	call_deferred("_build_gui")
 
 func _process(_delta):

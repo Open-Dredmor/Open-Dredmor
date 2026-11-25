@@ -12,6 +12,7 @@ var DungeonSettings
 var EventLog
 var GameDataKind
 var Load
+var Loading
 var Log
 var Math
 var Rect
@@ -43,6 +44,7 @@ func reset():
 	EventLog = _singleton('event_log')
 	GameDataKind = _singleton('game_data_kind')
 	Load = _singleton('load')
+	Loading = _singleton('loading')
 	Log = _singleton('log')
 	Math = _singleton('math')
 	Rect = load('res://script/instance/rect.gd')

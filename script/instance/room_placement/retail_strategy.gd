@@ -208,6 +208,68 @@ static func _place_retail_stairs(entity_grid, tile_grid, grid_size, floor_level,
 					break
 
 static func generate(_branch_name, floor_level):
+	var prep = _prepare_layout_plan(_branch_name, floor_level)
+	return _finalize_grid(prep, floor_level)
+
+static func generate_async(_branch_name, floor_level, progress_start = 82.0, progress_end = 96.0):
+	if OD.Loading != null:
+		await OD.Loading.step("Floor " + str(floor_level) + ": caching room layouts...", progress_start)
+	var prep = _prepare_layout_plan(_branch_name, floor_level)
+	var placements = prep.best_placements
+	var total = max(1, placements.size())
+	if OD.Loading != null:
+		await OD.Loading.step("Floor " + str(floor_level) + ": building " + str(total) + " rooms...", lerp(progress_start, progress_end, 0.25))
+
+	var entity_grid = EntityGrid.new()
+	entity_grid.init(prep.branch_id)
+	entity_grid.floor_level = floor_level
+	entity_grid.branch_id = prep.branch_id
+	entity_grid.player_spawn_cell = prep.best_player_spawn
+	entity_grid.resize(prep.grid_size, prep.grid_size)
+
+	var pending_doors = []
+	for idx in range(placements.size()):
+		var placement = placements[idx]
+		if OD.Loading != null and (idx % 4 == 0 or idx == placements.size() - 1):
+			var room_frac = float(idx + 1) / float(total)
+			var pct = lerp(progress_start, progress_end, 0.25 + room_frac * 0.45)
+			await OD.Loading.step("Floor " + str(floor_level) + ": building room " + str(idx + 1) + "/" + str(total) + " (" + str(placement.layout.name) + ")", pct)
+		var room = Room.new()
+		room.init(placement.layout.raw if placement.layout.has("raw") and placement.layout.raw != null else placement.layout.name)
+		room.position = Vector2(placement.x, placement.y)
+		for door in placement.claimed_doors:
+			room.claim_door(door.x, door.y, door.kind)
+		room.seal_available_doors()
+		entity_grid.insert(room.entity_grid, room.position)
+		for door in placement.claimed_doors:
+			if door.get("spawn_door", false):
+				var orientation = "ns" if door.kind == "left" or door.kind == "right" else "ew"
+				var is_locked = floor_level > 1 and randi() % 8 == 0
+				pending_doors.append({
+					x = placement.x + door.x,
+					y = placement.y + door.y,
+					orientation = orientation,
+					locked = is_locked
+				})
+		room.free()
+
+	if OD.Loading != null:
+		await OD.Loading.step("Floor " + str(floor_level) + ": placing " + str(pending_doors.size()) + " doors & stairs...", lerp(progress_start, progress_end, 0.75))
+	for door_info in pending_doors:
+		var style = "3x3" if _can_place_3x3_door(entity_grid, door_info.x, door_info.y, door_info.orientation) else "1x1"
+		entity_grid.add_door(door_info.x, door_info.y, door_info.orientation, door_info.locked, style)
+
+	if prep.best_grid != null:
+		_place_retail_stairs(entity_grid, prep.best_grid, prep.grid_size, floor_level, prep.branch_length)
+
+	await FloorPopulator.populate_async(entity_grid, placements, floor_level, prep.no_grind, lerp(progress_start, progress_end, 0.78), lerp(progress_start, progress_end, 0.94))
+
+	if OD.Loading != null:
+		await OD.Loading.step("Floor " + str(floor_level) + ": auto-tiling walls...", lerp(progress_start, progress_end, 0.94))
+	entity_grid.auto_tile_walls()
+	return entity_grid
+
+static func _prepare_layout_plan(_branch_name, floor_level):
 	var floor_index = max(0, floor_level - 1)
 	var settings = OD.DungeonSettings.get_settings()
 	var no_grind = settings != null and settings.get("no_time_to_grind", false)
@@ -330,6 +392,24 @@ static func generate(_branch_name, floor_level):
 		if placements.size() > min_rooms and floor_count >= min_floor:
 			break
 
+	return {
+		branch_id = branch_id,
+		branch_length = branch_length,
+		grid_size = grid_size,
+		no_grind = no_grind,
+		best_grid = best_grid,
+		best_placements = best_placements,
+		best_player_spawn = best_player_spawn
+	}
+
+static func _finalize_grid(prep, floor_level):
+	var branch_id = prep.branch_id
+	var branch_length = prep.branch_length
+	var grid_size = prep.grid_size
+	var no_grind = prep.no_grind
+	var best_grid = prep.best_grid
+	var best_placements = prep.best_placements
+	var best_player_spawn = prep.best_player_spawn
 	var entity_grid = EntityGrid.new()
 	entity_grid.init(branch_id)
 	entity_grid.floor_level = floor_level

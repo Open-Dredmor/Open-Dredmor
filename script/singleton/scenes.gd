@@ -55,6 +55,8 @@ func bootstrap_again():
 func _load_scene(scene_path):
 	if OD.ActionQueue != null:
 		OD.ActionQueue.clear()
+	if OD.Loading != null:
+		OD.Loading.show_progress("Loading scene...", 5.0)
 	var root = get_node('/root')
 	var last_scene = root.get_node("Container")
 	root.remove_child(last_scene)
@@ -67,3 +69,6 @@ func _load_scene(scene_path):
 		current_container.set_anchors_preset(Control.PRESET_FULL_RECT)
 	current_container.set_script(scene_script)
 	root.add_child(current_container)
+	var self_managed = scene_path.ends_with("game/game.gd") or scene_path.ends_with("dev/quick_game.gd") or scene_path.ends_with("game/preload_assets.gd")
+	if not self_managed and OD.Loading != null:
+		OD.Loading.call_deferred("hide_loading")

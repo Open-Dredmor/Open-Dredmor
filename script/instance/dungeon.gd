@@ -335,8 +335,11 @@ func global_coordinates_to_grid(x, y):
 	var grid_x = floor((local_x + (OD.Assets.CELL_PIXEL_WIDTH / 2.0)) / OD.Assets.CELL_PIXEL_WIDTH)
 	var grid_y = floor((local_y + (OD.Assets.CELL_PIXEL_HEIGHT / 2.0)) / OD.Assets.CELL_PIXEL_HEIGHT)
 	return Vector2(grid_x, grid_y)
-func init():	
+func init():
 	call_deferred("_build_ui")
+
+func init_async():
+	await _build_ui_async()
 
 func handle_dungeon_input(ev):
 	if _player != null and _player.is_dead:
@@ -502,6 +505,21 @@ func _create_floor(floor_level):
 	floors[floor_level - 1] = grid
 	return grid
 
+func _create_floor_async(floor_level):
+	var strategy = _active_strategy
+	var strategy_script = load("res://script/instance/room_placement/" + strategy + "_strategy.gd")
+	var grid = null
+	if strategy_script != null and strategy_script.has_method("generate_async"):
+		grid = await strategy_script.generate_async(_branch_name, floor_level, 82.0, 95.0)
+	else:
+		grid = strategy_script.generate(_branch_name, floor_level)
+	grid.name = "EntityGrid-" + strategy + "_strategy-F" + str(floor_level)
+	_connect_grid_signals(grid)
+	while floors.size() < floor_level:
+		floors.append(null)
+	floors[floor_level - 1] = grid
+	return grid
+
 func _resolve_floor_spawn_cell(grid, direction):
 	if direction == "down" and grid.stairs_up_cell != null:
 		return grid.stairs_up_cell
@@ -577,6 +595,18 @@ func _on_turn_completed(_turn_number, _summary):
 	update_fov()
 
 func _build_ui():
+	_setup_player_and_scheduler()
+	var settings = OD.DungeonSettings.get_settings()
+	_entity_grid = _create_floor(_floor_level)
+	_finish_floor_setup(settings)
+
+func _build_ui_async():
+	_setup_player_and_scheduler()
+	var settings = OD.DungeonSettings.get_settings()
+	_entity_grid = await _create_floor_async(_floor_level)
+	_finish_floor_setup(settings)
+
+func _setup_player_and_scheduler():
 	_turn_scheduler.init(_command_processor, OD.DungeonSettings.get_settings().get("base_turn_seconds", 0.24))
 	if not _turn_scheduler.turn_completed.is_connected(_on_turn_completed):
 		_turn_scheduler.turn_completed.connect(_on_turn_completed)
@@ -588,8 +618,8 @@ func _build_ui():
 	_zorkmids_ref = _player.get_zorkmids_ref()
 	_target_cursor = TargetCursor.new()
 	_target_cursor.init()
-	var settings = OD.DungeonSettings.get_settings()
-	_entity_grid = _create_floor(_floor_level)
+
+func _finish_floor_setup(settings):
 	var spawn_x = _entity_grid.player_spawn_cell.x if _entity_grid.player_spawn_cell != null else settings.player_start_x
 	var spawn_y = _entity_grid.player_spawn_cell.y if _entity_grid.player_spawn_cell != null else settings.player_start_y
 	_entity_grid.add_entity(spawn_x, spawn_y, _player)

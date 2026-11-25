@@ -5,14 +5,23 @@ var DEFAULT_ANIMATION_FRAME_RATE_MILLISECONDS = 400
 var cache = {}
 var _resolve_cache = {}
 var _dir_entries_cache = {}
+var _exists_cache = {}
+var _anim_frames_cache = {}
 
 func clear_cache():
 	cache = {}
 	_resolve_cache = {}
 	_dir_entries_cache = {}
+	_exists_cache = {}
+	_anim_frames_cache = {}
 
 func exists(relative_path, internal=false):
-	return FileAccess.file_exists(resolve(relative_path, internal))
+	var cache_key = ("res://" if internal else "") + str(relative_path)
+	if _exists_cache.has(cache_key):
+		return _exists_cache[cache_key]
+	var found = FileAccess.file_exists(resolve(relative_path, internal))
+	_exists_cache[cache_key] = found
+	return found
 
 func _get_dir_entries_lower(dir_path):
 	if _dir_entries_cache.has(dir_path):
@@ -77,6 +86,8 @@ func resolve(relative_path, internal = false):
 		if ci_pack != null:
 			_resolve_cache[relative_path] = ci_pack
 			return ci_pack
+	_resolve_cache[relative_path] = direct_path
+	_exists_cache[relative_path] = false
 	return direct_path
 
 func image(relative_path, internal=false):
@@ -232,22 +243,35 @@ func split_animation(relative_paths):
 		animation.add_texture_frame(image(path), DEFAULT_ANIMATION_FRAME_RATE_MILLISECONDS)
 	return animation
 
+func _build_animation_from_cached(frame_list):
+	var anim = OD.Animations.new()
+	anim.init()
+	for entry in frame_list:
+		anim.add_texture_frame(entry.texture, entry.delay_milliseconds)
+	return anim
+
 func animation(relative_path, palette_path = null):
+	var cache_key = str(relative_path) + "|" + (str(palette_path) if palette_path != null else "")
+	if _anim_frames_cache.has(cache_key):
+		return _build_animation_from_cached(_anim_frames_cache[cache_key])
 	var parts = relative_path.split('.')
 	var extension = parts[parts.size()-1]
+	var frame_list = null
 	match extension:
 		"spr":
-			return _pro_motion_sprites(relative_path, palette_path)
+			frame_list = _pro_motion_sprite_frames(relative_path, palette_path)
 		"xml":
-			return _xml_sprites(relative_path)
+			frame_list = _xml_sprite_frames(relative_path)
 		"png":
-			var animation = OD.Animations.new()
-			animation.init()
-			animation.add_texture_frame(image(relative_path), 0)
-			return animation
+			frame_list = [{ texture = image(relative_path), delay_milliseconds = 0 }]
 		_:
 			print("No handler for animation " + relative_path)
 			OD.Scenes.quit()
+			return null
+	if frame_list == null:
+		return null
+	_anim_frames_cache[cache_key] = frame_list
+	return _build_animation_from_cached(frame_list)
 
 func _parse_color_table(color_table_bytes):
 	var color_table = {}
@@ -276,7 +300,7 @@ func sprite_palette(relative_path):
 
 # Pro Motion SPR spec
 # https://www.cosmigo.com/promotion/docs/onlinehelp/TechnicalInfos.htm
-func _pro_motion_sprites(relative_path, palette_path = null):
+func _pro_motion_sprite_frames(relative_path, palette_path = null):
 	var absolute_path = resolve(relative_path)
 	var file = FileAccess.open(absolute_path, FileAccess.READ)
 	if file == null:
@@ -289,7 +313,6 @@ func _pro_motion_sprites(relative_path, palette_path = null):
 	var frames = []
 	var _trans_chunk = null
 	var override_palette = sprite_palette(palette_path) if palette_path != null and palette_path != "" else null
-	#print("Width "+str(width)+", Height: "+str(height)+", Size: "+str(width*height)+", frames: "+str(frame_count))
 	for _ii in range(frame_count):
 		var delay_milliseconds = read_int(file, 2)
 		var color_table_bytes = file.get_buffer(256*3)
@@ -303,36 +326,41 @@ func _pro_motion_sprites(relative_path, palette_path = null):
 	if file.get_length() > file.get_position():
 		var _trans_header = file.get_buffer(6).get_string_from_ascii()
 		_trans_chunk = file.get_buffer(width * height)
-		
-	var animation = OD.Animations.new()
-	animation.init()
+
+	var frame_list = []
+	var pixel_count = width * height
 	for frame in frames:
 		var pixels = PackedByteArray()
-		# 156, 154, 156 -> Grey background
-		# color_table ignore index = 0
-		for jj in range(frame.image_data.size()):
-			pixels.append_array(frame.color_table[frame.image_data[jj]])
-			var alpha = 0 if frame.image_data[jj] == 0 else 255
+		pixels.resize(pixel_count * 4)
+		var color_table = frame.color_table
+		var image_data = frame.image_data
+		for jj in range(pixel_count):
+			var color_idx = image_data[jj]
+			var rgb = color_table[color_idx]
+			var out_idx = jj * 4
+			pixels[out_idx] = rgb[0]
+			pixels[out_idx + 1] = rgb[1]
+			pixels[out_idx + 2] = rgb[2]
+			var alpha = 0 if color_idx == 0 else 255
 			if _trans_chunk != null and jj < _trans_chunk.size():
 				alpha = _trans_chunk[jj]
-			pixels.append(alpha)
-				
+			pixels[out_idx + 3] = alpha
+
 		var img = Image.create_from_data(width, height, false, Image.FORMAT_RGBA8, pixels)
 		var image_texture = ImageTexture.create_from_image(img)
-		animation.add_texture_frame(image_texture, frame.delay_milliseconds)
-	
-	return animation
+		frame_list.append({ texture = image_texture, delay_milliseconds = frame.delay_milliseconds })
 
-func _xml_sprites(relative_path):
+	return frame_list
+
+func _xml_sprite_frames(relative_path):
 	var document = xml(relative_path)
-	var animation = OD.Animations.new()
-	animation.init()
+	var frame_list = []
 	if not document.has("sprite") or not document.sprite.has("frame"):
-		return animation
+		return frame_list
 	var frames = OD.DataStructure.arrayify(document.sprite.frame)
 	var path_parts = relative_path.split('/')
 	var image_root = ''
-	for ii in range(path_parts.size() - 1): # chop the XML file out of the path
+	for ii in range(path_parts.size() - 1):
 		image_root += path_parts[ii] + '/'
 	for frame in frames:
 		if not frame.has("text"):
@@ -340,8 +368,8 @@ func _xml_sprites(relative_path):
 		var image_path = image_root + frame.text
 		var delay_milliseconds = int(frame.delay) if frame.has("delay") else DEFAULT_ANIMATION_FRAME_RATE_MILLISECONDS
 		var texture = image(image_path)
-		animation.add_texture_frame(texture, delay_milliseconds)
-	return animation
+		frame_list.append({ texture = texture, delay_milliseconds = delay_milliseconds })
+	return frame_list
 	
 func _handle_err(resource_path, err):
 	if err != OK:

@@ -35,6 +35,7 @@ var _idle_sprites = {}
 var _attack_sprites = {}
 var _hit_sprites = {}
 var _cast_sprites = {}
+var _sprite_defs = {}
 var _die_sprite_path = ""
 var _palette_path = null
 var _active_sprite = null
@@ -57,18 +58,20 @@ func _init_stat_tables():
 		melee_power = 0
 	}
 
-func _load_directional_sprites(sprite_def, target_dict):
-	if sprite_def == null or typeof(sprite_def) != TYPE_DICTIONARY:
-		return
-	for dir_key in ["down", "up", "left", "right"]:
-		if sprite_def.has(dir_key):
-			var anim = OD.Load.animation(sprite_def[dir_key], _palette_path)
-			if anim != null:
-				anim.visible = false
-				if anim.is_tall():
-					anim.position.y -= OD.Assets.CELL_PIXEL_HEIGHT / 2.0
-				add_child(anim)
-				target_dict[dir_key] = anim
+func _ensure_sprite_loaded(sprite_dict, kind_key, dir_key):
+	if sprite_dict.has(dir_key):
+		return sprite_dict[dir_key]
+	var sprite_def = _sprite_defs.get(kind_key, null)
+	if sprite_def == null or typeof(sprite_def) != TYPE_DICTIONARY or not sprite_def.has(dir_key):
+		return null
+	var anim = OD.Load.animation(sprite_def[dir_key], _palette_path)
+	if anim != null:
+		anim.visible = false
+		if anim.is_tall():
+			anim.position.y -= OD.Assets.CELL_PIXEL_HEIGHT / 2.0
+		add_child(anim)
+		sprite_dict[dir_key] = anim
+	return anim
 
 func init(monster_def, floor_level = 1):
 	_init_stat_tables()
@@ -117,10 +120,13 @@ func init(monster_def, floor_level = 1):
 					var sec_key = PlayerCharacter.SECONDARY_STAT_BY_ID[sec_id]
 					secondary_stats[sec_key] = int(secondary_stats.get(sec_key, 0)) + int(buff.get("amount", 0))
 
-	_load_directional_sprites(monster_def.get("idleSprite", null), _idle_sprites)
-	_load_directional_sprites(monster_def.get("attackSprite", null), _attack_sprites)
-	_load_directional_sprites(monster_def.get("hitSprite", null), _hit_sprites)
-	_load_directional_sprites(monster_def.get("castSpellSprite", null), _cast_sprites)
+	_sprite_defs = {
+		idle = monster_def.get("idleSprite", null),
+		attack = monster_def.get("attackSprite", null),
+		hit = monster_def.get("hitSprite", null),
+		cast = monster_def.get("castSpellSprite", null)
+	}
+	_ensure_sprite_loaded(_idle_sprites, "idle", "down")
 
 	spells.clear()
 	if monster_def.has("spell"):
@@ -180,10 +186,12 @@ func set_facing(delta_x, delta_y):
 			_facing_dir = "up"
 		else:
 			_facing_dir = "down"
-	_show_sprite(_idle_sprites, _facing_dir)
+	_show_sprite(_idle_sprites, _facing_dir, "idle")
 
-func _show_sprite(sprite_dict, dir_key):
-	var target = sprite_dict.get(dir_key, sprite_dict.get("down", null))
+func _show_sprite(sprite_dict, dir_key, kind_key = "idle"):
+	var target = _ensure_sprite_loaded(sprite_dict, kind_key, dir_key)
+	if target == null:
+		target = _ensure_sprite_loaded(sprite_dict, kind_key, "down")
 	if target == null or target == _active_sprite:
 		return
 	if _active_sprite != null:
@@ -192,25 +200,25 @@ func _show_sprite(sprite_dict, dir_key):
 	_active_sprite.visible = true
 
 func play_hit_animation():
-	if _hit_sprites.is_empty():
+	if _sprite_defs.get("hit", null) == null:
 		return
-	_show_sprite(_hit_sprites, _facing_dir)
+	_show_sprite(_hit_sprites, _facing_dir, "hit")
 	var timer = get_tree().create_timer(0.18) if is_inside_tree() else null
 	if timer != null:
 		timer.timeout.connect(func():
 			if is_instance_valid(self):
-				_show_sprite(_idle_sprites, _facing_dir)
+				_show_sprite(_idle_sprites, _facing_dir, "idle")
 		)
 
 func play_attack_animation():
-	if _attack_sprites.is_empty():
+	if _sprite_defs.get("attack", null) == null:
 		return
-	_show_sprite(_attack_sprites, _facing_dir)
+	_show_sprite(_attack_sprites, _facing_dir, "attack")
 	var timer = get_tree().create_timer(0.22) if is_inside_tree() else null
 	if timer != null:
 		timer.timeout.connect(func():
 			if is_instance_valid(self):
-				_show_sprite(_idle_sprites, _facing_dir)
+				_show_sprite(_idle_sprites, _facing_dir, "idle")
 		)
 
 func play_sfx(kind):
@@ -224,15 +232,15 @@ func get_palette_path():
 	return _palette_path
 
 func play_cast_animation():
-	if _cast_sprites.is_empty():
+	if _sprite_defs.get("cast", null) == null:
 		play_attack_animation()
 		return
-	_show_sprite(_cast_sprites, _facing_dir)
+	_show_sprite(_cast_sprites, _facing_dir, "cast")
 	var timer = get_tree().create_timer(0.24) if is_inside_tree() else null
 	if timer != null:
 		timer.timeout.connect(func():
 			if is_instance_valid(self):
-				_show_sprite(_idle_sprites, _facing_dir)
+				_show_sprite(_idle_sprites, _facing_dir, "idle")
 		)
 
 func play_die_animation_at(entity_grid, cell):

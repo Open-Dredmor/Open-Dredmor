@@ -19,13 +19,14 @@ func _ready():
 	call_deferred("_build_ui")
 
 func _build_ui():
-	# TODO Remove unless testing
 	if OD.DungeonSettings.get_settings().hero == null:
-		_dev_seed()
-	
-	var assets = OD.Assets.game()	
-	var	container = OD.Scenes.container()
-	
+		await _dev_seed()
+
+	if OD.Loading != null:
+		await OD.Loading.step("Loading game audio & assets...", 80.0)
+	var assets = OD.Assets.game()
+	var container = OD.Scenes.container()
+
 	var centered_container = Panel.new()
 	centered_container.set_size(OD.Settings.display_size())
 	centered_container.name = "CenteredContainer"
@@ -40,16 +41,20 @@ func _build_ui():
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.name = "VBox"
 	hbox.add_child(vbox)
-	
+
 	moveable_container = Node2D.new()
 	moveable_container.name = "MoveableContainer"
 	vbox.add_child(moveable_container)
-	
+
+	if OD.Loading != null:
+		await OD.Loading.step("Generating dungeon floor...", 82.0)
 	_dungeon = Dungeon.new()
-	_dungeon.init()
 	_dungeon.name = "Dungeon"
 	moveable_container.add_child(_dungeon)
+	await _dungeon.init_async()
 
+	if OD.Loading != null:
+		await OD.Loading.step("Building HUD...", 97.0)
 	var hud_layer = CanvasLayer.new()
 	hud_layer.name = "FloorHudLayer"
 	container.add_child(hud_layer)
@@ -69,8 +74,10 @@ func _build_ui():
 	if OD.EventLog != null:
 		OD.EventLog.notify("Entered Floor " + str(_dungeon.get_floor_level()) + " - " + str(_dungeon.get_branch_name()) + ".")
 	call_deferred("_center_on_player")
-	
+
 	OD.Audio.play(assets.music.default)
+	if OD.Loading != null:
+		OD.Loading.hide_loading()
 
 func _center_on_player():
 	if moveable_container == null or _dungeon == null or not is_instance_valid(_dungeon):
@@ -210,7 +217,7 @@ func _on_player_died(summary):
 
 func _dev_seed():
 	OD.Audio.setup(get_tree().get_root())
-	OD.Database.ingest()
+	await OD.Database.ingest_async(10.0, 75.0)
 	OD.DungeonSettings.reset()
 	OD.DungeonSettings.set_difficulty(OD.DungeonSettings.Difficulty.Medium)
 	OD.DungeonSettings.set_permadeath(false)
