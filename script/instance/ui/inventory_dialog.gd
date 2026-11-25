@@ -109,6 +109,7 @@ const SECONDARY_STAT_LABELS = {
 var _player = null
 var _drop_inv_cb = Callable()
 var _drop_equip_cb = Callable()
+var _use_inv_cb = Callable()
 var _pickup_cb = Callable()
 var _close_cb = Callable()
 
@@ -132,6 +133,7 @@ var _tooltip_panel = null
 var _tooltip_label = null
 
 var _selected_source = null
+var _use_btn = null
 var _equip_btn = null
 var _unequip_btn = null
 var _drop_one_btn = null
@@ -143,6 +145,7 @@ func init(player, callbacks = {}):
 	_player = player
 	_drop_inv_cb = callbacks.get("on_drop_inventory", Callable())
 	_drop_equip_cb = callbacks.get("on_drop_equipped", Callable())
+	_use_inv_cb = callbacks.get("on_use_inventory", Callable())
 	_pickup_cb = callbacks.get("on_pickup", Callable())
 	_close_cb = callbacks.get("on_close", Callable())
 	layer = 12
@@ -457,6 +460,11 @@ func _build_ui():
 	_style_label(_selected_info_label, font, 16, Color(0.95, 0.9, 0.78))
 	action_hbox.add_child(_selected_info_label)
 
+	_use_btn = Button.new()
+	_use_btn.text = "Use"
+	_use_btn.pressed.connect(_on_use_selected_pressed)
+	action_hbox.add_child(_use_btn)
+
 	_equip_btn = Button.new()
 	_equip_btn.text = "Equip"
 	_equip_btn.pressed.connect(_on_equip_selected_pressed)
@@ -592,16 +600,22 @@ func _on_inv_slot_gui_input(ev, slot_idx):
 	var item = _player.inventory[slot_idx]
 	if ev.button_index == MOUSE_BUTTON_RIGHT:
 		if item != null:
-			_player.equip_from_inventory(slot_idx)
-			_selected_source = null
-			refresh()
+			if _player.is_item_usable(item):
+				_use_inventory_slot(slot_idx)
+			else:
+				_player.equip_from_inventory(slot_idx)
+				_selected_source = null
+				refresh()
 		return
 	if ev.button_index != MOUSE_BUTTON_LEFT:
 		return
 	if item != null and _is_double_click("inv_" + str(slot_idx)):
-		_player.equip_from_inventory(slot_idx)
-		_selected_source = null
-		refresh()
+		if _player.is_item_usable(item):
+			_use_inventory_slot(slot_idx)
+		else:
+			_player.equip_from_inventory(slot_idx)
+			_selected_source = null
+			refresh()
 		return
 	if _selected_source == null:
 		if item != null:
@@ -665,6 +679,22 @@ func _on_equip_slot_gui_input(ev, slot_name):
 					_player.equipment_changed.emit()
 			_selected_source = null
 		refresh()
+
+func _use_inventory_slot(slot_idx):
+	if _player == null:
+		return
+	if _use_inv_cb.is_valid():
+		_use_inv_cb.call(slot_idx)
+	else:
+		_player.use_consumable_at(slot_idx)
+	_selected_source = null
+	if is_instance_valid(self):
+		refresh()
+
+func _on_use_selected_pressed():
+	if _player == null or _selected_source == null or _selected_source.kind != "inv":
+		return
+	_use_inventory_slot(_selected_source.index)
 
 func _on_equip_selected_pressed():
 	if _player == null or _selected_source == null or _selected_source.kind != "inv":
@@ -750,12 +780,16 @@ func _apply_slot_visuals(btn, item, is_selected, is_valid_target):
 		count_label.text = ""
 	else:
 		icon_rect.texture = _load_tex(str(item.get("icon", "")))
-		var cnt = int(item.get("count", 1))
-		count_label.text = str(cnt) if cnt > 1 else ""
+		if str(item.get("category", "")) == "wand":
+			count_label.text = str(int(item.get("charges", 0)))
+		else:
+			var cnt = int(item.get("count", 1))
+			count_label.text = str(cnt) if cnt > 1 else ""
 
 func _refresh_selected_controls(selected_item):
 	if selected_item == null:
-		_selected_info_label.text = "Click to select/move, Right-click or Double-click to equip/unequip."
+		_selected_info_label.text = "Click to select/move, Right-click or Double-click to use/equip."
+		_use_btn.disabled = true
 		_equip_btn.disabled = true
 		_unequip_btn.disabled = true
 		_drop_one_btn.disabled = true
@@ -764,7 +798,9 @@ func _refresh_selected_controls(selected_item):
 	var cnt = int(selected_item.get("count", 1))
 	var cnt_str = " (x" + str(cnt) + ")" if cnt > 1 else ""
 	_selected_info_label.text = str(selected_item.get("name", "Item")) + cnt_str
-	var can_equip = _selected_source != null and _selected_source.kind == "inv" and not _player.get_valid_slots_for_item(selected_item).is_empty()
+	var is_inv = _selected_source != null and _selected_source.kind == "inv"
+	_use_btn.disabled = not (is_inv and _player.is_item_usable(selected_item))
+	var can_equip = is_inv and not _player.get_valid_slots_for_item(selected_item).is_empty()
 	_equip_btn.disabled = not can_equip
 	_unequip_btn.disabled = not (_selected_source != null and _selected_source.kind == "equip")
 	_drop_one_btn.disabled = false
@@ -889,6 +925,24 @@ func _show_tooltip(item):
 	if slot_str != "" and slot_str != cat_str.to_lower():
 		cat_str += " (" + slot_str + ")"
 	lines.append("Level %d  |  %s  |  Sell: %d zm" % [int(item.get("level", 1)), cat_str, int(item.get("sell_price", 0))])
+
+	var cat = str(item.get("category", "misc"))
+	if cat == "food":
+		if bool(item.get("is_booze", false)) or int(item.get("food_mp", 0)) > 0:
+			var total_mp = max(1, int(item.get("food_mp", 6)))
+			var mp_per_turn = max(1, int(ceil(float(total_mp) / 6.0)))
+			lines.append("Booze: +" + str(mp_per_turn) + " MP/turn (6 turns) & Tipsy")
+		else:
+			lines.append("Food: Restores " + str(int(item.get("food_hp", 1))) + " HP over time")
+		if str(item.get("food_effect", "")) != "":
+			lines.append("Effect: " + str(item.get("food_effect", "")))
+	elif cat == "potion":
+		lines.append("Potion: Casts " + str(item.get("potion_spell", "")))
+	elif cat == "mushroom":
+		lines.append("Mushroom: Casts " + str(item.get("casts_spell", "")))
+	elif cat == "wand":
+		lines.append("Wand: Casts " + str(item.get("wand_spell", "")))
+		lines.append("Charges: " + str(int(item.get("charges", 0))) + " / " + str(int(item.get("max_charges", 0))))
 
 	var w_dmg = item.get("weapon_damage", {})
 	if typeof(w_dmg) == TYPE_DICTIONARY and not w_dmg.is_empty():

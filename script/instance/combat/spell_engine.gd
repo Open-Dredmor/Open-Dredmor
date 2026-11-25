@@ -570,5 +570,15 @@ static func _apply_effect(eff, spell_def, caster, caster_pos, cell, context, tri
 				caster.add_xp(xp_amt)
 			return "grantxp"
 
+		"drunkenness":
+			var target = _get_target_actor_at(cell, entity_grid, caster, true, true)
+			var turns = max(2, int(eff.get("amount", 4)))
+			if target != null and target.has_method("apply_tipsy_buff"):
+				target.apply_tipsy_buff(1, turns)
+			return "drunkenness"
+
+		"consumebooze":
+			return "consumebooze"
+
 		_:
 			return etype

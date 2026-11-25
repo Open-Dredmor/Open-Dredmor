@@ -270,6 +270,10 @@ func toggle_inventory():
 	_inventory_dialog = InventoryDialogScript.new().init(player, {
 		on_drop_inventory = func(inv_idx, count): _dungeon.drop_inventory_item(inv_idx, count),
 		on_drop_equipped = func(slot_name): _dungeon.drop_equipped_item(slot_name),
+		on_use_inventory = func(inv_idx):
+			var use_res = _dungeon.begin_use_inventory_item(inv_idx)
+			if typeof(use_res) == TYPE_DICTIONARY and use_res.get("targeting", false):
+				toggle_inventory(),
 		on_pickup = func(): _dungeon.pickup_loot_at_player(),
 		on_close = func(): _inventory_dialog = null
 	})

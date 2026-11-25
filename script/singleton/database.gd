@@ -638,6 +638,8 @@ func _classify_item(item, reagent_set, component_set):
 		return { category = "food", slot = "" }
 	if item.has("potion"):
 		return { category = "potion", slot = "" }
+	if item.has("mushroom"):
+		return { category = "mushroom", slot = "" }
 	if item.has("wand"):
 		return { category = "wand", slot = "" }
 	if item.has("toolkit"):
@@ -828,6 +830,30 @@ func create_item_instance(item_name_or_def, count = 1):
 		target_hit_effects = target_hit_effects,
 		player_hit_effects = player_hit_effects
 	}
+	var raw_food = raw_item.get("food", null)
+	if typeof(raw_food) == TYPE_DICTIONARY:
+		var food_hp = int(raw_food.get("hp", 0))
+		var food_mp = int(raw_food.get("mp", 0))
+		instance["food_hp"] = food_hp
+		instance["food_mp"] = food_mp
+		instance["food_effect"] = str(raw_food.get("effect", ""))
+		instance["food_meat"] = int(raw_food.get("meat", 0)) == 1
+		instance["is_booze"] = food_mp > 0
+	var raw_potion = raw_item.get("potion", null)
+	if typeof(raw_potion) == TYPE_DICTIONARY:
+		instance["potion_spell"] = str(raw_potion.get("spell", ""))
+	if category == "mushroom":
+		var raw_casts = raw_item.get("casts", null)
+		if typeof(raw_casts) == TYPE_DICTIONARY:
+			instance["casts_spell"] = str(raw_casts.get("spell", ""))
+	var raw_wand = raw_item.get("wand", null)
+	if typeof(raw_wand) == TYPE_DICTIONARY:
+		var min_charge = max(1, int(raw_wand.get("mincharge", 1)))
+		var max_charge = max(min_charge, int(raw_wand.get("maxcharge", min_charge)))
+		var rolled_charges = randi_range(min_charge, max_charge)
+		instance["wand_spell"] = str(raw_wand.get("spell", ""))
+		instance["charges"] = rolled_charges
+		instance["max_charges"] = rolled_charges
 	for dmg_type in weapon_damage:
 		instance[dmg_type] = weapon_damage[dmg_type]
 	return instance

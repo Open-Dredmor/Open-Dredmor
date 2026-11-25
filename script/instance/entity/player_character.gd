@@ -763,6 +763,10 @@ func apply_buff(buff_def, source_spell = ""):
 				existing["brittle_remaining"] = brittle_count
 			if attacks_count > 0:
 				existing["attacks_remaining"] = attacks_count
+			if int(buff_def.get("hp_per_turn", 0)) != 0:
+				existing["hp_per_turn"] = int(buff_def.get("hp_per_turn", 0))
+			if int(buff_def.get("mp_per_turn", 0)) != 0:
+				existing["mp_per_turn"] = int(buff_def.get("mp_per_turn", 0))
 			recalculate_stats()
 			buffs_changed.emit()
 			return true
@@ -782,6 +786,8 @@ func apply_buff(buff_def, source_spell = ""):
 		stacks = 1,
 		mana_upkeep = int(buff_def.get("manaUpkeep", buff_def.get("manaupkeep", 0))),
 		zorkmid_upkeep = int(buff_def.get("zorkmidUpkeep", 0)),
+		hp_per_turn = int(buff_def.get("hp_per_turn", 0)),
+		mp_per_turn = int(buff_def.get("mp_per_turn", 0)),
 		primary_bonuses = primary_b,
 		secondary_bonuses = secondary_b,
 		resist_bonuses = resist_b,
@@ -918,6 +924,12 @@ func tick_status_effects():
 				active_buffs.remove_at(ii)
 				buff_changed = true
 				continue
+		var hp_regen = int(buff.get("hp_per_turn", 0))
+		if hp_regen != 0:
+			modify_hp(hp_regen)
+		var mp_regen = int(buff.get("mp_per_turn", 0))
+		if mp_regen != 0:
+			modify_mp(mp_regen)
 		if buff.get("use_timer", false):
 			buff["remaining_turns"] = int(buff.get("remaining_turns", 1)) - 1
 			if buff["remaining_turns"] <= 0:
@@ -1249,3 +1261,149 @@ func get_inventory_items():
 		if inventory[ii] != null:
 			items.append({ slot_index = ii, item = inventory[ii] })
 	return items
+
+func is_item_usable(item_data):
+	if item_data == null or typeof(item_data) != TYPE_DICTIONARY:
+		return false
+	var cat = str(item_data.get("category", ""))
+	return cat in ["food", "potion", "mushroom", "wand"]
+
+func get_item_spell_name(item_data):
+	if item_data == null or typeof(item_data) != TYPE_DICTIONARY:
+		return ""
+	var cat = str(item_data.get("category", ""))
+	if cat == "potion":
+		return str(item_data.get("potion_spell", ""))
+	if cat == "mushroom":
+		return str(item_data.get("casts_spell", ""))
+	if cat == "wand":
+		return str(item_data.get("wand_spell", ""))
+	return ""
+
+func apply_tipsy_buff(mp_per_turn = 1, duration = 6, icon_path = ""):
+	var buff_def = {
+		name = "Tipsy",
+		description = { text = "Alcohol warms the blood: +" + str(mp_per_turn) + " MP/turn, +2 Magic Power, +1 Melee Power, -1 Dodge per stack." },
+		icon = icon_path if icon_path != "" else "items/booze_pilsner.png",
+		smallicon = icon_path if icon_path != "" else "items/booze_pilsner.png",
+		useTimer = 1,
+		time = max(1, int(duration)),
+		allowstacking = 1,
+		stacksize = 5,
+		mp_per_turn = int(mp_per_turn),
+		secondaryBuff = [
+			{ id = 3, amount = 2 },
+			{ id = 2, amount = 1 },
+			{ id = 6, amount = -1 }
+		]
+	}
+	return apply_buff(buff_def, "Tipsy")
+
+func use_consumable_at(inv_idx, target_cell = Vector2i.ZERO, context = {}):
+	if inv_idx < 0 or inv_idx >= inventory.size():
+		return { executed = false, reason = "Invalid inventory slot" }
+	var item = inventory[inv_idx]
+	if item == null:
+		return { executed = false, reason = "Empty slot" }
+	var cat = str(item.get("category", ""))
+	if not is_item_usable(item):
+		return { executed = false, reason = "Item is not usable" }
+
+	var p_pos = get_grid_position()
+	var self_cell = Vector2i(int(p_pos.x), int(p_pos.y)) if p_pos != null else target_cell
+	var spell_ctx = context.duplicate()
+	spell_ctx["free_cast"] = true
+	var spell_engine = load("res://script/instance/combat/spell_engine.gd")
+
+	if cat == "food":
+		var is_booze = bool(item.get("is_booze", false)) or int(item.get("food_mp", 0)) > 0
+		var item_icon = str(item.get("icon", ""))
+		var extra_spell = str(item.get("food_effect", ""))
+		if is_booze:
+			var total_mp = max(1, int(item.get("food_mp", 6)))
+			var turns = 6
+			var mp_per_turn = max(1, int(ceil(float(total_mp) / float(turns))))
+			apply_tipsy_buff(mp_per_turn, turns, item_icon)
+			if extra_spell != "" and spell_engine != null:
+				spell_engine.execute_spell(extra_spell, self, self_cell, spell_ctx)
+			remove_item_at(inv_idx, 1)
+			return {
+				executed = true,
+				kind = "booze",
+				item_name = str(item.get("name", "Booze")),
+				mp_per_turn = mp_per_turn,
+				turns = turns
+			}
+		var total_hp = max(1, int(item.get("food_hp", 1)))
+		var hp_per_turn = 1 if total_hp <= 8 else 2
+		var turns = max(1, int(ceil(float(total_hp) / float(hp_per_turn))))
+		apply_buff({
+			name = "Digestion",
+			description = { text = "Restores " + str(hp_per_turn) + " HP per turn." },
+			icon = item_icon if item_icon != "" else "items/food_steak.png",
+			smallicon = item_icon if item_icon != "" else "items/food_steak.png",
+			useTimer = 1,
+			time = turns,
+			hp_per_turn = hp_per_turn
+		}, str(item.get("name", "Food")))
+		if extra_spell != "" and spell_engine != null:
+			spell_engine.execute_spell(extra_spell, self, self_cell, spell_ctx)
+		remove_item_at(inv_idx, 1)
+		return {
+			executed = true,
+			kind = "food",
+			item_name = str(item.get("name", "Food")),
+			hp_per_turn = hp_per_turn,
+			turns = turns
+		}
+
+	if cat == "potion" or cat == "mushroom":
+		var spell_name = get_item_spell_name(item)
+		if spell_name == "":
+			return { executed = false, reason = "No spell bound to item" }
+		var res = spell_engine.execute_spell(spell_name, self, self_cell, spell_ctx)
+		if not res.get("executed", false):
+			return res
+		remove_item_at(inv_idx, 1)
+		return {
+			executed = true,
+			kind = cat,
+			item_name = str(item.get("name", cat.capitalize())),
+			spell_name = spell_name,
+			spell_result = res
+		}
+
+	if cat == "wand":
+		var charges = int(item.get("charges", 0))
+		if charges <= 0:
+			remove_item_at(inv_idx, 1)
+			return { executed = false, burned_out = true, reason = "Wand has no charges left" }
+		var wand_spell = str(item.get("wand_spell", ""))
+		if wand_spell == "":
+			return { executed = false, reason = "Wand has no spell" }
+		var cast_target = target_cell if target_cell != Vector2i.ZERO else self_cell
+		var res = spell_engine.execute_spell(wand_spell, self, cast_target, spell_ctx)
+		if not res.get("executed", false):
+			return res
+		var preserve_chance = clamp(get_secondary_stat("wandcrafting_level") * 8, 0, 50)
+		var preserved = preserve_chance > 0 and (randi() % 100) < preserve_chance
+		if not preserved:
+			charges -= 1
+			item["charges"] = charges
+		var burned_out = charges <= 0
+		if burned_out:
+			remove_item_at(inv_idx, 1)
+		else:
+			inventory_changed.emit()
+		return {
+			executed = true,
+			kind = "wand",
+			item_name = str(item.get("name", "Wand")),
+			spell_name = wand_spell,
+			remaining_charges = charges,
+			preserved_charge = preserved,
+			burned_out = burned_out,
+			spell_result = res
+		}
+
+	return { executed = false, reason = "Unsupported consumable" }

@@ -8,8 +8,8 @@ Equipment slots, consumables, level-scaled loot/artifacts, and the 4 crafting sy
   - *Current state*: Implemented in [script/instance/entity/player_character.gd](../script/instance/entity/player_character.gd), [script/instance/ui/inventory_dialog.gd](../script/instance/ui/inventory_dialog.gd), [script/singleton/database.gd](../script/singleton/database.gd), [script/instance/entity_grid.gd](../script/instance/entity_grid.gd), [script/instance/dungeon.gd](../script/instance/dungeon.gd), and [script/scene/game/game.gd](../script/scene/game/game.gd). Verified via `INVENTORY_TEST`.
   - *Done when*: Player has a grid/slot inventory, can pick up, drop, stack, inspect tooltips, and equip items into all Dredmor slots (main hand, off hand, head, chest, legs, feet, hands, 2x ring, amulet, belt, bolts, thrown), updating stats immediately.
 
-- [ ] **Consumables & Wands**
-  - *Current state*: None.
+- [x] **Consumables & Wands**
+  - *Current state*: Implemented in [script/singleton/database.gd](../script/singleton/database.gd), [script/instance/entity/player_character.gd](../script/instance/entity/player_character.gd), [script/instance/combat/spell_engine.gd](../script/instance/combat/spell_engine.gd), [script/instance/ui/inventory_dialog.gd](../script/instance/ui/inventory_dialog.gd), [script/instance/dungeon.gd](../script/instance/dungeon.gd), [script/scene/game/game.gd](../script/scene/game/game.gd), and [script/scene/dev/consumable_test.gd](../script/scene/dev/consumable_test.gd). Verified via `CONSUMABLE_TEST`.
   - *Done when*: Food restores HP/turn, booze restores MP/turn (and applies tipsy/buffs), potions trigger their `spellDB` effects, and wands cast spells while tracking charges/burnout.
 
 - [ ] **Loot generation & Artifacts**

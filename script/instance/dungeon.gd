@@ -11,6 +11,7 @@ const TurnSchedulerScript = preload("res://script/instance/turn/turn_scheduler.g
 const CombatResolverScript = preload("res://script/instance/combat/combat_resolver.gd")
 const SpellEngineScript = preload("res://script/instance/combat/spell_engine.gd")
 const CastSpellCommandScript = preload("res://script/instance/command/cast_spell_command.gd")
+const UseItemCommandScript = preload("res://script/instance/command/use_item_command.gd")
 const DeathManagerScript = preload("res://script/instance/death_manager.gd")
 
 signal floor_changed(floor_level, branch_name)
@@ -40,6 +41,7 @@ var _lutefisk_ref = { value = 10 }
 var _player_bag = []
 var _interaction_dialog = null
 var _pending_spell_name = ""
+var _pending_wand_inv_idx = -1
 var _monsters_killed = 0
 var _pending_interaction = null
 var _in_pocket_dimension = false
@@ -252,9 +254,10 @@ func begin_spell_targeting(spell_name):
 	return true
 
 func cancel_spell_targeting():
-	if _pending_spell_name == "":
+	if _pending_spell_name == "" and _pending_wand_inv_idx < 0:
 		return
 	_pending_spell_name = ""
+	_pending_wand_inv_idx = -1
 	spell_targeting_changed.emit("")
 
 func is_targeting_spell():
@@ -262,6 +265,27 @@ func is_targeting_spell():
 
 func get_pending_spell_name():
 	return _pending_spell_name
+
+func begin_use_inventory_item(inv_idx):
+	if _player == null or inv_idx < 0 or inv_idx >= _player.inventory.size():
+		return { targeting = false, executed = false }
+	var item = _player.inventory[inv_idx]
+	if item == null or not _player.is_item_usable(item):
+		return { targeting = false, executed = false }
+	var cat = str(item.get("category", ""))
+	if cat == "wand":
+		var wand_spell = str(item.get("wand_spell", ""))
+		var spell_def = OD.Database.get_spell(wand_spell) if OD.Database != null and wand_spell != "" else null
+		if spell_def != null and SpellEngineScript.requires_target_selection(spell_def):
+			_pending_wand_inv_idx = inv_idx
+			_pending_spell_name = wand_spell
+			spell_targeting_changed.emit(_pending_spell_name)
+			return { targeting = true, spell_name = wand_spell }
+	var p_pos = _player.get_grid_position()
+	var p_cell = Vector2i(int(p_pos.x), int(p_pos.y)) if p_pos != null else Vector2i.ZERO
+	var cmd = UseItemCommandScript.new().init(_player, { kind = "inventory_consumable", inv_idx = inv_idx, item = item }, p_cell)
+	submit_command(cmd)
+	return { targeting = false, executed = true }
 
 func execute_use_item(item_data, target_cell):
 	if item_data.is_empty() or _player == null:
@@ -273,6 +297,27 @@ func execute_use_item(item_data, target_cell):
 			ammo = item_data.get("damage", item_data),
 			ammo_item = item_data
 		})
+	if item_kind == "inventory_consumable":
+		var inv_idx = int(item_data.get("inv_idx", -1))
+		var res = _player.use_consumable_at(inv_idx, target_cell, _build_command_context())
+		var p_pos = _player.get_grid_position()
+		var p_cell = Vector2i(int(p_pos.x), int(p_pos.y)) if p_pos != null else target_cell
+		if not res.get("executed", false):
+			_spawn_floating_text(p_cell, str(res.get("reason", "Cannot use")), Color(1.0, 0.5, 0.45))
+			return false
+		var res_kind = str(res.get("kind", ""))
+		if res_kind == "food":
+			_spawn_floating_text(p_cell, "+" + str(res.get("hp_per_turn", 1)) + " HP/turn", Color(0.45, 0.95, 0.45))
+		elif res_kind == "booze":
+			_spawn_floating_text(p_cell, "Tipsy! +" + str(res.get("mp_per_turn", 1)) + " MP/turn", Color(0.45, 0.78, 1.0))
+		elif res_kind == "wand":
+			if res.get("burned_out", false):
+				_spawn_floating_text(p_cell, str(res.get("item_name", "Wand")) + " burned out!", Color(1.0, 0.65, 0.3))
+			else:
+				_spawn_floating_text(p_cell, str(res.get("spell_name", "Wand")) + " (" + str(res.get("remaining_charges", 0)) + " left)", Color(0.7, 0.85, 1.0))
+		else:
+			_spawn_floating_text(p_cell, str(res.get("item_name", "Used")), Color(0.75, 0.95, 0.65))
+		return true
 	var pos = target_cell if target_cell != Vector2i.ZERO else Vector2i(int(_player.get_grid_position().x), int(_player.get_grid_position().y))
 	_spawn_floating_text(pos, "Used " + str(item_data.get("name", "Item")), Color(0.75, 0.95, 0.65))
 	return true
@@ -317,10 +362,20 @@ func handle_dungeon_input(ev):
 			return
 		if ev is InputEventMouseButton and not ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 			var target_coords = global_coordinates_to_grid(ev.position.x, ev.position.y)
+			var chosen_cell = Vector2i(int(target_coords.x), int(target_coords.y))
+			if _pending_wand_inv_idx >= 0:
+				var chosen_inv_idx = _pending_wand_inv_idx
+				var wand_item = _player.inventory[chosen_inv_idx] if chosen_inv_idx < _player.inventory.size() else {}
+				_pending_wand_inv_idx = -1
+				_pending_spell_name = ""
+				spell_targeting_changed.emit("")
+				var wand_cmd = UseItemCommandScript.new().init(_player, { kind = "inventory_consumable", inv_idx = chosen_inv_idx, item = wand_item }, chosen_cell)
+				submit_command(wand_cmd)
+				return
 			var chosen_spell = _pending_spell_name
 			_pending_spell_name = ""
 			spell_targeting_changed.emit("")
-			var cmd = CastSpellCommandScript.new().init(_player, chosen_spell, Vector2i(int(target_coords.x), int(target_coords.y)))
+			var cmd = CastSpellCommandScript.new().init(_player, chosen_spell, chosen_cell)
 			submit_command(cmd)
 			return
 		return
