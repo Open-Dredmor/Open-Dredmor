@@ -2,11 +2,13 @@ extends CanvasLayer
 
 var _on_close_callback = null
 var _on_broken_callback = null
+var _on_item_granted_callback = null
 
-func show_element_dialog(element, zorkmids_ref, lutefisk_ref, on_close = Callable(), on_broken = Callable()):
+func show_element_dialog(element, zorkmids_ref, lutefisk_ref, on_close = Callable(), on_broken = Callable(), on_item_granted = Callable()):
 	layer = 10
 	_on_close_callback = on_close
 	_on_broken_callback = on_broken
+	_on_item_granted_callback = on_item_granted
 	var result = element.interact()
 	_build_from_result(element, result, zorkmids_ref, lutefisk_ref)
 
@@ -30,6 +32,8 @@ func _style_label(label, font, font_size, color, outline_size = 0):
 		label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 
 func _build_from_result(element, result, zorkmids_ref, lutefisk_ref):
+	if result.has("granted_item") and result.granted_item != null and _on_item_granted_callback != null and _on_item_granted_callback.is_valid():
+		_on_item_granted_callback.call(result.granted_item)
 	var dialog_assets = OD.Assets.dialog()
 	var kind = result.get("kind", "info")
 	match kind:
@@ -251,6 +255,8 @@ func _build_lutefisk_window(element, result, lutefisk_ref, dialog_assets):
 		var offer_amount = min(5, lutefisk_ref.value)
 		lutefisk_ref.value -= offer_amount
 		var offer_res = element.offer_lutefisk(offer_amount)
+		if offer_res.has("granted_item") and offer_res.granted_item != null and _on_item_granted_callback != null and _on_item_granted_callback.is_valid():
+			_on_item_granted_callback.call(offer_res.granted_item)
 		msg_label.text = offer_res.message
 		if offer_res.icon != "" and OD.Load.exists(offer_res.icon):
 			reward_icon.texture = OD.Load.image(offer_res.icon)

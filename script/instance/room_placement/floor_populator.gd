@@ -183,43 +183,25 @@ static func _roll_treasure_loot(floor_level):
 	var mushroom_max = int(OD.Database.get_tweak("mushroom roll max", 649))
 	var max_level = floor_level + 2
 
+	var artifact_pct = clamp(float(OD.Database.get_tweak("item power granting chance", 4)) / 100.0, 0.0, 0.25)
+
 	if roll <= weapon_max:
-		var item = _pick_valid_item_from_pool(OD.Database.get_items_by_category("weapon"), max_level)
-		return { kind = "item", item = item } if item != null else null
+		return OD.Database.roll_floor_loot(floor_level, "weapon", artifact_pct)
 	if roll <= armour_max:
-		var item = _pick_valid_item_from_pool(OD.Database.get_items_by_category("armour"), max_level)
-		return { kind = "item", item = item } if item != null else null
+		return OD.Database.roll_floor_loot(floor_level, "armour", artifact_pct)
 	if roll <= ring_max:
-		var rings = []
-		for armour_item in OD.Database.get_items_by_category("armour"):
-			var raw_armour = armour_item.get("raw", {}).get("armour", {})
-			if typeof(raw_armour) == TYPE_DICTIONARY and raw_armour.get("type", "") == "ring":
-				rings.append(armour_item)
-		var pool = rings if not rings.is_empty() else OD.Database.get_items_by_category("armour")
-		var item = _pick_valid_item_from_pool(pool, max_level)
-		return { kind = "item", item = item } if item != null else null
+		return OD.Database.roll_floor_loot(floor_level, "ring", artifact_pct)
 	if roll <= ammo_max:
-		var item = _pick_valid_item_from_pool(OD.Database.get_items_by_category("bolts"), max_level)
-		return { kind = "item", item = item } if item != null else null
+		return OD.Database.roll_floor_loot(floor_level, "bolts", 0.0)
 	if roll <= food_max:
-		var item = _pick_valid_item_from_pool(OD.Database.get_items_by_category("food"), max_level)
-		return { kind = "item", item = item } if item != null else null
+		return OD.Database.roll_floor_loot(floor_level, "food", 0.0)
 	if roll <= potion_max:
-		var item = _pick_valid_item_from_pool(OD.Database.get_items_by_category("potion"), max_level)
-		return { kind = "item", item = item } if item != null else null
+		return OD.Database.roll_floor_loot(floor_level, "potion", 0.0)
 	if roll <= lockpick_max:
 		return { kind = "lockpick", amount = 1 }
 	if roll <= mushroom_max:
-		var mushrooms = []
-		for food_item in OD.Database.get_items_by_category("food"):
-			var lower_name = food_item.get("name", "").to_lower()
-			if "cap" in lower_name or "shroom" in lower_name or "truffle" in lower_name or "ear" in lower_name or "puffball" in lower_name:
-				mushrooms.append(food_item)
-		var pool = mushrooms if not mushrooms.is_empty() else OD.Database.get_items_by_category("reagent")
-		var item = _pick_valid_item_from_pool(pool, max_level)
-		return { kind = "item", item = item } if item != null else null
-	var wand_item = _pick_valid_item_from_pool(OD.Database.get_items_by_category("wand"), max_level)
-	return { kind = "item", item = wand_item } if wand_item != null else null
+		return OD.Database.roll_floor_loot(floor_level, "mushroom", 0.0)
+	return OD.Database.roll_floor_loot(floor_level, "wand", 0.0)
 
 static func _populate_floor_loot_and_traps(entity_grid, placements, floor_level, no_grind):
 	var scale_factor = 0.5 if no_grind else 1.0

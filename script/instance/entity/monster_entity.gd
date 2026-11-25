@@ -257,12 +257,16 @@ func roll_drops():
 	for drop_entry in drops:
 		var pct = clamp(int(drop_entry.get("percent", 0)), 0, 100)
 		if pct >= 100 or (randi() % 100) < pct:
-			var item_def = OD.Database.get_item(str(drop_entry.name))
-			if item_def != null:
+			var item_inst = OD.Database.create_item_instance(str(drop_entry.name))
+			if item_inst != null:
 				rolled.append({
 					kind = "item",
-					item = item_def
+					item = item_inst
 				})
+	if (randi() % 100) < 15:
+		var extra_loot = OD.Database.roll_floor_loot(max(1, monster_level + 1), "", 0.06)
+		if extra_loot != null:
+			rolled.append(extra_loot)
 	return rolled
 
 func _tick_spell_cooldowns():

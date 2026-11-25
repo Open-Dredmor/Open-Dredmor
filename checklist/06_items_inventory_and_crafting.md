@@ -12,8 +12,8 @@ Equipment slots, consumables, level-scaled loot/artifacts, and the 4 crafting sy
   - *Current state*: Implemented in [script/singleton/database.gd](../script/singleton/database.gd), [script/instance/entity/player_character.gd](../script/instance/entity/player_character.gd), [script/instance/combat/spell_engine.gd](../script/instance/combat/spell_engine.gd), [script/instance/ui/inventory_dialog.gd](../script/instance/ui/inventory_dialog.gd), [script/instance/dungeon.gd](../script/instance/dungeon.gd), [script/scene/game/game.gd](../script/scene/game/game.gd), and [script/scene/dev/consumable_test.gd](../script/scene/dev/consumable_test.gd). Verified via `CONSUMABLE_TEST`.
   - *Done when*: Food restores HP/turn, booze restores MP/turn (and applies tipsy/buffs), potions trigger their `spellDB` effects, and wands cast spells while tracking charges/burnout.
 
-- [ ] **Loot generation & Artifacts**
-  - *Current state*: [script/singleton/database.gd](../script/singleton/database.gd) has incomplete `get_loot` (`component` vs `reagent` TODO, no level filtering or artifact generation).
+- [x] **Loot generation & Artifacts**
+  - *Current state*: Implemented in [script/singleton/database.gd](../script/singleton/database.gd), [script/instance/entity/dungeon_element.gd](../script/instance/entity/dungeon_element.gd), [script/instance/ui/element_dialog.gd](../script/instance/ui/element_dialog.gd), [script/instance/dungeon.gd](../script/instance/dungeon.gd), [script/instance/room_placement/floor_populator.gd](../script/instance/room_placement/floor_populator.gd), [script/instance/entity/monster_entity.gd](../script/instance/entity/monster_entity.gd), [script/instance/room.gd](../script/instance/room.gd), [script/instance/ui/inventory_dialog.gd](../script/instance/ui/inventory_dialog.gd), and [script/scene/dev/loot_test.gd](../script/scene/dev/loot_test.gd). Verified via `LOOT_TEST`.
   - *Done when*: Chests, monsters, and floor spawns roll level-appropriate loot from `itemDB.xml` (including quality/artifact bonus stats and random names).
 
 - [ ] **Crafting system (`craftDB.xml`)**

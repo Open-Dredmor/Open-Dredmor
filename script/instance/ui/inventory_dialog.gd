@@ -920,6 +920,8 @@ func _show_tooltip(item):
 	var cnt = int(item.get("count", 1))
 	var title = str(item.get("name", "Item")) + (" x" + str(cnt) if cnt > 1 else "")
 	lines.append(title)
+	if bool(item.get("is_artifact", false)):
+		lines.append("Artifact (Quality %d)" % int(item.get("artifact_quality", 1)))
 	var cat_str = str(item.get("category", "misc")).capitalize()
 	var slot_str = str(item.get("slot", ""))
 	if slot_str != "" and slot_str != cat_str.to_lower():

@@ -747,6 +747,7 @@ func _handle_element_interaction(element, grid_coords):
 		if int(break_res.get("exp", 0)) > 0:
 			award_xp(int(break_res.exp), grid_coords)
 		return
+	element.state_data["floor_level"] = _floor_level
 	_close_element_dialog()
 	_interaction_dialog = ElementDialogScript.new()
 	add_child(_interaction_dialog)
@@ -755,8 +756,22 @@ func _handle_element_interaction(element, grid_coords):
 		_zorkmids_ref,
 		_lutefisk_ref,
 		func(): _interaction_dialog = null,
-		func(): _entity_grid.unblock_cell(grid_coords.x, grid_coords.y)
+		func(): _entity_grid.unblock_cell(grid_coords.x, grid_coords.y),
+		func(granted_item): _grant_loot_to_player(granted_item, grid_coords)
 	)
+
+func _grant_loot_to_player(item_inst, fallback_pos):
+	if item_inst == null or _player == null:
+		return
+	var add_res = _player.add_item(item_inst)
+	if add_res.added:
+		_spawn_floating_text(fallback_pos, "+" + str(item_inst.get("name", "Item")), Color(0.95, 0.85, 0.35))
+		return
+	if _entity_grid != null:
+		var drop_pos = _player.get_grid_position()
+		var target_cell = Vector2i(int(drop_pos.x), int(drop_pos.y)) if drop_pos != null else fallback_pos
+		_entity_grid.add_loot_item(target_cell.x, target_cell.y, { kind = "item", item = item_inst })
+		_spawn_floating_text(target_cell, "Inventory full! Dropped on floor.", Color(1.0, 0.55, 0.35))
 
 func _seed_player_bag():
 	if _player == null:

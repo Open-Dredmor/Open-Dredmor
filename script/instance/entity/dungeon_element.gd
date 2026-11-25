@@ -30,7 +30,8 @@ func _init_element_state():
 	if element_type.ends_with("vending") and not state_data.has("vending_stock"):
 		state_data["vending_stock"] = _roll_vending_stock(element_type)
 	elif element_type == "pedestal" and not state_data.has("item"):
-		var loot = OD.Database.get_loot("artifact")
+		var floor_lvl = int(state_data.get("floor_level", 1))
+		var loot = OD.Database.create_artifact_instance(null, floor_lvl)
 		if loot != null:
 			state_data["item"] = loot
 	elif element_type == "lutefiskstatue" and not state_data.has("offerings"):
@@ -191,15 +192,16 @@ func _interact_pedestal():
 	var item = state_data["item"]
 	state_data["item"] = null
 	OD.Audio.play_sfx("metal_get")
-	var icon_path = item.get("iconFile", "")
-	var item_desc = ""
-	if item.has("description") and typeof(item.description) == TYPE_DICTIONARY and item.description.has("text"):
-		item_desc = item.description.text
+	var icon_path = str(item.get("icon", item.get("iconFile", "")))
+	var item_desc = str(item.get("description", ""))
+	if typeof(item.get("description", "")) == TYPE_DICTIONARY and item.description.has("text"):
+		item_desc = str(item.description.text)
 	return {
 		kind = "pedestal",
 		title = "Pedestal",
 		icon = icon_path,
 		tooltip = item_desc,
+		granted_item = item,
 		message = "Picked up: " + str(item.get("name", "Artifact"))
 	}
 
@@ -211,17 +213,17 @@ func offer_lutefisk(amount):
 	state_data["offerings"] = total
 	if total >= 10:
 		state_data["offerings"] = total - 10
-		var artifact = OD.Database.get_loot("artifact")
-		var reward_name = artifact.name if artifact != null else "Lutefisk Artifact"
-		var icon_path = artifact.get("iconFile", "") if artifact != null else ""
-		var item_desc = ""
-		if artifact != null and artifact.has("description") and typeof(artifact.description) == TYPE_DICTIONARY and artifact.description.has("text"):
-			item_desc = artifact.description.text
+		var floor_lvl = int(state_data.get("floor_level", 1))
+		var artifact = OD.Database.create_artifact_instance(null, floor_lvl)
+		var reward_name = artifact.get("name", "Lutefisk Artifact") if artifact != null else "Lutefisk Artifact"
+		var icon_path = str(artifact.get("icon", "")) if artifact != null else ""
+		var item_desc = str(artifact.get("description", "")) if artifact != null else ""
 		OD.Audio.play_sfx("enchanted")
 		return {
 			message = "The Lutefisk God is pleased! Granted: " + reward_name,
 			icon = icon_path,
-			tooltip = item_desc
+			tooltip = item_desc,
+			granted_item = artifact
 		}
 	return {
 		message = "Offered " + str(amount) + " Lutefisk (" + str(total) + "/10).",
@@ -259,17 +261,17 @@ func _interact_chest(title_text, loot_category):
 	if _animation != null and element_type == "uberchest":
 		_animation.set_frame(2)
 	OD.Audio.play_sfx("metal_get")
-	var loot = OD.Database.get_loot(loot_category)
+	var floor_lvl = int(state_data.get("floor_level", 1))
+	var artifact_chance = 1.0 if loot_category == "artifact" else 0.15
+	var rolled = OD.Database.roll_floor_loot(floor_lvl, loot_category, artifact_chance)
+	var loot = rolled.get("item", null) if rolled != null else null
 	if loot != null:
-		var icon_path = loot.get("iconFile", "")
-		var item_desc = ""
-		if loot.has("description") and typeof(loot.description) == TYPE_DICTIONARY and loot.description.has("text"):
-			item_desc = loot.description.text
 		return {
 			kind = "info",
 			title = title_text,
-			icon = icon_path,
-			tooltip = item_desc,
+			icon = str(loot.get("icon", "")),
+			tooltip = str(loot.get("description", "")),
+			granted_item = loot,
 			message = "Found: " + str(loot.get("name", "Treasure"))
 		}
 	return { kind = "info", title = title_text, message = "You open the " + title_text + "!" }
@@ -281,15 +283,17 @@ func _interact_supply_box(title_text, category_name, fallback_msg):
 	if _animation != null and element_type == "freezer":
 		_animation.set_frame(1)
 	OD.Audio.play_sfx("chest")
-	var pool = OD.Database.get_items_by_category(category_name)
-	if not pool.is_empty():
-		var item = pool[randi() % pool.size()]
+	var floor_lvl = int(state_data.get("floor_level", 1))
+	var rolled = OD.Database.roll_floor_loot(floor_lvl, category_name, 0.0)
+	var item = rolled.get("item", null) if rolled != null else null
+	if item != null:
 		return {
 			kind = "info",
 			title = title_text,
-			icon = item.icon,
-			tooltip = item.description,
-			message = "Found: " + item.name
+			icon = str(item.get("icon", "")),
+			tooltip = str(item.get("description", "")),
+			granted_item = item,
+			message = "Found: " + str(item.get("name", "Supply"))
 		}
 	return { kind = "info", title = title_text, message = fallback_msg }
 

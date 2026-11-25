@@ -126,9 +126,9 @@ func set_active_packs(pack_ids = []):
 		if available_by_id.has(pack_id):
 			_active_pack_prefixes.append(available_by_id[pack_id].prefix)
 	result_cache = null
-	_build_loot_info()
 	_build_craft_info()
 	_build_item_info()
+	_build_loot_info()
 	_build_skill_info()
 	_build_spell_info()
 	_build_template_info()
@@ -305,54 +305,129 @@ func get_monster(name):
 	
 func _build_loot_info():
 	var loot = {
+		amulet = [],
 		armour = [],
 		artifact = [],
 		bolts = [],
+		booze = [],
 		component = [],
 		food = [],
+		gem = [],
 		misc = [],
+		mushroom = [],
 		potion = [],
 		reagent = [],
+		ring = [],
+		thrown = [],
 		toolkit = [],
 		wand = [],
 		weapon = [],
-		_find_by_name = {}
+		_find_by_name = {},
+		_find_by_name_lower = {}
 	}
-	var prop_driven_loot = [
-		'armour',		
-		'artifact',
-		'food',
-		'potion',		
-		'wand',
-		'weapon'
-	]
-	for item in cache.items:
-		loot._find_by_name[item.name] = item
-		for prop in prop_driven_loot:
-			if item.has(prop):
-				if prop == 'weapon' and item.has('type') and int(item.type) == OD.GameDataKind.WEAPON.BOLT:
-					loot.bolts.append(item)
-				else:
-					loot[prop].append(item)
-	# TODO
-	# component and reagent are different categories of crafting ingredients.
-	# research how to tell the difference between kinds of crafting input
-	# It only matters when no subtype is provided (like in Small Alchemy Lab room)
+	var item_entries = result_cache["item_info"].list if result_cache != null and result_cache.has("item_info") else []
+	for item_entry in item_entries:
+		var raw_item = item_entry.get("raw", {})
+		var item_name = str(item_entry.get("name", ""))
+		if item_name == "":
+			continue
+		loot._find_by_name[item_name] = raw_item
+		loot._find_by_name_lower[item_name.to_lower()] = raw_item
+		if bool(item_entry.get("special", false)):
+			continue
+		var category = str(item_entry.get("category", "misc"))
+		var slot_name = str(item_entry.get("slot", ""))
+		if bool(item_entry.get("is_artifact", false)):
+			loot.artifact.append(item_entry)
+		if category == "weapon":
+			loot.weapon.append(item_entry)
+		elif category == "armour":
+			loot.armour.append(item_entry)
+			if slot_name == "ring":
+				loot.ring.append(item_entry)
+			elif slot_name == "neck":
+				loot.amulet.append(item_entry)
+		elif category == "bolts":
+			loot.bolts.append(item_entry)
+		elif category == "thrown":
+			loot.thrown.append(item_entry)
+		elif category == "food":
+			if bool(item_entry.get("is_booze", false)):
+				loot.booze.append(item_entry)
+			else:
+				loot.food.append(item_entry)
+		elif category == "potion":
+			loot.potion.append(item_entry)
+		elif category == "mushroom":
+			loot.mushroom.append(item_entry)
+		elif category == "gem":
+			loot.gem.append(item_entry)
+			if bool(item_entry.get("alchemical", false)):
+				loot.reagent.append(item_entry)
+		elif category == "wand":
+			loot.wand.append(item_entry)
+		elif category == "toolkit":
+			loot.toolkit.append(item_entry)
+		elif category == "reagent":
+			loot.reagent.append(item_entry)
+		elif category == "component":
+			loot.component.append(item_entry)
+		elif category == "misc":
+			loot.misc.append(item_entry)
 	cache_result("loot_info", loot)
 
-func get_loot(loot_kind, loot_sub_kind = null):
+func _pick_level_filtered_entry(pool, loot_kind, floor_level):
+	if pool.is_empty():
+		return null
+	var valid_entries = []
+	for entry in pool:
+		var icon_path = str(entry.get("icon", ""))
+		if icon_path != "" and OD.Load.exists(icon_path):
+			valid_entries.append(entry)
+	var source = valid_entries if not valid_entries.is_empty() else pool
+	if floor_level <= 0:
+		return source[randi() % source.size()]
+	var max_level = floor_level + 2
+	var is_gear = loot_kind in ["weapon", "armour", "artifact", "ring", "amulet", "bolts", "thrown"]
+	var min_level = max(1, floor_level - 3) if is_gear else 0
+	var tight = []
+	var capped = []
+	for entry in source:
+		var entry_level = int(entry.get("level", 1))
+		if entry_level <= max_level:
+			capped.append(entry)
+			if entry_level >= min_level:
+				tight.append(entry)
+	if not tight.is_empty():
+		return tight[randi() % tight.size()]
+	if not capped.is_empty():
+		return capped[randi() % capped.size()]
+	return source[randi() % source.size()]
+
+func get_loot(loot_kind, loot_sub_kind = null, floor_level = -1):
 	var lookup = result_cache['loot_info']
 	if loot_sub_kind != null:
-		if lookup.has('_find_by_name') and lookup._find_by_name.has(loot_sub_kind):
-			return lookup._find_by_name[loot_sub_kind]
+		var sub_str = str(loot_sub_kind)
+		if lookup._find_by_name.has(sub_str):
+			return lookup._find_by_name[sub_str]
+		var sub_lower = sub_str.to_lower()
+		if lookup._find_by_name_lower.has(sub_lower):
+			return lookup._find_by_name_lower[sub_lower]
 		return null
-	if loot_kind == 'component':
-		return lookup._find_by_name[OD.DataStructure.choose(result_cache.component_list)]
-	if loot_kind == 'reagent':
-		return lookup._find_by_name[OD.DataStructure.choose(result_cache.reagent_list)]
-	if not lookup.has(loot_kind):
+	var kind_key = str(loot_kind).to_lower()
+	if kind_key == "reagents":
+		kind_key = "reagent"
+	elif kind_key == "ammo":
+		kind_key = "bolts"
+	if not lookup.has(kind_key):
 		return null
-	return OD.DataStructure.choose(lookup[loot_kind], 1)
+	var pool = lookup[kind_key]
+	if typeof(pool) != TYPE_ARRAY or pool.is_empty():
+		return null
+	var picked = _pick_level_filtered_entry(pool, kind_key, floor_level)
+	if picked == null:
+		return null
+	return picked.get("raw", picked) if typeof(picked) == TYPE_DICTIONARY and picked.has("raw") else picked
 	
 func _build_craft_info():
 	var reagents = {
@@ -644,6 +719,8 @@ func _classify_item(item, reagent_set, component_set):
 		return { category = "wand", slot = "" }
 	if item.has("toolkit"):
 		return { category = "toolkit", slot = "" }
+	if item.has("gem"):
+		return { category = "gem", slot = "" }
 	if item.has("artifact"):
 		return { category = "artifact", slot = "" }
 	if item.has("trap"):
@@ -653,6 +730,8 @@ func _classify_item(item, reagent_set, component_set):
 			return { category = "reagent", slot = "" }
 		if component_set.has(item.name):
 			return { category = "component", slot = "" }
+	if item.has("alchemical") and int(item.alchemical) == 1:
+		return { category = "reagent", slot = "" }
 	return { category = "misc", slot = "" }
 
 func _build_item_info():
@@ -679,16 +758,36 @@ func _build_item_info():
 			if item.has(effect_key):
 				for effect_entry in OD.DataStructure.arrayify(item[effect_key]):
 					effects.append({ kind = effect_key, data = effect_entry })
+		var item_level = 1
+		if item.has("level"):
+			item_level = int(item.level)
+		elif item.has("armour") and typeof(item.armour) == TYPE_DICTIONARY and item.armour.has("level"):
+			item_level = int(item.armour.level)
+		var is_booze = false
+		if item.has("food") and typeof(item.food) == TYPE_DICTIONARY:
+			is_booze = int(item.food.get("mp", 0)) > 0
+		var is_artifact = item.has("artifact")
+		var artifact_quality = 0
+		if is_artifact:
+			if typeof(item.artifact) == TYPE_DICTIONARY and item.artifact.has("quality"):
+				artifact_quality = max(1, int(item.artifact.quality))
+			else:
+				artifact_quality = 1
 		var entry = {
 			name = item.name,
 			category = classification.category,
 			slot = classification.slot,
 			type = int(item.type) if item.has("type") else -1,
-			level = int(item.level) if item.has("level") else 1,
+			level = item_level,
 			icon = item.iconFile if item.has("iconFile") else "",
 			price = int(item.price.amount) if item.has("price") and typeof(item.price) == TYPE_DICTIONARY and item.price.has("amount") else 0,
 			description = desc,
 			effects = effects,
+			special = item.has("special") and int(item.special) == 1,
+			alchemical = item.has("alchemical") and int(item.alchemical) == 1,
+			is_booze = is_booze,
+			is_artifact = is_artifact,
+			artifact_quality = artifact_quality,
 			raw = item
 		}
 		by_name[entry.name] = entry
@@ -812,6 +911,7 @@ func create_item_instance(item_name_or_def, count = 1):
 
 	var instance = {
 		name = str(item_def.get("name", "Unknown Item")),
+		base_name = str(item_def.get("name", "Unknown Item")),
 		category = category,
 		slot = str(item_def.get("slot", "")),
 		type = int(item_def.get("type", -1)),
@@ -822,6 +922,8 @@ func create_item_instance(item_name_or_def, count = 1):
 		description = str(item_def.get("description", "")),
 		count = clamped_count,
 		max_stack = max_stack,
+		is_artifact = bool(item_def.get("is_artifact", false)),
+		artifact_quality = int(item_def.get("artifact_quality", 0)),
 		weapon_damage = weapon_damage,
 		primary_buffs = primary_buffs,
 		secondary_buffs = secondary_buffs,
@@ -857,6 +959,127 @@ func create_item_instance(item_name_or_def, count = 1):
 	for dmg_type in weapon_damage:
 		instance[dmg_type] = weapon_damage[dmg_type]
 	return instance
+
+func _pick_text_entry(tag_key, fallback_text):
+	if cache == null or not cache.has("text") or not cache.text.has(tag_key):
+		return fallback_text
+	var entries = OD.DataStructure.arrayify(cache.text[tag_key])
+	if entries.is_empty():
+		return fallback_text
+	var chosen = entries[randi() % entries.size()]
+	if typeof(chosen) == TYPE_DICTIONARY and chosen.has("text"):
+		return str(chosen.text)
+	return fallback_text
+
+func generate_artifact_name(base_name):
+	var start_ph = _pick_text_entry("startPhoneme", "Krong")
+	var mid_ph = _pick_text_entry("phoneme", "ar")
+	var end_ph = _pick_text_entry("phoneme", "ak")
+	var proper_name = start_ph + mid_ph + (end_ph if randi() % 2 == 0 else "")
+	var quality_word = _pick_text_entry("quality", "illustrious").capitalize()
+	var material_word = _pick_text_entry("material", "orichalcum").capitalize()
+	var decor_word = _pick_text_entry("decor", "runes")
+	var adj_word = _pick_text_entry("adjective", "Ancient")
+	var noun_word = _pick_text_entry("noun", "Power")
+	var pattern = randi() % 4
+	match pattern:
+		0:
+			return "%s, the %s %s of %s" % [proper_name, adj_word, base_name, noun_word]
+		1:
+			return "The %s %s of %s" % [quality_word, base_name, decor_word.capitalize()]
+		2:
+			return "%s of the %s %s" % [base_name, adj_word, noun_word]
+		_:
+			return "%s's %s %s %s" % [proper_name, quality_word, material_word, base_name]
+
+func _add_buff_entry(buff_list, stat_id, delta):
+	for entry in buff_list:
+		if int(entry.get("id", -1)) == stat_id:
+			entry["amount"] = int(entry.get("amount", 0)) + delta
+			return
+	buff_list.append({ id = stat_id, amount = delta })
+
+func _apply_artifact_bonuses(instance, quality):
+	var clamped_quality = clamp(int(quality), 1, 15)
+	var sec_ids = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+	var elem_types = ["conflagratory", "hyperborean", "voltaic", "acidic", "toxic", "aethereal", "necromantic", "righteous"]
+	var is_weapon = str(instance.get("category", "")) == "weapon"
+	for _ii in range(clamped_quality):
+		var roll = randi() % 4
+		if roll == 0:
+			var primary_id = randi() % 6
+			_add_buff_entry(instance.primary_buffs, primary_id, randi_range(1, 2))
+		elif roll == 1:
+			var sec_id = sec_ids[randi() % sec_ids.size()]
+			var amt = randi_range(2, 5) if sec_id <= 1 else randi_range(1, 3)
+			_add_buff_entry(instance.secondary_buffs, sec_id, amt)
+		elif roll == 2:
+			var res_type = elem_types[randi() % elem_types.size()]
+			instance.resist_buffs[res_type] = int(instance.resist_buffs.get(res_type, 0)) + randi_range(1, 3)
+		else:
+			var dmg_type = elem_types[randi() % elem_types.size()]
+			var dmg_amt = randi_range(1, 3)
+			if is_weapon:
+				instance.weapon_damage[dmg_type] = int(instance.weapon_damage.get(dmg_type, 0)) + dmg_amt
+				instance[dmg_type] = int(instance.get(dmg_type, 0)) + dmg_amt
+			else:
+				instance.damage_buffs[dmg_type] = int(instance.damage_buffs.get(dmg_type, 0)) + dmg_amt
+	instance["is_artifact"] = true
+	instance["artifact_quality"] = clamped_quality
+	var base_price = max(100, int(instance.get("price", 100)))
+	var scaled_price = int(round(float(base_price) * (1.0 + float(clamped_quality) * 0.45))) + clamped_quality * 120
+	instance["price"] = scaled_price
+	var sell_scaler = float(get_tweak("store sell price scaler", 0.63))
+	instance["sell_price"] = max(1, int(round(float(scaled_price) * sell_scaler)))
+
+func create_artifact_instance(base_item_or_def = null, floor_level = 1, forced_quality = -1):
+	var quality = forced_quality if forced_quality > 0 else clamp(randi_range(1, 3) + int(floor_level / 2), 1, 10)
+	var chosen_def = null
+	var is_predefined = false
+	if base_item_or_def != null:
+		chosen_def = base_item_or_def
+	else:
+		var use_predefined = (randi() % 100) < 25
+		if use_predefined:
+			var pre_raw = get_loot("artifact", null, floor_level)
+			if pre_raw != null:
+				chosen_def = pre_raw
+				is_predefined = true
+		if chosen_def == null:
+			var gear_kind = "weapon" if randi() % 2 == 0 else "armour"
+			chosen_def = get_loot(gear_kind, null, floor_level)
+	if chosen_def == null:
+		return null
+	var instance = create_item_instance(chosen_def, 1)
+	if instance == null:
+		return null
+	if bool(instance.get("is_artifact", false)) or is_predefined:
+		var pre_q = max(quality, int(instance.get("artifact_quality", 1)))
+		instance["is_artifact"] = true
+		instance["artifact_quality"] = pre_q
+		return instance
+	instance["name"] = generate_artifact_name(instance.get("base_name", instance.get("name", "Relic")))
+	_apply_artifact_bonuses(instance, quality)
+	return instance
+
+func roll_floor_loot(floor_level = 1, loot_kind = "", artifact_chance = 0.04):
+	var chosen_kind = str(loot_kind).to_lower()
+	if chosen_kind == "":
+		var kinds = ["weapon", "armour", "ring", "amulet", "bolts", "food", "booze", "potion", "mushroom", "wand", "gem", "reagent", "component"]
+		chosen_kind = kinds[randi() % kinds.size()]
+	if chosen_kind == "artifact":
+		var art_inst = create_artifact_instance(null, floor_level)
+		return { kind = "item", item = art_inst } if art_inst != null else null
+	var raw_or_def = get_loot(chosen_kind, null, floor_level)
+	if raw_or_def == null:
+		return null
+	var gear_kinds = ["weapon", "armour", "ring", "amulet"]
+	if chosen_kind in gear_kinds and artifact_chance > 0.0 and randf() < artifact_chance:
+		var art_inst = create_artifact_instance(raw_or_def, floor_level)
+		if art_inst != null:
+			return { kind = "item", item = art_inst }
+	var inst = create_item_instance(raw_or_def, 1)
+	return { kind = "item", item = inst } if inst != null else null
 
 func get_trap(trap_name = null, max_level = 99):
 	if trap_name != null and trap_name != "":

@@ -311,21 +311,26 @@ func element_tile_handler(item, x, y):
 func loot_tile_handler(item, x, y):
 	if not item.has("type"):
 		return
-	# TODO Loot should have a sparkling effect
-	var sprite = null
+	var floor_lvl = max(1, int(entity_grid.floor_level)) if entity_grid != null else 1
 	if item.type == 'zorkmids':
-		# TODO Base the amount and size on the current floor
-		sprite = OD.Load.animation(OD.DataStructure.choose(OD.Resources.paths.loot.zorkmids))
-	elif item.type == 'misc': # misc is always lockpicks
-		sprite = OD.Load.animation(OD.Resources.paths.loot.lockpick)
+		var amount = max(5, randi_range(5, 18) + floor_lvl * 3)
+		entity_grid.add_loot_item(x, y, { kind = "zorkmids", amount = amount })
+	elif item.type == 'misc':
+		entity_grid.add_loot_item(x, y, { kind = "lockpick", amount = 1 })
 	else:
-		var loot = OD.Database.get_loot(item.type, item.subtype if item.has('subtype') else null)		
-		if loot == null:
-			OD.Log.warn("Unhandled loot tile type [" + item.type + "]")
+		var subtype = item.subtype if item.has('subtype') else null
+		if subtype != null:
+			var raw_loot = OD.Database.get_loot(item.type, subtype, floor_lvl)
+			if raw_loot != null:
+				var inst = OD.Database.create_item_instance(raw_loot)
+				if inst != null:
+					entity_grid.add_loot_item(x, y, { kind = "item", item = inst })
+					return
+		var rolled = OD.Database.roll_floor_loot(floor_lvl, str(item.type), 0.1 if str(item.type).to_lower() == "artifact" else 0.04)
+		if rolled != null:
+			entity_grid.add_loot_item(x, y, rolled)
 		else:
-			sprite = OD.Load.animation(loot.iconFile)
-	if sprite != null:
-		entity_grid.add_animation(x, y, 'loot', sprite)
+			OD.Log.warn("Unhandled loot tile type [" + str(item.type) + "]")
 
 func monster_tile_handler(item, x, y):
 	var monster_name = ""
