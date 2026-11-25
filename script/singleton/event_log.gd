@@ -2,7 +2,7 @@ extends Node
 
 signal message_logged(message)
 
-const MAX_HISTORY = 50
+const MAX_HISTORY = 200
 var _history = []
 
 func notify(message):

@@ -72,7 +72,7 @@ func _build_ui():
 	_dungeon.get_turn_scheduler().turn_completed.connect(_on_turn_completed)
 	_dungeon.get_input_mapper().sync_from_settings()
 	if OD.EventLog != null:
-		OD.EventLog.notify("Entered Floor " + str(_dungeon.get_floor_level()) + " - " + str(_dungeon.get_branch_name()) + ".")
+		OD.EventLog.notify("Welcome to Dungeons of Dredmor!")
 	call_deferred("_center_on_player")
 
 	OD.Audio.play(assets.music.default)

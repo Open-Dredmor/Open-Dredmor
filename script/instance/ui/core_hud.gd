@@ -24,6 +24,8 @@ var _callbacks = {}
 var _floor_label = null
 var _room_label = null
 var _log_vbox = null
+var _log_scroll = null
+var _log_expanded = false
 var _targeting_label = null
 
 var _bar_root = null
@@ -85,12 +87,68 @@ func _load_tex(path):
 	return null
 
 func _build_top_left_log():
+	_log_scroll = ScrollContainer.new()
+	_log_scroll.position = Vector2(14, 10)
+	_log_scroll.custom_minimum_size = Vector2(540, 140)
+	_log_scroll.size = Vector2(540, 140)
+	_log_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_log_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	_log_scroll.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_log_scroll)
+
 	_log_vbox = VBoxContainer.new()
-	_log_vbox.position = Vector2(14, 10)
-	_log_vbox.custom_minimum_size = Vector2(540, 0)
+	_log_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_log_vbox.add_theme_constant_override("separation", 2)
 	_log_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_log_vbox)
+	_log_scroll.add_child(_log_vbox)
+
+func toggle_log_history():
+	_log_expanded = not _log_expanded
+	if _log_scroll == null or not is_instance_valid(_log_scroll):
+		return
+	if _log_expanded:
+		_log_scroll.custom_minimum_size = Vector2(560, 320)
+		_log_scroll.size = Vector2(560, 320)
+		_log_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+		_log_scroll.mouse_filter = Control.MOUSE_FILTER_STOP
+		var bg = StyleBoxFlat.new()
+		bg.bg_color = Color(0.06, 0.05, 0.04, 0.84)
+		bg.border_color = Color(0.55, 0.44, 0.28, 0.9)
+		bg.set_border_width_all(1)
+		bg.set_content_margin_all(8)
+		_log_scroll.add_theme_stylebox_override("panel", bg)
+	else:
+		_log_scroll.custom_minimum_size = Vector2(540, 140)
+		_log_scroll.size = Vector2(540, 140)
+		_log_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+		_log_scroll.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_log_scroll.remove_theme_stylebox_override("panel")
+	_rebuild_log_lines()
+
+func _rebuild_log_lines():
+	if _log_vbox == null or not is_instance_valid(_log_vbox):
+		return
+	for child in _log_vbox.get_children():
+		_log_vbox.remove_child(child)
+		child.queue_free()
+	if OD.EventLog == null or not OD.EventLog.has_method("get_history"):
+		return
+	var history = OD.EventLog.get_history()
+	var start_idx = 0 if _log_expanded else max(0, history.size() - MAX_LOG_LINES)
+	for ii in range(start_idx, history.size()):
+		_add_log_label(history[ii])
+	_scroll_log_to_bottom()
+
+func _scroll_log_to_bottom():
+	if _log_scroll == null or not is_instance_valid(_log_scroll):
+		return
+	call_deferred("_apply_log_scroll_bottom")
+
+func _apply_log_scroll_bottom():
+	if _log_scroll != null and is_instance_valid(_log_scroll):
+		var vbar = _log_scroll.get_v_scroll_bar()
+		if vbar != null:
+			_log_scroll.scroll_vertical = int(vbar.max_value)
 
 func _build_top_right_location():
 	var loc_vbox = VBoxContainer.new()
@@ -363,9 +421,7 @@ func _connect_signals():
 func _sync_initial_state():
 	if _dungeon != null and _dungeon.get_player() != null:
 		_dungeon.get_player().sync_belt_with_inventory()
-	if OD.EventLog != null and OD.EventLog.has_method("get_history"):
-		for msg in OD.EventLog.get_history():
-			_append_log_line(msg)
+	_rebuild_log_lines()
 	refresh_location()
 	refresh_all()
 
@@ -501,18 +557,23 @@ func _on_targeting_changed(spell_name):
 func _on_event_logged(message):
 	_append_log_line(message)
 
-func _append_log_line(message):
-	if _log_vbox == null or not is_instance_valid(_log_vbox):
-		return
+func _add_log_label(message):
 	var line = _styled_label(14, Color(0.95, 0.95, 0.95), 2)
 	line.text = str(message)
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	line.custom_minimum_size = Vector2(460, 0)
+	line.custom_minimum_size = Vector2(520, 0)
 	_log_vbox.add_child(line)
-	while _log_vbox.get_child_count() > MAX_LOG_LINES:
-		var oldest = _log_vbox.get_child(0)
-		_log_vbox.remove_child(oldest)
-		oldest.queue_free()
+
+func _append_log_line(message):
+	if _log_vbox == null or not is_instance_valid(_log_vbox):
+		return
+	_add_log_label(message)
+	if not _log_expanded:
+		while _log_vbox.get_child_count() > MAX_LOG_LINES:
+			var oldest = _log_vbox.get_child(0)
+			_log_vbox.remove_child(oldest)
+			oldest.queue_free()
+	_scroll_log_to_bottom()
 
 func _activate_belt_slot(slot_idx):
 	if _dungeon == null or not is_instance_valid(_dungeon):
@@ -571,6 +632,12 @@ func handle_key_input(ev):
 		return true
 	if is_instance_valid(_spellbook_popup) and ev.keycode == KEY_ESCAPE:
 		_close_spellbook()
+		return true
+	if _log_expanded and ev.keycode == KEY_ESCAPE:
+		toggle_log_history()
+		return true
+	if ev.keycode == KEY_L:
+		toggle_log_history()
 		return true
 	if ev.keycode == KEY_M:
 		toggle_spellbook()
