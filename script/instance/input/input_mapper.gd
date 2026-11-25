@@ -142,6 +142,8 @@ func translate_dungeon_input(ev, context):
 			return null
 		if not entity_grid.is_cell_explored(cell.x, cell.y):
 			return null
+		if entity_grid.has_enemy_at(cell.x, cell.y):
+			return AttackCmdScript.new().init(player, cell)
 		var shopkeeper = entity_grid.shop_manager.get_shopkeeper_at(cell.x, cell.y)
 		if shopkeeper != null:
 			return InteractCmdScript.new().init(player, "shopkeeper", cell)
@@ -160,6 +162,8 @@ func translate_dungeon_input(ev, context):
 		var stairs = entity_grid.get_stairs_at(cell.x, cell.y)
 		if stairs != null:
 			return InteractCmdScript.new().init(player, "stairs", cell, stairs.direction)
+		if not entity_grid.get_loot_list_at(cell.x, cell.y).is_empty():
+			return InteractCmdScript.new().init(player, "pickup", cell)
 		if entity_grid.is_walkable(cell.x, cell.y):
 			return MoveCmdScript.new().init_path(player, cell, false)
 	return null

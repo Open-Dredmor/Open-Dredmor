@@ -88,7 +88,10 @@ func execute_interact_command(command):
 	var kind = command.interaction_kind
 	var cell = command.target_cell
 	if kind == "pickup":
-		return pickup_loot_at_player()
+		var current_pos = _player.get_grid_position() if _player != null else null
+		if current_pos == null or Vector2i(int(current_pos.x), int(current_pos.y)) == cell:
+			return pickup_loot_at_player()
+		return _move_to_pickup(cell)
 	if kind == "stairs":
 		var stairs = _entity_grid.get_stairs_at(cell.x, cell.y)
 		if stairs == null:
@@ -99,8 +102,7 @@ func execute_interact_command(command):
 		else:
 			_move_to_stairs(cell, stairs.direction)
 		return true
-	_interact_or_approach({ kind = kind, target_pos = cell })
-	return true
+	return _interact_or_approach({ kind = kind, target_pos = cell })
 
 func _get_player_melee_weapon_damage():
 	if _player == null or _player.equipment == null:
@@ -165,22 +167,25 @@ func _resolve_player_attack(target, target_cell, options = {}):
 			attack_opts["weapon"] = { crushing = 2 }
 	var player_pos = _player.get_grid_position()
 	if player_pos != null:
-		var dx = int(target_cell.x) - int(player_pos.x)
-		var dy = int(target_cell.y) - int(player_pos.y)
-		if dx != 0 or dy != 0:
-			_player.update_animation(dx, dy)
-			_player.idle()
+		_player.face_towards(target_cell)
+	_player.play_attack_animation(kind)
 	var target_name = str(target.get("monster_name")) if target.get("monster_name") != null else "Enemy"
 	var res = CombatResolverScript.resolve_attack(_player, target, attack_opts)
 	if not res.hit:
+		if OD.Audio != null:
+			OD.Audio.play_sfx("evade")
 		spawn_floating_badge(target_cell, "dodge", "Dodged!")
 		_log_event("The " + target_name + " dodges your attack!")
 		if res.ammo_recovered and _entity_grid != null and attack_opts.has("ammo_item"):
 			_entity_grid.add_loot_item(target_cell.x, target_cell.y, attack_opts.ammo_item)
 		return true
 	target.hp -= res.total_damage
+	if target.has_method("refresh_health_bar"):
+		target.refresh_health_bar()
 	if target.has_method("play_hit_animation"):
 		target.play_hit_animation()
+	if res.critical and OD.Audio != null:
+		OD.Audio.play_sfx("crit")
 	if target.has_method("play_sfx"):
 		target.play_sfx("hit")
 	else:
@@ -228,14 +233,25 @@ func execute_ranged_attack(target_cell, options = {}):
 	if enemy == null:
 		_spawn_floating_text(target_cell, "No target", Color(0.8, 0.8, 0.8))
 		return false
+	if OD.Audio != null:
+		var ranged_kind = str(options.get("kind", ""))
+		OD.Audio.play_sfx("bow" if ranged_kind == "bolt" else "missile")
 	return _resolve_player_attack(enemy, target_cell, options)
 
 func execute_attack_at(target_cell):
-	var enemy = _entity_grid.get_enemy_at(target_cell.x, target_cell.y) if _entity_grid != null else null
+	if _entity_grid == null or _player == null:
+		return false
+	var enemy = _entity_grid.get_enemy_at(target_cell.x, target_cell.y)
+	var element = _entity_grid.get_element_at(target_cell.x, target_cell.y)
+	var is_breakable = element != null and not element.is_broken and element.element_type == "custom_breakable"
+	if enemy == null and not is_breakable:
+		return false
+	var player_pos = _player.get_grid_position()
+	if player_pos != null and not _is_adjacent(player_pos, target_cell):
+		return _interact_or_approach({ kind = "attack", target_pos = target_cell })
 	if enemy != null:
 		return _resolve_player_attack(enemy, target_cell, { kind = "melee" })
-	var element = _entity_grid.get_element_at(target_cell.x, target_cell.y) if _entity_grid != null else null
-	if element != null and not element.is_broken and element.element_type == "custom_breakable":
+	if is_breakable:
 		_handle_element_interaction(element, target_cell)
 		return true
 	return false
@@ -243,6 +259,8 @@ func execute_attack_at(target_cell):
 func execute_cast_spell(spell_name, target_cell):
 	if spell_name == "" or _entity_grid == null or _player == null:
 		return false
+	_player.face_towards(target_cell)
+	_player.play_cast_animation()
 	var res = SpellEngineScript.execute_spell(spell_name, _player, target_cell, _build_command_context())
 	if not res.get("executed", false):
 		var p_pos = _player.get_grid_position()
@@ -331,10 +349,28 @@ func execute_use_item(item_data, target_cell):
 			return false
 		var res_kind = str(res.get("kind", ""))
 		if res_kind == "food":
+			_player.play_eat_animation()
+			if OD.Audio != null:
+				OD.Audio.play_sfx("eat")
 			_spawn_floating_text(p_cell, "+" + str(res.get("hp_per_turn", 1)) + " HP/turn", Color(0.45, 0.95, 0.45))
 		elif res_kind == "booze":
+			_player.play_drink_animation()
+			if OD.Audio != null:
+				OD.Audio.play_sfx("drink")
 			_spawn_floating_text(p_cell, "Tipsy! +" + str(res.get("mp_per_turn", 1)) + " MP/turn", Color(0.45, 0.78, 1.0))
+		elif res_kind == "potion":
+			_player.play_drink_animation()
+			if OD.Audio != null:
+				OD.Audio.play_sfx("drink")
+			_log_event("Used " + str(res.get("item_name", "Item")) + ".")
+		elif res_kind == "mushroom":
+			_player.play_eat_animation()
+			if OD.Audio != null:
+				OD.Audio.play_sfx("eat")
+			_log_event("Used " + str(res.get("item_name", "Item")) + ".")
 		elif res_kind == "wand":
+			_player.face_towards(target_cell)
+			_player.play_cast_animation()
 			if res.get("burned_out", false):
 				_log_event(str(res.get("item_name", "Wand")) + " burned out!")
 			else:
@@ -426,17 +462,10 @@ func _find_best_adjacent_cell(target_cell):
 			best_cell = candidate
 	return best_cell
 
-func _interact_or_approach(interaction):
-	var player_pos = _player.get_grid_position()
-	if _is_adjacent(player_pos, interaction.target_pos):
-		_execute_interaction(interaction)
-		return
-	var dest_cell = _find_best_adjacent_cell(interaction.target_pos)
-	if dest_cell == null:
-		return
+func _queue_approach_to_cell(dest_cell, select_cell, interaction):
 	_pending_interaction = interaction
 	if _target_cursor != null:
-		_target_cursor.select(interaction.target_pos.x, interaction.target_pos.y)
+		_target_cursor.select(select_cell.x, select_cell.y)
 	OD.ActionQueue.clear()
 	var action = OD.Actions.MoveToLocation.new()
 	action.init(_player, dest_cell, _entity_grid)
@@ -444,18 +473,28 @@ func _interact_or_approach(interaction):
 	OD.ActionQueue.add(action)
 	_turn_scheduler.start_queued_actions(_build_command_context())
 
+func _interact_or_approach(interaction):
+	var player_pos = _player.get_grid_position()
+	if _is_adjacent(player_pos, interaction.target_pos):
+		_execute_interaction(interaction)
+		return true
+	var dest_cell = _find_best_adjacent_cell(interaction.target_pos)
+	if dest_cell == null:
+		return false
+	_queue_approach_to_cell(dest_cell, interaction.target_pos, interaction)
+	return true
+
 func _move_to_stairs(stairs_cell, direction):
 	if not _entity_grid.is_walkable(stairs_cell.x, stairs_cell.y):
-		return
-	_pending_interaction = { kind = "stairs", target_pos = stairs_cell, direction = direction }
-	if _target_cursor != null:
-		_target_cursor.select(stairs_cell.x, stairs_cell.y)
-	OD.ActionQueue.clear()
-	var action = OD.Actions.MoveToLocation.new()
-	action.init(_player, stairs_cell, _entity_grid)
-	action.completed.connect(_on_approach_completed)
-	OD.ActionQueue.add(action)
-	_turn_scheduler.start_queued_actions(_build_command_context())
+		return false
+	_queue_approach_to_cell(stairs_cell, stairs_cell, { kind = "stairs", target_pos = stairs_cell, direction = direction })
+	return true
+
+func _move_to_pickup(loot_cell):
+	if not _entity_grid.is_walkable(loot_cell.x, loot_cell.y):
+		return false
+	_queue_approach_to_cell(loot_cell, loot_cell, { kind = "pickup", target_pos = loot_cell })
+	return true
 
 func _on_approach_completed(reached):
 	if not reached or _pending_interaction == null:
@@ -468,12 +507,19 @@ func _on_approach_completed(reached):
 		if Vector2i(int(player_pos.x), int(player_pos.y)) == interaction.target_pos:
 			_change_floor(interaction.direction)
 		return
+	if interaction.kind == "pickup":
+		var player_pos = _player.get_grid_position()
+		if Vector2i(int(player_pos.x), int(player_pos.y)) == interaction.target_pos:
+			pickup_loot_at_player(interaction.target_pos)
+		return
 	if _is_adjacent(_player.get_grid_position(), interaction.target_pos):
 		_execute_interaction(interaction)
 
 func _execute_interaction(interaction):
 	var pos = interaction.target_pos
 	match interaction.kind:
+		"attack":
+			execute_attack_at(pos)
 		"door":
 			var door = _entity_grid.get_door_at(pos.x, pos.y)
 			if door != null and not door.can_pass():
@@ -736,6 +782,9 @@ func award_xp(amount, grid_pos = null):
 		return false
 	var leveled_up = _player.add_xp(int(amount))
 	if leveled_up:
+		_player.play_levelup_animation()
+		if OD.Audio != null:
+			OD.Audio.play_sfx("levelup")
 		_log_event("You have gained a level! You are now Level " + str(_player.level) + ".")
 		if grid_pos != null:
 			_spawn_floating_text(grid_pos, "Level Up! Lv " + str(_player.level), Color(1.0, 0.9, 0.25))
@@ -756,15 +805,33 @@ func _handle_trap_disarm(trap):
 		_spawn_floating_text(pos, "Trap Triggered!", Color(1.0, 0.35, 0.25))
 		_log_event("You fail to disarm the trap and trigger it!")
 
-func _spawn_spell_vfx(spell_name, grid_pos):
+func _resolve_spell_sfx(spell):
+	if spell == null:
+		return "magic"
+	var anim_def = spell.get("anim", null)
+	if typeof(anim_def) == TYPE_DICTIONARY and str(anim_def.get("sfx", "")) != "":
+		return str(anim_def.sfx)
+	var raw_def = spell.get("raw", null)
+	if typeof(raw_def) == TYPE_DICTIONARY:
+		var impact_def = raw_def.get("impact", null)
+		if typeof(impact_def) == TYPE_DICTIONARY and str(impact_def.get("sfx", "")) != "":
+			return str(impact_def.sfx)
+	for eff in spell.get("effects", []):
+		if typeof(eff) == TYPE_DICTIONARY and str(eff.get("sfx", "")) != "":
+			return str(eff.sfx)
+	return "magic"
+
+func _spawn_spell_vfx(spell_name, grid_pos, play_sound = true):
 	if spell_name == "" or _entity_grid == null:
 		return
 	var spell = OD.Database.get_spell(spell_name)
-	if spell == null or spell.anim == null or typeof(spell.anim) != TYPE_DICTIONARY:
+	if spell == null:
+		return
+	if play_sound and OD.Audio != null:
+		OD.Audio.play_sfx(_resolve_spell_sfx(spell))
+	if spell.anim == null or typeof(spell.anim) != TYPE_DICTIONARY:
 		return
 	var anim_def = spell.anim
-	if anim_def.has("sfx"):
-		OD.Audio.play_sfx(anim_def.sfx)
 	if anim_def.has("sprite") and anim_def.has("frames"):
 		var first_idx = int(anim_def.get("first", 0))
 		var frame_count = int(anim_def.frames)
@@ -837,6 +904,9 @@ func _handle_element_interaction(element, grid_coords):
 		_toggle_pocket_dimension(grid_coords)
 		return
 	if element.element_type == "custom_breakable":
+		if _player != null:
+			_player.face_towards(grid_coords)
+			_player.play_attack_animation("melee")
 		var break_res = element.interact()
 		_entity_grid.unblock_cell(grid_coords.x, grid_coords.y)
 		var smash_msg = break_res.get("message", "Smashed!")
@@ -906,6 +976,24 @@ func _seed_player_bag():
 func _on_loot_stepped(grid_pos):
 	pickup_loot_at_player(grid_pos)
 
+func _get_item_sfx(item_data, is_drop = false):
+	var cat = str(item_data.get("category", "")) if typeof(item_data) == TYPE_DICTIONARY else ""
+	var suffix = "_drop" if is_drop else "_get"
+	match cat:
+		"food", "mushroom":
+			return "food" + suffix
+		"potion":
+			return "potion" + suffix
+		"armour":
+			var armor_name = str(item_data.get("name", "")).to_lower()
+			if "robe" in armor_name or "cloth" in armor_name or "hat" in armor_name:
+				return "cloth" + suffix
+			if "leather" in armor_name or "boot" in armor_name or "glove" in armor_name:
+				return "leather" + suffix
+			return "metal" + suffix
+		_:
+			return "metal" + suffix
+
 func pickup_loot_at_player(target_pos = null):
 	if _player == null or _entity_grid == null:
 		return false
@@ -928,7 +1016,8 @@ func pickup_loot_at_player(target_pos = null):
 			var amt = max(1, int(loot_data.get("amount", 1)))
 			_player.add_zorkmids(amt)
 			_entity_grid.remove_loot_at(pos.x, pos.y, idx)
-			OD.Audio.play_sfx("coin")
+			if OD.Audio != null:
+				OD.Audio.play_sfx("money_get")
 			_log_event("You pick up " + str(amt) + " Zorkmids.")
 			picked_any = true
 		elif kind == "lockpick":
@@ -949,10 +1038,13 @@ func pickup_loot_at_player(target_pos = null):
 			var lp_res = _player.add_item(lockpick_item)
 			if lp_res.added:
 				_entity_grid.remove_loot_at(pos.x, pos.y, idx)
-				OD.Audio.play_sfx("metal_get")
+				if OD.Audio != null:
+					OD.Audio.play_sfx("metal_get")
 				_log_event("You put Lockpick in your bag.")
 				picked_any = true
 			else:
+				if OD.Audio != null:
+					OD.Audio.play_sfx("fullinventory")
 				_log_event("Your bag is full!")
 		else:
 			var raw_item = loot_data.get("item", loot_data)
@@ -968,11 +1060,14 @@ func pickup_loot_at_player(target_pos = null):
 					_log_event("Your bag is full!")
 				else:
 					_entity_grid.remove_loot_at(pos.x, pos.y, idx)
-				OD.Audio.play_sfx("metal_get")
+				if OD.Audio != null:
+					OD.Audio.play_sfx(_get_item_sfx(item_inst, false))
 				var picked_name = str(item_inst.get("name", "Item"))
 				_log_event("You put " + picked_name + " in your bag.")
 				picked_any = true
 			else:
+				if OD.Audio != null:
+					OD.Audio.play_sfx("fullinventory")
 				_log_event("Your bag is full!")
 		idx -= 1
 	return picked_any
@@ -987,6 +1082,8 @@ func drop_inventory_item(inv_idx, count = -1):
 	if removed == null:
 		return false
 	_entity_grid.add_loot_item(int(p_pos.x), int(p_pos.y), { kind = "item", item = removed })
+	if OD.Audio != null:
+		OD.Audio.play_sfx(_get_item_sfx(removed, true))
 	_log_event("Dropped " + str(removed.get("name", "Item")) + ".")
 	return true
 
@@ -1003,6 +1100,8 @@ func drop_equipped_item(slot_name):
 	_player.recalculate_stats()
 	_player.equipment_changed.emit()
 	_entity_grid.add_loot_item(int(p_pos.x), int(p_pos.y), { kind = "item", item = equipped })
+	if OD.Audio != null:
+		OD.Audio.play_sfx(_get_item_sfx(equipped, true))
 	_log_event("Dropped " + str(equipped.get("name", "Item")) + ".")
 	return true
 
@@ -1027,11 +1126,25 @@ func _on_player_died(cause_of_death):
 	OD.ActionQueue.clear()
 	if OD.Audio != null:
 		OD.Audio.play_sfx("humanoid_die")
-		if OD.Load != null and OD.Load.exists("tunes/death-open.ogg"):
-			var death_music = OD.Load.sfx("tunes/death-open.ogg")
+		var has_death_open = OD.Load != null and OD.Load.exists("tunes/death-open.ogg")
+		var has_death_repeat = OD.Load != null and OD.Load.exists("tunes/death-repeat.ogg")
+		if has_death_open and has_death_repeat:
+			var death_open = OD.Load.sfx("tunes/death-open.ogg")
+			var death_repeat = OD.Load.audio("tunes/death-repeat.ogg")
+			if death_open != null and death_repeat != null:
+				OD.Audio.play(death_open, death_repeat)
+			elif death_repeat != null:
+				OD.Audio.play(death_repeat)
+		elif has_death_repeat:
+			var death_repeat = OD.Load.audio("tunes/death-repeat.ogg")
+			if death_repeat != null:
+				OD.Audio.play(death_repeat)
+		elif has_death_open:
+			var death_music = OD.Load.audio("tunes/death-open.ogg")
 			if death_music != null:
 				OD.Audio.play(death_music)
 	if _player != null and is_instance_valid(_player):
+		_player.play_die_animation()
 		_player.modulate = Color(0.55, 0.2, 0.2, 0.65)
 		var p_pos = _player.get_grid_position()
 		if p_pos != null:
@@ -1049,6 +1162,8 @@ func _on_player_died(cause_of_death):
 
 func on_monster_attack_player(monster, res, monster_pos, player_pos):
 	var m_name = str(monster.get("monster_name")) if monster != null else "Monster"
+	if _player != null and is_instance_valid(_player) and not _player.is_dead:
+		_player.play_hit_animation()
 	if player_pos != null:
 		var p_cell = Vector2i(int(player_pos.x), int(player_pos.y))
 		if res.get("critical", false):

@@ -256,6 +256,8 @@ static func execute_spell(spell_name, caster, target_pos, context = {}, trigger_
 			sprite_num = int(raw_dict.get("mineSpritePNGNum", 0)),
 			sprite_rate = int(raw_dict.get("mineSpritePNGRate", 100))
 		})
+		if mine_entry != null and OD.Audio != null:
+			OD.Audio.play_sfx("rune_set")
 		return {
 			executed = true,
 			spell_name = spell_def.name,
@@ -269,9 +271,10 @@ static func execute_spell(spell_name, caster, target_pos, context = {}, trigger_
 	var cells = resolve_target_cells(spell_def, caster_pos, target_cell, entity_grid)
 	var effects_applied = []
 
-	for cell in cells:
+	for cell_idx in range(cells.size()):
+		var cell = cells[cell_idx]
 		if dungeon != null and dungeon.has_method("_spawn_spell_vfx"):
-			dungeon._spawn_spell_vfx(spell_def.name, cell)
+			dungeon._spawn_spell_vfx(spell_def.name, cell, cell_idx == 0)
 		for eff in spell_def.get("effects", []):
 			if typeof(eff) == TYPE_DICTIONARY:
 				var eff_res = _apply_effect(eff, spell_def, caster, caster_pos, cell, context, trigger_depth)

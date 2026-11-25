@@ -301,6 +301,12 @@ func toggle_inventory():
 	_inventory_dialog = InventoryDialogScript.new().init(player, _create_item_window_callbacks(func(): _inventory_dialog = null), "inventory")
 	_hud_layer.add_child(_inventory_dialog)
 
+func _is_mouse_over_hud():
+	if _hud_layer == null or not is_instance_valid(_hud_layer):
+		return false
+	var hovered = get_viewport().gui_get_hovered_control()
+	return hovered != null and _hud_layer.is_ancestor_of(hovered)
+
 func _input(ev):
 	if _dungeon == null or not is_instance_valid(_dungeon):
 		return
@@ -336,7 +342,7 @@ func _input(ev):
 			get_viewport().set_input_as_handled()
 			_core_hud.toggle_pause_menu()
 			return
-	if ev is InputEventMouse and FloatingWindowScript.is_point_over_any(get_tree(), ev.position):
+	if ev is InputEventMouse and (FloatingWindowScript.is_point_over_any(get_tree(), ev.position) or _is_mouse_over_hud()):
 		drag_enabled = false
 		_is_dragging = false
 		return

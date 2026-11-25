@@ -15,18 +15,19 @@ func choose(array, amount = 1):
 	return picks
 	
 func merge(dict_a, dict_b):
-	var result = dict_a.duplicate()
-	var copy_b = dict_b.duplicate()
+	var result = dict_a.duplicate(true)
+	var copy_b = dict_b.duplicate(true)
 	for key in copy_b.keys():
 		if result.has(key):
-			
 			if typeof(result[key]) != TYPE_ARRAY:
 				var copy_a_content = result[key]
 				result[key] = [copy_a_content]
+			else:
+				result[key] = result[key].duplicate()
 			if typeof(copy_b[key]) == TYPE_ARRAY:
 				result[key] += copy_b[key]
 			else:
-				result[key].append(copy_b[key])			
+				result[key].append(copy_b[key])
 		else:
 			result[key] = copy_b[key]
 	return result

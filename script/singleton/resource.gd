@@ -206,6 +206,87 @@ var paths = {
 				right = "sprites/hero/hero_idle_r.spr",
 				up = "sprites/hero/hero_idle_u.spr",
 				down = "sprites/hero/hero_idle_d.spr"
+			},
+			attack_unarm = {
+				left = "sprites/hero/hero_atk_unarm_l.spr",
+				right = "sprites/hero/hero_atk_unarm_r.spr",
+				up = "sprites/hero/hero_atk_unarm_u.spr",
+				down = "sprites/hero/hero_atk_unarm_d.spr"
+			},
+			attack_sword = {
+				left = "sprites/hero/hero_atk_swd_l.spr",
+				right = "sprites/hero/hero_atk_swd_r.spr",
+				up = "sprites/hero/hero_atk_swd_u.spr",
+				down = "sprites/hero/hero_atk_swd_d.spr"
+			},
+			attack_axe = {
+				left = "sprites/hero/hero_atk_axe_l.spr",
+				right = "sprites/hero/hero_atk_axe_r.spr",
+				up = "sprites/hero/hero_atk_axe_u.spr",
+				down = "sprites/hero/hero_atk_axe_d.spr"
+			},
+			attack_mace = {
+				left = "sprites/hero/hero_atk_mace_l.spr",
+				right = "sprites/hero/hero_atk_mace_r.spr",
+				up = "sprites/hero/hero_atk_mace_u.spr",
+				down = "sprites/hero/hero_atk_mace_d.spr"
+			},
+			attack_staff = {
+				left = "sprites/hero/hero_atk_stk_l.spr",
+				right = "sprites/hero/hero_atk_stk_r.spr",
+				up = "sprites/hero/hero_atk_stk_u.spr",
+				down = "sprites/hero/hero_atk_stk_d.spr"
+			},
+			attack_dagger = {
+				left = "sprites/hero/hero_atk_dagger_l.xml",
+				right = "sprites/hero/hero_atk_dagger_r.xml",
+				up = "sprites/hero/hero_atk_dagger_u.xml",
+				down = "sprites/hero/hero_atk_dagger_d.xml"
+			},
+			attack_polearm = {
+				left = "sprites/hero/hero_atk_polearm_l.xml",
+				right = "sprites/hero/hero_atk_polearm_r.xml",
+				up = "sprites/hero/hero_atk_polearm_u.xml",
+				down = "sprites/hero/hero_atk_polearm_d.xml"
+			},
+			attack_bow = {
+				left = "sprites/hero/hero_atk_bow_l.spr",
+				right = "sprites/hero/hero_atk_bow_r.spr",
+				up = "sprites/hero/hero_atk_bow_u.spr",
+				down = "sprites/hero/hero_atk_bow_d.spr"
+			},
+			attack_thrown = {
+				left = "sprites/hero/hero_atk_thr_l.spr",
+				right = "sprites/hero/hero_atk_thr_r.spr",
+				up = "sprites/hero/hero_atk_thr_u.spr",
+				down = "sprites/hero/hero_atk_thr_d.spr"
+			},
+			cast = {
+				left = "sprites/hero/hero_cast_l.spr",
+				right = "sprites/hero/hero_cast_r.spr",
+				up = "sprites/hero/hero_cast_u.spr",
+				down = "sprites/hero/hero_cast_d.spr"
+			},
+			hit = {
+				left = "sprites/hero/hero_hit_l.spr",
+				right = "sprites/hero/hero_hit_r.spr",
+				up = "sprites/hero/hero_hit_u.spr",
+				down = "sprites/hero/hero_hit_d.spr"
+			},
+			eat = {
+				left = "sprites/hero/hero_eat_l.spr",
+				right = "sprites/hero/hero_eat_r.spr"
+			},
+			drink = {
+				left = "sprites/hero/hero_drink_l.spr",
+				right = "sprites/hero/hero_drink_r.spr"
+			},
+			levelup = {
+				left = "sprites/hero/hero_levelup_l.spr",
+				right = "sprites/hero/hero_levelup_r.spr"
+			},
+			die = {
+				down = "sprites/hero/hero_die.spr"
 			}
 		},
 		heroine = {
@@ -220,6 +301,86 @@ var paths = {
 				right = "sprites/fhero/hero_idle_r.xml",
 				up = "sprites/fhero/hero_idle_u.xml",
 				down = "sprites/fhero/hero_idle_d.xml"
+			},
+			attack_unarm = {
+				left = "sprites/fhero/hero_atk_unarm_l.xml",
+				right = "sprites/fhero/hero_atk_unarm_r.xml",
+				up = "sprites/fhero/hero_atk_unarm_u.xml",
+				down = "sprites/fhero/hero_atk_unarm_d.xml"
+			},
+			attack_sword = {
+				left = "sprites/fhero/hero_atk_swd_l.xml",
+				right = "sprites/fhero/hero_atk_swd_r.xml",
+				up = "sprites/fhero/hero_atk_swd_u.xml",
+				down = "sprites/fhero/hero_atk_swd_d.xml"
+			},
+			attack_axe = {
+				left = "sprites/fhero/hero_atk_axe_l.xml",
+				right = "sprites/fhero/hero_atk_axe_r.xml",
+				up = "sprites/fhero/hero_atk_axe_u.xml",
+				down = "sprites/fhero/hero_atk_axe_d.xml"
+			},
+			attack_mace = {
+				left = "sprites/fhero/hero_atk_mace_l.xml",
+				right = "sprites/fhero/hero_atk_mace_r.xml",
+				up = "sprites/fhero/hero_atk_mace_u.xml",
+				down = "sprites/fhero/hero_atk_mace_d.xml"
+			},
+			attack_staff = {
+				left = "sprites/fhero/hero_atk_stk_l.xml",
+				right = "sprites/fhero/hero_atk_stk_r.xml",
+				up = "sprites/fhero/hero_atk_stk_u.xml",
+				down = "sprites/fhero/hero_atk_stk_d.xml"
+			},
+			attack_dagger = {
+				left = "sprites/fhero/hero_atk_dagger_l.xml",
+				right = "sprites/fhero/hero_atk_dagger_r.xml",
+				up = "sprites/fhero/hero_atk_dagger_u.xml",
+				down = "sprites/fhero/hero_atk_dagger_d.xml"
+			},
+			attack_polearm = {
+				left = "sprites/fhero/hero_atk_polearm_l.xml",
+				right = "sprites/fhero/hero_atk_polearm_r.xml",
+				up = "sprites/fhero/hero_atk_polearm_u.xml",
+				down = "sprites/fhero/hero_atk_polearm_d.xml"
+			},
+			attack_bow = {
+				left = "sprites/fhero/hero_atk_bow_l.xml",
+				right = "sprites/fhero/hero_atk_bow_r.xml",
+				up = "sprites/fhero/hero_atk_bow_u.xml",
+				down = "sprites/fhero/hero_atk_bow_d.xml"
+			},
+			attack_thrown = {
+				left = "sprites/fhero/hero_atk_thr_l.xml",
+				right = "sprites/fhero/hero_atk_thr_r.xml",
+				up = "sprites/fhero/hero_atk_thr_u.xml",
+				down = "sprites/fhero/hero_atk_thr_d.xml"
+			},
+			cast = {
+				left = "sprites/fhero/hero_cast_l.xml",
+				right = "sprites/fhero/hero_cast_r.xml",
+				up = "sprites/fhero/hero_cast_u.xml",
+				down = "sprites/fhero/hero_cast_d.xml"
+			},
+			hit = {
+				left = "sprites/fhero/hero_hit_l.xml",
+				right = "sprites/fhero/hero_hit_r.xml",
+				up = "sprites/fhero/hero_hit_u.xml",
+				down = "sprites/fhero/hero_hit_d.xml"
+			},
+			eat = {
+				left = "sprites/fhero/hero_eat_l.xml",
+				right = "sprites/fhero/hero_eat_r.xml"
+			},
+			drink = {
+				left = "sprites/fhero/hero_drink_l.xml",
+				right = "sprites/fhero/hero_drink_r.xml"
+			},
+			levelup = {
+				down = "sprites/fhero/hero_levelup.xml"
+			},
+			die = {
+				down = "sprites/fhero/hero_die.xml"
 			}
 		}
 	},

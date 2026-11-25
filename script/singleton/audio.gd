@@ -4,6 +4,7 @@ const SFX_POOL_SIZE = 12
 
 var _audio_player = null
 var _current_stream = null
+var _next_loop_stream = null
 var _root = null
 var _state = null
 var _sfx_players = []
@@ -69,8 +70,10 @@ func setup(root):
 				_audio_player.get_parent().remove_child(_audio_player)
 			_audio_player.queue_free()
 		_current_stream = null
+		_next_loop_stream = null
 		_audio_player = AudioStreamPlayer.new()
 		_audio_player.bus = _resolve_bus(&"Music")
+		_audio_player.finished.connect(_on_music_finished)
 		target_parent.add_child(_audio_player)
 		_setup_sfx_pool(target_parent)
 		apply_volume_settings()
@@ -78,16 +81,27 @@ func setup(root):
 	
 func stop():
 	_state = States.Stopped
+	_next_loop_stream = null
 	if _audio_player != null:
 		_audio_player.stop()
 	for player in _sfx_players:
 		if is_instance_valid(player):
 			player.stop()
 
-func play(audio_stream):
+func _on_music_finished():
+	if _state != States.Playing or _next_loop_stream == null or _audio_player == null:
+		return
+	var loop_stream = _next_loop_stream
+	_next_loop_stream = null
+	_current_stream = loop_stream
+	_audio_player.stream = loop_stream
+	_audio_player.play()
+
+func play(audio_stream, loop_stream = null):
 	if _audio_player == null:
 		setup(_root)
 	if OD.Settings.audio_enabled():
+		_next_loop_stream = loop_stream
 		if audio_stream != _current_stream:
 			_current_stream = audio_stream
 			_audio_player.stream = audio_stream

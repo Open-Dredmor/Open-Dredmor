@@ -317,6 +317,17 @@ func get_branch(branch_id):
 func get_all_rooms():
 	return cache.rooms
 
+func _merge_monster_variant(parent_def, child_def):
+	var merged = parent_def.duplicate(true)
+	merged.erase("monster")
+	for key in child_def.keys():
+		var val = child_def[key]
+		if typeof(val) == TYPE_DICTIONARY or typeof(val) == TYPE_ARRAY:
+			merged[key] = val.duplicate(true)
+		else:
+			merged[key] = val
+	return merged
+
 func _build_monster_info():
 	var monsters = {}
 	for monster in cache.monsters:
@@ -324,7 +335,7 @@ func _build_monster_info():
 		if monster.has('monster'):
 			var children = OD.DataStructure.arrayify(monster.monster)
 			for child in children:
-				monsters[child.name] = OD.DataStructure.merge(monster, child)			
+				monsters[child.name] = _merge_monster_variant(monster, child)
 	cache_result("monster_info", monsters)
 
 func get_random_monster():

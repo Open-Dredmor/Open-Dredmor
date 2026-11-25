@@ -115,6 +115,7 @@ var current_animation = null
 var last_delta_x = 0
 var last_delta_y = 0
 var sight_radius = 8
+var _action_anim_token = 0
 
 var character_name = ""
 var hero_kind = "hero"
@@ -489,6 +490,138 @@ func set_sight_radius(radius):
 	var clamped = max(1, int(radius))
 	bonus_secondary_stats["visual_sight_radius"] += clamped - sight_radius
 	recalculate_stats()
+
+func _get_facing_dir_key():
+	if abs(last_delta_x) >= abs(last_delta_y):
+		if last_delta_x < 0:
+			return "left"
+		if last_delta_x > 0:
+			return "right"
+	if last_delta_y < 0:
+		return "up"
+	return "down"
+
+func face_towards(target_cell):
+	var current_pos = get_grid_position()
+	if current_pos == null or target_cell == null:
+		return
+	var delta_x = int(target_cell.x) - int(current_pos.x)
+	var delta_y = int(target_cell.y) - int(current_pos.y)
+	if delta_x == 0 and delta_y == 0:
+		return
+	last_delta_x = delta_x
+	last_delta_y = delta_y
+	idle()
+
+func _get_or_load_action_anim(group_key, dir_key):
+	if not animations.has(group_key):
+		animations[group_key] = {}
+	var group = animations[group_key]
+	if group.has(dir_key):
+		return group[dir_key]
+	var sprite_paths = OD.Resources.paths.player.heroine if hero_kind == "heroine" else OD.Resources.paths.player.hero
+	if not sprite_paths.has(group_key):
+		return null
+	var group_paths = sprite_paths[group_key]
+	var resolved_key = dir_key
+	if not group_paths.has(resolved_key):
+		if group_paths.has("right"):
+			resolved_key = "right"
+		elif group_paths.has("down"):
+			resolved_key = "down"
+		else:
+			return null
+	if group.has(resolved_key):
+		return group[resolved_key]
+	var anim = OD.Load.animation(group_paths[resolved_key])
+	if anim == null:
+		return null
+	anim.visible = false
+	if anim.is_tall():
+		anim.position.y -= OD.Assets.CELL_PIXEL_HEIGHT / 2.0
+	add_child(anim)
+	group[resolved_key] = anim
+	return anim
+
+func _play_action_animation(group_key, duration_sec = 0.28, return_to_idle = true):
+	if animations.is_empty():
+		return
+	var dir_key = _get_facing_dir_key()
+	var anim = _get_or_load_action_anim(group_key, dir_key)
+	if anim == null:
+		return
+	_action_anim_token += 1
+	var active_token = _action_anim_token
+	if current_animation != null:
+		current_animation.visible = false
+	current_animation = anim
+	current_animation.visible = true
+	if current_animation.has_method("stop"):
+		current_animation.stop()
+	if current_animation.has_method("play"):
+		current_animation.play()
+	if not return_to_idle or not is_inside_tree():
+		return
+	var timer = get_tree().create_timer(duration_sec)
+	timer.timeout.connect(func():
+		if is_instance_valid(self) and not is_dead and _action_anim_token == active_token and not is_moving():
+			idle()
+	)
+
+func _resolve_melee_attack_group():
+	for slot_name in ["weapon_right", "weapon_left"]:
+		var item = equipment.get(slot_name, null)
+		if item != null and typeof(item) == TYPE_DICTIONARY and item.get("category", "") == "weapon":
+			match int(item.get("type", -1)):
+				0:
+					return "attack_sword"
+				1:
+					return "attack_axe"
+				2:
+					return "attack_mace"
+				3:
+					return "attack_staff"
+				4:
+					return "attack_bow"
+				5:
+					return "attack_thrown"
+				7:
+					return "attack_dagger"
+				8:
+					return "attack_polearm"
+	return "attack_unarm"
+
+func play_attack_animation(attack_kind = "melee"):
+	var group_key = "attack_unarm"
+	if attack_kind == "bolt":
+		group_key = "attack_bow"
+	elif attack_kind == "thrown":
+		group_key = "attack_thrown"
+	else:
+		group_key = _resolve_melee_attack_group()
+	_play_action_animation(group_key, 0.26, true)
+
+func play_cast_animation():
+	_play_action_animation("cast", 0.28, true)
+
+func play_hit_animation():
+	if is_inside_tree():
+		modulate = Color(1.4, 0.45, 0.45, 1.0)
+		var flash_tween = create_tween()
+		flash_tween.tween_property(self, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.16)
+	_play_action_animation("hit", 0.2, true)
+
+func play_eat_animation():
+	_play_action_animation("eat", 0.3, true)
+
+func play_drink_animation():
+	_play_action_animation("drink", 0.3, true)
+
+func play_levelup_animation():
+	_play_action_animation("levelup", 0.45, true)
+
+func play_die_animation():
+	_play_action_animation("die", 0.5, false)
 
 func update_animation(delta_x, delta_y):
 	if animations.is_empty():
@@ -1238,12 +1371,16 @@ func equip_from_inventory(inv_idx, target_slot = ""):
 			recalculate_stats()
 			equipment_changed.emit()
 			inventory_changed.emit()
+			if OD.Audio != null:
+				OD.Audio.play_sfx("metal_get")
 			return true
 	equipment[chosen_slot] = item
 	inventory[inv_idx] = prev_equipped
 	recalculate_stats()
 	equipment_changed.emit()
 	inventory_changed.emit()
+	if OD.Audio != null:
+		OD.Audio.play_sfx("metal_get")
 	return true
 
 func unequip_slot(slot_name, target_inv_idx = -1):
@@ -1260,6 +1397,8 @@ func unequip_slot(slot_name, target_inv_idx = -1):
 			recalculate_stats()
 			equipment_changed.emit()
 			inventory_changed.emit()
+			if OD.Audio != null:
+				OD.Audio.play_sfx("metal_get")
 			return true
 		if can_equip_in_slot(target_item, slot_name):
 			equipment[slot_name] = target_item
@@ -1267,9 +1406,13 @@ func unequip_slot(slot_name, target_inv_idx = -1):
 			recalculate_stats()
 			equipment_changed.emit()
 			inventory_changed.emit()
+			if OD.Audio != null:
+				OD.Audio.play_sfx("metal_get")
 			return true
 	var res = add_item(equipped)
 	if not res.added:
+		if OD.Audio != null:
+			OD.Audio.play_sfx("fullinventory")
 		return false
 	if res.remaining > 0:
 		equipped["count"] = res.remaining
@@ -1278,6 +1421,8 @@ func unequip_slot(slot_name, target_inv_idx = -1):
 	recalculate_stats()
 	equipment_changed.emit()
 	inventory_changed.emit()
+	if OD.Audio != null:
+		OD.Audio.play_sfx("metal_get")
 	return true
 
 func consume_equipped_ammo(slot_name, amount = 1):
