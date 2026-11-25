@@ -68,6 +68,20 @@ func _build_gui():
 	high_scores_button.anchor_top = .38
 	high_scores_button.pressed.connect(_on_HighScoresButton_pressed)
 	menu_chrome.add_child(high_scores_button)
+
+	var import_saves_button = OD.Chrome.button(assets.textures.import_saves_button)
+	import_saves_button.anchor_left = .5
+	import_saves_button.anchor_top = .48
+	import_saves_button.pressed.connect(_on_ImportSavesButton_pressed)
+	menu_chrome.add_child(import_saves_button)
+
+	var blank_plate = TextureRect.new()
+	blank_plate.texture = assets.textures.blank_plate
+	blank_plate.anchor_left = .5
+	blank_plate.anchor_top = .58
+	blank_plate.offset_left = -(blank_plate.texture.get_width() / 2)
+	blank_plate.offset_top = -(blank_plate.texture.get_height() / 2)
+	menu_chrome.add_child(blank_plate)
 	
 	var settings_button = OD.Chrome.button(assets.textures.settings_button)
 	settings_button.anchor_left = .5
@@ -100,6 +114,9 @@ func _on_LoadGameButton_pressed():
 
 func _on_HighScoresButton_pressed():
 	OD.Scenes.goto(OD.Scenes.HIGH_SCORES_MENU)
+
+func _on_ImportSavesButton_pressed():
+	OD.Scenes.goto(OD.Scenes.IMPORT_SAVES_MENU)
 
 func _on_SettingsButton_pressed():
 	OD.Scenes.goto(OD.Scenes.SETTINGS_MENU)

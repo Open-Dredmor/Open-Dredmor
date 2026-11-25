@@ -735,6 +735,15 @@ func toggle_pause_menu():
 		_close_pause_menu()
 		return
 	_pause_dialog = PauseDialogScript.new().init({
+		on_save = func():
+			if _dungeon != null and is_instance_valid(_dungeon) and _dungeon.has_method("save_game"):
+				return _dungeon.save_game()
+			return { ok = false },
+		on_save_and_quit = func():
+			if _dungeon != null and is_instance_valid(_dungeon) and _dungeon.has_method("save_game"):
+				_dungeon.save_game()
+			_close_pause_menu()
+			OD.Scenes.goto(OD.Scenes.MAIN_MENU),
 		on_close = func(): _pause_dialog = null
 	})
 	add_child(_pause_dialog)

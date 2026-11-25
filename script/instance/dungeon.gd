@@ -15,6 +15,8 @@ const CastSpellCommandScript = preload("res://script/instance/command/cast_spell
 const UseItemCommandScript = preload("res://script/instance/command/use_item_command.gd")
 const DeathManagerScript = preload("res://script/instance/death_manager.gd")
 const FloatingCombatTextScript = preload("res://script/instance/ui/floating_combat_text.gd")
+const SaveManagerScript = preload("res://script/instance/save_manager.gd")
+const GridSerializerScript = preload("res://script/instance/grid_serializer.gd")
 
 signal floor_changed(floor_level, branch_name)
 signal fov_updated()
@@ -153,6 +155,9 @@ func _handle_enemy_death(enemy, grid_pos):
 	if _entity_grid != null:
 		_entity_grid.unregister_entity(enemy, grid_pos)
 	enemy.queue_free()
+	if enemy_name == "Lord Dredmor":
+		DeathManagerScript.record_high_score(_player, _floor_level, "Defeated Lord Dredmor", _monsters_killed, DeathManagerScript.HIGH_SCORES_PATH, true)
+		_log_event("Victory! You have defeated Lord Dredmor!")
 
 func _resolve_player_attack(target, target_cell, options = {}):
 	if _player == null or target == null:
@@ -624,6 +629,7 @@ func _change_floor(direction):
 	update_fov()
 	OD.Audio.play_sfx("stairs")
 	floor_changed.emit(_floor_level, _branch_name)
+	save_game()
 
 func get_floor_level():
 	return _floor_level
@@ -667,16 +673,101 @@ func _on_turn_completed(_turn_number, _summary):
 	update_fov()
 
 func _build_ui():
+	var pending_save = OD.DungeonSettings.get_pending_load_data() if OD.DungeonSettings != null else null
+	if pending_save != null:
+		OD.DungeonSettings.clear_pending_load_data()
+		if restore_from_save(pending_save):
+			return
 	_setup_player_and_scheduler()
 	var settings = OD.DungeonSettings.get_settings()
 	_entity_grid = _create_floor(_floor_level)
 	_finish_floor_setup(settings)
 
 func _build_ui_async():
+	var pending_save = OD.DungeonSettings.get_pending_load_data() if OD.DungeonSettings != null else null
+	if pending_save != null:
+		OD.DungeonSettings.clear_pending_load_data()
+		if restore_from_save(pending_save):
+			return
 	_setup_player_and_scheduler()
 	var settings = OD.DungeonSettings.get_settings()
 	_entity_grid = await _create_floor_async(_floor_level)
 	_finish_floor_setup(settings)
+
+func save_game(target_path = ""):
+	var res = SaveManagerScript.save_run(self, target_path)
+	if res.ok:
+		_log_event("Game saved.")
+	else:
+		_log_event("Save failed: " + str(res.get("error", "Unknown error")))
+	return res
+
+func restore_from_save(save_data):
+	if typeof(save_data) != TYPE_DICTIONARY:
+		return false
+	_setup_player_and_scheduler()
+	_branch_name = str(save_data.get("branch_name", "The Dungeon"))
+	_floor_level = max(1, int(save_data.get("floor", 1)))
+	_monsters_killed = int(save_data.get("monsters_killed", 0))
+	_lutefisk_ref.value = int(save_data.get("lutefisk", 10))
+	_discovered_rooms = save_data.get("discovered_rooms", {}).duplicate(true)
+	_in_pocket_dimension = bool(save_data.get("in_pocket_dimension", false))
+	_saved_main_return_cell = GridSerializerScript._arr_to_vec2i(save_data.get("saved_main_return_cell", null))
+	_active_strategy = str(save_data.get("active_strategy", FLOOR_STRATEGY.RETAIL))
+	if _turn_scheduler != null:
+		_turn_scheduler.turn_count = int(save_data.get("turn_count", 0))
+
+	floors.clear()
+	var floors_dict = save_data.get("floors", {})
+	if typeof(floors_dict) == TYPE_DICTIONARY:
+		var max_floor = _floor_level
+		for key in floors_dict.keys():
+			max_floor = max(max_floor, int(key))
+		for _idx in range(max_floor):
+			floors.append(null)
+		for key in floors_dict.keys():
+			var f_idx = int(key) - 1
+			if f_idx >= 0:
+				var restored_grid = GridSerializerScript.deserialize_grid(floors_dict[key])
+				if restored_grid != null:
+					restored_grid.name = "EntityGrid-" + _active_strategy + "-F" + str(key)
+					_connect_grid_signals(restored_grid)
+					floors[f_idx] = restored_grid
+
+	_pocket_dimensions.clear()
+	var pocket_dict = save_data.get("pocket_dimensions", {})
+	if typeof(pocket_dict) == TYPE_DICTIONARY:
+		for key in pocket_dict.keys():
+			var restored_pocket = GridSerializerScript.deserialize_grid(pocket_dict[key])
+			if restored_pocket != null:
+				restored_pocket.name = "EntityGrid-Pocket-" + str(key)
+				_connect_grid_signals(restored_pocket)
+				_pocket_dimensions[key] = restored_pocket
+
+	if _in_pocket_dimension and not _pocket_dimensions.is_empty():
+		var first_key = _pocket_dimensions.keys()[0]
+		_entity_grid = _pocket_dimensions[first_key]
+	elif _floor_level - 1 < floors.size():
+		_entity_grid = floors[_floor_level - 1]
+	if _entity_grid == null:
+		_entity_grid = _create_floor(_floor_level)
+
+	var player_data = save_data.get("player", {})
+	SaveManagerScript.deserialize_player(_player, player_data)
+	_zorkmids_ref = _player.get_zorkmids_ref()
+
+	var pos_arr = player_data.get("grid_pos", [4, 6])
+	var spawn_x = int(pos_arr[0]) if typeof(pos_arr) == TYPE_ARRAY and pos_arr.size() >= 2 else 4
+	var spawn_y = int(pos_arr[1]) if typeof(pos_arr) == TYPE_ARRAY and pos_arr.size() >= 2 else 6
+	if _entity_grid._grid_center != null:
+		OD.Math.set_grid_center(_entity_grid._grid_center.x, _entity_grid._grid_center.y)
+	_entity_grid.add_entity(spawn_x, spawn_y, _player)
+	add_child(_entity_grid)
+	_entity_grid.add_entity(spawn_x, spawn_y, _target_cursor)
+	_entity_grid.update_trap_visibility(_player.get_grid_position())
+	update_fov()
+	floor_changed.emit(_floor_level, _branch_name)
+	return true
 
 func _setup_player_and_scheduler():
 	_turn_scheduler.init(_command_processor, OD.DungeonSettings.get_settings().get("base_turn_seconds", 0.24))

@@ -11,6 +11,7 @@ var DEATH_TEST = "dev/death_test"
 var DIFFICULTY_MENU = "game/difficulty_menu"
 var GAME = "game/game"
 var HIGH_SCORES_MENU = "game/high_scores_menu"
+var IMPORT_SAVES_MENU = "game/import_saves_menu"
 var INTRO_ONE = "game/intro_one"
 var INTRO_TWO = "game/intro_two"
 var INVENTORY_TEST = "dev/inventory_test"
@@ -21,6 +22,7 @@ var MONSTER_TEST = "dev/monster_test"
 var PLAYER_TEST = "dev/player_test"
 var PRELOAD_ASSETS = "game/preload_assets"
 var QUICK_GAME = "dev/quick_game"
+var SAVE_TEST = "dev/save_test"
 var SETTINGS_MENU = "game/settings_menu"
 var SKILLS_MENU = "game/skills_menu"
 var SPELL_TEST = "dev/spell_test"
@@ -31,7 +33,7 @@ var UI_TEST = "dev/ui_test"
 #var FIRST_SCENE = PRELOAD_ASSETS
 
 # For debugging specific levels or gameplay features
-var FIRST_SCENE = QUICK_GAME
+var FIRST_SCENE = MAIN_MENU
 
 func quit():
 	get_tree().quit()

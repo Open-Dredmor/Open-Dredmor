@@ -20,6 +20,14 @@ func _build_gui():
 	var difficulty_menu = get_node("/root/Container")
 	difficulty_menu.set_size(OD.Settings.display_size())
 
+	if OD.Load.exists("ui/menus/bg_stonetile.png"):
+		var bg_tile = TextureRect.new()
+		bg_tile.texture = OD.Load.image("ui/menus/bg_stonetile.png")
+		bg_tile.stretch_mode = TextureRect.STRETCH_TILE
+		bg_tile.set_anchors_preset(Control.PRESET_FULL_RECT)
+		bg_tile.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		difficulty_menu.add_child(bg_tile)
+
 	var header_background = TextureRect.new()
 	header_background.texture = assets.textures.header_background
 	header_background.stretch_mode = TextureRect.STRETCH_TILE
@@ -140,44 +148,134 @@ func _build_gui():
 	_permadeath_checkmark.visible = _permadeath_enabled
 	_no_time_to_grind_checkmark.visible = _no_time_to_grind_enabled
 
-	_build_content_packs_panel(difficulty_menu)
+	_build_content_packs_panel(difficulty_menu, assets)
 
-func _build_content_packs_panel(parent):
+func _build_content_packs_panel(parent, assets):
+	var dialog_assets = OD.Assets.dialog()
+	var font_res = dialog_assets.font if dialog_assets != null else null
+	var parchment_bg = dialog_assets.textures.alert_bigger if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("alert_bigger") else null
+	var ink_color = Color(0.16, 0.10, 0.06)
+	var header_ink = Color(0.28, 0.12, 0.05)
+
 	var panel = PanelContainer.new()
-	panel.anchor_left = 0.72
-	panel.anchor_top = 0.25
-	panel.custom_minimum_size = Vector2(360, 0)
+	panel.anchor_left = 0.65
+	panel.anchor_top = 0.20
+	panel.anchor_right = 0.94
+	panel.anchor_bottom = 0.80
+	if parchment_bg != null:
+		var style_box = StyleBoxTexture.new()
+		style_box.texture = parchment_bg
+		style_box.texture_margin_left = 32
+		style_box.texture_margin_right = 32
+		style_box.texture_margin_top = 32
+		style_box.texture_margin_bottom = 32
+		style_box.content_margin_left = 36
+		style_box.content_margin_right = 36
+		style_box.content_margin_top = 32
+		style_box.content_margin_bottom = 32
+		panel.add_theme_stylebox_override("panel", style_box)
 	parent.add_child(panel)
 
-	var margin = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_right", 16)
-	margin.add_theme_constant_override("margin_top", 16)
-	margin.add_theme_constant_override("margin_bottom", 16)
-	panel.add_child(margin)
-
 	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 8)
-	margin.add_child(vbox)
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_theme_constant_override("separation", 12)
+	panel.add_child(vbox)
 
 	var title_label = Label.new()
-	title_label.text = "Expansions & Mods"
+	title_label.text = "Expansions"
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if font_res != null:
+		title_label.add_theme_font_override("font", font_res)
+	title_label.add_theme_font_size_override("font_size", 26)
+	title_label.add_theme_color_override("font_color", header_ink)
 	vbox.add_child(title_label)
 
-	var available_packs = OD.Database.get_available_packs()
+	var scroll = ScrollContainer.new()
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	vbox.add_child(scroll)
+
+	var list_vbox = VBoxContainer.new()
+	list_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list_vbox.add_theme_constant_override("separation", 10)
+	scroll.add_child(list_vbox)
+
+	var available_packs = []
+	for pack_info in OD.Database.get_available_packs():
+		if pack_info.kind == "expansion":
+			available_packs.append(pack_info)
 	if available_packs.is_empty():
 		var empty_label = Label.new()
-		empty_label.text = "No expansions or mods found."
-		vbox.add_child(empty_label)
+		empty_label.text = "No expansions found."
+		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		if font_res != null:
+			empty_label.add_theme_font_override("font", font_res)
+		empty_label.add_theme_font_size_override("font_size", 19)
+		empty_label.add_theme_color_override("font_color", ink_color)
+		list_vbox.add_child(empty_label)
 		return
 
+	var box_style = StyleBoxFlat.new()
+	box_style.bg_color = Color(0.84, 0.77, 0.65, 0.8)
+	box_style.border_color = Color(0.32, 0.20, 0.12, 1.0)
+	box_style.set_border_width_all(2)
+
+	var transparent_style = StyleBoxFlat.new()
+	transparent_style.bg_color = Color(0, 0, 0, 0)
+
 	for pack_info in available_packs:
-		var checkbox = CheckBox.new()
-		var suffix = " [Mod]" if pack_info.kind == "mod" else ""
-		checkbox.text = pack_info.name + suffix
-		checkbox.button_pressed = _selected_pack_ids.has(pack_info.id)
-		checkbox.toggled.connect(_on_pack_toggled.bind(pack_info.id))
-		vbox.add_child(checkbox)
+		var is_enabled = _selected_pack_ids.has(pack_info.id)
+		var row_btn = Button.new()
+		row_btn.toggle_mode = true
+		row_btn.button_pressed = is_enabled
+		row_btn.custom_minimum_size = Vector2(0, 38)
+		row_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		row_btn.add_theme_stylebox_override("normal", transparent_style)
+		row_btn.add_theme_stylebox_override("hover", transparent_style)
+		row_btn.add_theme_stylebox_override("pressed", transparent_style)
+		row_btn.add_theme_stylebox_override("focus", transparent_style)
+		list_vbox.add_child(row_btn)
+
+		var row_hbox = HBoxContainer.new()
+		row_hbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+		row_hbox.add_theme_constant_override("separation", 12)
+		row_hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row_btn.add_child(row_hbox)
+
+		var check_box = PanelContainer.new()
+		check_box.custom_minimum_size = Vector2(28, 28)
+		check_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		check_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		check_box.add_theme_stylebox_override("panel", box_style)
+		row_hbox.add_child(check_box)
+
+		var mark = TextureRect.new()
+		mark.texture = assets.textures.checkmark_small
+		mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		mark.visible = is_enabled
+		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		check_box.add_child(mark)
+
+		var name_lbl = Label.new()
+		name_lbl.text = pack_info.name
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if font_res != null:
+			name_lbl.add_theme_font_override("font", font_res)
+		name_lbl.add_theme_font_size_override("font_size", 20)
+		name_lbl.add_theme_color_override("font_color", ink_color)
+		row_hbox.add_child(name_lbl)
+
+		var pid = pack_info.id
+		row_btn.toggled.connect(func(pressed_state):
+			mark.visible = pressed_state
+			_on_pack_toggled(pressed_state, pid)
+		)
 
 func _on_pack_toggled(enabled, pack_id):
 	if enabled:

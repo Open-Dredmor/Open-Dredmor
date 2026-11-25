@@ -29,11 +29,13 @@ func main_menu():
 		backgrounds = background_entries,
 		title = OD.Load.image(paths.title),
 		chrome = OD.Load.image(paths.chrome),
-		new_game_button = _button_textures(paths.button.new_game),
-		load_game_button = _button_textures(paths.button.load_game),
-		high_scores_button = _button_textures(paths.button.high_scores),
+		new_game_button = _button_textures(paths.button.new_game, true),
+		load_game_button = _button_textures(paths.button.load_game, true),
+		high_scores_button = _button_textures(paths.button.high_scores, true),
+		import_saves_button = _button_textures(paths.button.import_saves, true),
 		settings_button = _button_textures(paths.button.settings, true),
-		quit_button = _button_textures(paths.button.quit),		
+		quit_button = _button_textures(paths.button.quit, true),
+		blank_plate = OD.Load.image(paths.button.blank, true),		
 		background_button = _button_textures(paths.button.cycle_background),
 	}	
 	

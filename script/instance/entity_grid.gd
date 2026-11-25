@@ -71,6 +71,8 @@ var _liquid_cells = {}
 var _floor_tile_nodes = {}
 var _liquid_edge_nodes = []
 var _wall_decor_nodes = []
+var _custom_tiles = []
+var _floor_decals = []
 var _destructible_cells = {}
 var _blocker_cells = {}
 var _doors_by_cell = {}
@@ -169,6 +171,17 @@ func insert(source_grid, offset_position):
 			repeat = script_def.repeat,
 			conditions = shifted_conditions,
 			actions = shifted_actions
+		})
+	for custom_tile in source_grid._custom_tiles:
+		_custom_tiles.append({
+			cell = custom_tile.cell + offset_cell,
+			layer = custom_tile.layer,
+			sprite_path = custom_tile.sprite_path
+		})
+	for decal_entry in source_grid._floor_decals:
+		_floor_decals.append({
+			cell = decal_entry.cell + offset_cell,
+			path = decal_entry.path
 		})
 	for layer_key in source_grid.layers.lookup.keys():
 		var source_layer = source_grid.layers.lookup[layer_key]
@@ -320,6 +333,11 @@ func add_tile(x, y, name, sprite_path = null):
 			tile = _tilesets.liquids.get_animation(name)
 		_:
 			tile = OD.Load.animation(sprite_path)
+			_custom_tiles.append({
+				cell = cell_key,
+				layer = name,
+				sprite_path = sprite_path
+			})
 	tile.position = Vector2(x, y)
 	tile.set_meta("grid_cell", cell_key)
 	layer.add_child(tile)
@@ -727,6 +745,10 @@ func add_floor_decal(grid_x, grid_y, decal_path):
 		decal_node.position = pixel_pos
 		decal_node.set_meta("grid_cell", cell_key)
 		get_layer("floor_decoration").add_child(decal_node)
+		_floor_decals.append({
+			cell = cell_key,
+			path = decal_path
+		})
 	return decal_node
 
 func get_door_at(grid_x, grid_y):

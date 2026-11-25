@@ -58,19 +58,21 @@ static func load_high_scores(scores_path = HIGH_SCORES_PATH):
 				scores.append(entry)
 	return scores
 
-static func record_high_score(player, floor_level = 1, cause_of_death = "Unknown", monsters_killed = 0, scores_path = HIGH_SCORES_PATH):
+static func record_high_score(player, floor_level = 1, cause_of_death = "Unknown", monsters_killed = 0, scores_path = HIGH_SCORES_PATH, is_victory = false):
 	var settings = OD.DungeonSettings.get_settings() if OD.DungeonSettings != null and OD.DungeonSettings.get_settings() != null else {}
 	var char_name = str(player.character_name) if player != null and str(player.get("character_name")) != "" else "Unnamed Hero"
 	var lvl = int(player.level) if player != null and player.get("level") != null else 1
 	var cause = str(cause_of_death) if str(cause_of_death) != "" else "Unknown"
 	var diff_str = _difficulty_label(settings.get("difficulty", 1))
+	var outcome_text = "Victory! (" + cause + ")" if is_victory else "Slain by " + cause
 	var entry = {
 		name = char_name,
 		level = lvl,
 		score = compute_score(player, floor_level, monsters_killed),
 		floor = max(1, int(floor_level)),
 		difficulty = diff_str,
-		outcome = "Slain by " + cause,
+		outcome = outcome_text,
+		victory = bool(is_victory),
 		cause_of_death = cause,
 		skills = _collect_skill_names(player),
 		permadeath = bool(settings.get("permadeath", false)),

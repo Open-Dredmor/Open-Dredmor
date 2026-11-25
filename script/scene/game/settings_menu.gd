@@ -3,6 +3,9 @@ extends Control
 static func init_container():
 	return Control.new()
 
+const INK_COLOR = Color(0.16, 0.10, 0.06)
+const HEADER_INK = Color(0.28, 0.12, 0.05)
+
 var _audio_enabled_checkbox = null
 var _fullscreen_checkbox = null
 var _volume_sliders = {}
@@ -10,44 +13,154 @@ var _volume_labels = {}
 var _keybind_buttons = {}
 var _pending_keybinds = {}
 var _listening_action = null
+var _font_res = null
+var _blank_tex = null
 
 func _ready():
 	call_deferred("_build_gui")
 
+func _create_parchment_style(bg_tex):
+	if bg_tex != null:
+		var style_box = StyleBoxTexture.new()
+		style_box.texture = bg_tex
+		style_box.texture_margin_left = 32
+		style_box.texture_margin_right = 32
+		style_box.texture_margin_top = 32
+		style_box.texture_margin_bottom = 32
+		style_box.content_margin_left = 40
+		style_box.content_margin_right = 40
+		style_box.content_margin_top = 34
+		style_box.content_margin_bottom = 34
+		return style_box
+	var fallback = StyleBoxFlat.new()
+	fallback.bg_color = Color(0.86, 0.79, 0.67, 1.0)
+	fallback.border_color = Color(0.45, 0.34, 0.24, 1.0)
+	fallback.set_border_width_all(3)
+	fallback.set_content_margin_all(28)
+	return fallback
+
+func _style_label(lbl, font_size, color = INK_COLOR):
+	if _font_res != null:
+		lbl.add_theme_font_override("font", _font_res)
+	lbl.add_theme_font_size_override("font_size", font_size)
+	lbl.add_theme_color_override("font_color", color)
+	return lbl
+
+func _style_checkbox(chk):
+	if _font_res != null:
+		chk.add_theme_font_override("font", _font_res)
+	chk.add_theme_font_size_override("font_size", 20)
+	chk.add_theme_color_override("font_color", INK_COLOR)
+	chk.add_theme_color_override("font_hover_color", INK_COLOR)
+	chk.add_theme_color_override("font_pressed_color", INK_COLOR)
+	chk.add_theme_color_override("font_focus_color", INK_COLOR)
+	chk.add_theme_color_override("font_hover_pressed_color", INK_COLOR)
+	var transparent = StyleBoxFlat.new()
+	transparent.bg_color = Color(0, 0, 0, 0)
+	chk.add_theme_stylebox_override("normal", transparent)
+	chk.add_theme_stylebox_override("hover", transparent)
+	chk.add_theme_stylebox_override("pressed", transparent)
+	chk.add_theme_stylebox_override("focus", transparent)
+	chk.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+
+func _style_slider(slider):
+	var track = StyleBoxFlat.new()
+	track.bg_color = Color(0.46, 0.36, 0.25, 0.85)
+	track.border_color = Color(0.28, 0.20, 0.12, 1.0)
+	track.set_border_width_all(1)
+	track.content_margin_top = 4
+	track.content_margin_bottom = 4
+	var fill = StyleBoxFlat.new()
+	fill.bg_color = Color(0.68, 0.50, 0.22, 1.0)
+	fill.content_margin_top = 4
+	fill.content_margin_bottom = 4
+	slider.add_theme_stylebox_override("slider", track)
+	slider.add_theme_stylebox_override("grabber_area", fill)
+	slider.add_theme_stylebox_override("grabber_area_highlight", fill)
+
 func _build_gui():
+	var load_assets = OD.Assets.load_game_menu()
+	var dialog_assets = OD.Assets.dialog()
+	_font_res = dialog_assets.font if dialog_assets != null and dialog_assets.font != null else load_assets.fonts.default
+	_blank_tex = dialog_assets.textures.blank if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("blank") else null
+	var parchment_bg = dialog_assets.textures.alert_bigger if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("alert_bigger") else null
+
 	var settings_menu = get_node("/root/Container")
 	settings_menu.set_size(OD.Settings.display_size())
 
-	var scroll = ScrollContainer.new()
-	scroll.anchor_left = 0.2
-	scroll.anchor_top = 0.08
-	scroll.anchor_right = 0.8
-	scroll.anchor_bottom = 0.92
-	settings_menu.add_child(scroll)
+	if OD.Load.exists("ui/menus/bg_stonetile.png"):
+		var bg_tile = TextureRect.new()
+		bg_tile.texture = OD.Load.image("ui/menus/bg_stonetile.png")
+		bg_tile.stretch_mode = TextureRect.STRETCH_TILE
+		bg_tile.set_anchors_preset(Control.PRESET_FULL_RECT)
+		bg_tile.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		settings_menu.add_child(bg_tile)
+
+	var header_background = TextureRect.new()
+	header_background.texture = load_assets.textures.header_background
+	header_background.stretch_mode = TextureRect.STRETCH_TILE
+	header_background.size = Vector2(OD.Settings.display_size().x, header_background.texture.get_height())
+	settings_menu.add_child(header_background)
+
+	var back_button = OD.Chrome.button(load_assets.textures.back_button)
+	back_button.anchor_left = 0
+	back_button.anchor_top = 0
+	back_button.offset_left = 0
+	back_button.offset_top = 0
+	back_button.pressed.connect(_on_CancelButton_pressed)
+	settings_menu.add_child(back_button)
+
+	var header_title = Label.new()
+	header_title.text = "Settings"
+	header_title.anchor_left = 0.5
+	header_title.offset_left = -160
+	header_title.offset_top = 12
+	header_title.custom_minimum_size = Vector2(320, 48)
+	header_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if _font_res != null:
+		header_title.add_theme_font_override("font", _font_res)
+	header_title.add_theme_font_size_override("font_size", 34)
+	header_title.add_theme_color_override("font_color", Color(0.95, 0.90, 0.80))
+	header_title.add_theme_constant_override("outline_size", 3)
+	header_title.add_theme_color_override("font_outline_color", Color(0.08, 0.05, 0.03))
+	settings_menu.add_child(header_title)
+
+	var done_button = OD.Chrome.button(load_assets.textures.done_button)
+	done_button.anchor_left = 1
+	done_button.anchor_top = 0
+	done_button.offset_left = -done_button.texture_normal.get_width()
+	done_button.offset_top = 0
+	done_button.pressed.connect(_on_SaveButton_pressed)
+	settings_menu.add_child(done_button)
 
 	var panel = PanelContainer.new()
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(panel)
+	panel.anchor_left = 0.16
+	panel.anchor_top = 0.14
+	panel.anchor_right = 0.84
+	panel.anchor_bottom = 0.93
+	panel.add_theme_stylebox_override("panel", _create_parchment_style(parchment_bg))
+	settings_menu.add_child(panel)
 
-	var margin = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 28)
-	margin.add_theme_constant_override("margin_right", 28)
-	margin.add_theme_constant_override("margin_top", 24)
-	margin.add_theme_constant_override("margin_bottom", 24)
-	panel.add_child(margin)
+	var scroll = ScrollContainer.new()
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	panel.add_child(scroll)
 
 	var container = VBoxContainer.new()
-	container.add_theme_constant_override("separation", 16)
-	margin.add_child(container)
+	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	container.add_theme_constant_override("separation", 14)
+	scroll.add_child(container)
 
-	var title_label = Label.new()
-	title_label.text = "Settings"
-	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	container.add_child(title_label)
+	var audio_header = Label.new()
+	audio_header.text = "Audio & Display"
+	_style_label(audio_header, 24, HEADER_INK)
+	container.add_child(audio_header)
 
 	_audio_enabled_checkbox = CheckBox.new()
 	_audio_enabled_checkbox.text = "Audio Enabled"
 	_audio_enabled_checkbox.button_pressed = OD.Settings.audio_enabled()
+	_style_checkbox(_audio_enabled_checkbox)
 	container.add_child(_audio_enabled_checkbox)
 
 	_add_volume_slider(container, "master", "Master Volume", OD.Settings.master_volume_percent())
@@ -58,16 +171,18 @@ func _build_gui():
 	_fullscreen_checkbox = CheckBox.new()
 	_fullscreen_checkbox.text = "Fullscreen"
 	_fullscreen_checkbox.button_pressed = OD.Settings.fullscreen_enabled()
+	_style_checkbox(_fullscreen_checkbox)
 	container.add_child(_fullscreen_checkbox)
 
 	var keybinds_header = Label.new()
 	keybinds_header.text = "Keybinds (click to rebind)"
+	_style_label(keybinds_header, 24, HEADER_INK)
 	container.add_child(keybinds_header)
 
 	_pending_keybinds = OD.Settings.get_keybinds()
 	var keybind_grid = GridContainer.new()
 	keybind_grid.columns = 2
-	keybind_grid.add_theme_constant_override("h_separation", 24)
+	keybind_grid.add_theme_constant_override("h_separation", 28)
 	keybind_grid.add_theme_constant_override("v_separation", 8)
 	container.add_child(keybind_grid)
 
@@ -76,11 +191,18 @@ func _build_gui():
 	for action_name in action_names:
 		var action_label = Label.new()
 		action_label.text = action_name.replace("_", " ").capitalize()
+		action_label.custom_minimum_size = Vector2(200, 0)
+		_style_label(action_label, 19)
 		keybind_grid.add_child(action_label)
 
-		var bind_btn = Button.new()
-		bind_btn.custom_minimum_size = Vector2(180, 32)
-		bind_btn.text = OS.get_keycode_string(_pending_keybinds[action_name])
+		var bind_btn = OD.Chrome.parchment_button(
+			OS.get_keycode_string(_pending_keybinds[action_name]),
+			_font_res,
+			INK_COLOR,
+			_blank_tex,
+			18
+		)
+		bind_btn.custom_minimum_size = Vector2(180, 34)
 		bind_btn.pressed.connect(_on_keybind_button_pressed.bind(action_name))
 		keybind_grid.add_child(bind_btn)
 		_keybind_buttons[action_name] = bind_btn
@@ -89,21 +211,18 @@ func _build_gui():
 	choose_container.add_theme_constant_override("separation", 16)
 	container.add_child(choose_container)
 
-	var cancel_button = Button.new()
-	cancel_button.text = "Cancel"
-	cancel_button.custom_minimum_size = Vector2(160, 48)
+	var cancel_button = OD.Chrome.parchment_button("Cancel", _font_res, INK_COLOR, _blank_tex, 18)
+	cancel_button.custom_minimum_size = Vector2(150, 40)
 	cancel_button.pressed.connect(_on_CancelButton_pressed)
 	choose_container.add_child(cancel_button)
 
-	var save_button = Button.new()
-	save_button.text = "Save"
-	save_button.custom_minimum_size = Vector2(160, 48)
+	var save_button = OD.Chrome.parchment_button("Save", _font_res, INK_COLOR, _blank_tex, 18)
+	save_button.custom_minimum_size = Vector2(150, 40)
 	save_button.pressed.connect(_on_SaveButton_pressed)
 	choose_container.add_child(save_button)
 
-	var forget_installation_dir_button = Button.new()
-	forget_installation_dir_button.text = "Forget Installation Directory"
-	forget_installation_dir_button.custom_minimum_size = Vector2(260, 48)
+	var forget_installation_dir_button = OD.Chrome.parchment_button("Forget Installation Directory", _font_res, INK_COLOR, _blank_tex, 18)
+	forget_installation_dir_button.custom_minimum_size = Vector2(280, 40)
 	forget_installation_dir_button.pressed.connect(_on_ForgetInstallationDirButton_pressed)
 	choose_container.add_child(forget_installation_dir_button)
 
@@ -114,7 +233,8 @@ func _add_volume_slider(parent, key, label_text, initial_value):
 
 	var label = Label.new()
 	label.text = label_text
-	label.custom_minimum_size = Vector2(200, 0)
+	label.custom_minimum_size = Vector2(210, 0)
+	_style_label(label, 19)
 	row.add_child(label)
 
 	var slider = HSlider.new()
@@ -123,12 +243,15 @@ func _add_volume_slider(parent, key, label_text, initial_value):
 	slider.step = 1
 	slider.value = initial_value
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_style_slider(slider)
 	slider.value_changed.connect(_on_volume_slider_changed.bind(key))
 	row.add_child(slider)
 
 	var value_label = Label.new()
 	value_label.text = str(int(initial_value)) + "%"
-	value_label.custom_minimum_size = Vector2(56, 0)
+	value_label.custom_minimum_size = Vector2(60, 0)
+	_style_label(value_label, 19)
 	row.add_child(value_label)
 
 	_volume_sliders[key] = slider

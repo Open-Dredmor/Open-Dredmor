@@ -1,9 +1,11 @@
 extends Control
 
+const SaveManagerScript = preload("res://script/instance/save_manager.gd")
+
 static func init_container():
 	return Control.new()
 
-const SAVES_DIR = "user://saves/"
+const SAVES_DIR = SaveManagerScript.SAVES_DIR
 
 var _saves = []
 var _selected_index = -1
@@ -63,6 +65,7 @@ func _build_gui():
 	_save_list.add_theme_font_override("font", assets.fonts.default)
 	_save_list.add_theme_font_size_override("font_size", 24)
 	_save_list.item_selected.connect(_on_save_selected)
+	_save_list.item_activated.connect(_on_save_activated)
 	content_row.add_child(_save_list)
 
 	var info_panel = TextureRect.new()
@@ -96,19 +99,9 @@ func _build_gui():
 	_refresh_saves()
 
 func _refresh_saves():
-	_saves = []
+	_saves = SaveManagerScript.list_saves(SAVES_DIR)
 	_selected_index = -1
 	_save_list.clear()
-	if DirAccess.dir_exists_absolute(SAVES_DIR):
-		var dir = DirAccess.open(SAVES_DIR)
-		if dir != null:
-			dir.list_dir_begin()
-			var file_name = dir.get_next()
-			while file_name != "":
-				if not dir.current_is_dir() and file_name.ends_with(".json"):
-					_saves.append(_read_save_summary(SAVES_DIR + file_name, file_name))
-				file_name = dir.get_next()
-			dir.list_dir_end()
 	for save_entry in _saves:
 		_save_list.add_item(save_entry.label)
 	if _saves.size() > 0:
@@ -118,24 +111,6 @@ func _refresh_saves():
 		_load_button.visible = false
 		_delete_button.visible = false
 		_details_label.text = "No saved games found in " + SAVES_DIR
-
-func _read_save_summary(path, file_name):
-	var summary = {
-		path = path,
-		file_name = file_name,
-		label = file_name.get_basename(),
-		details = "Save file: " + file_name
-	}
-	var file = FileAccess.open(path, FileAccess.READ)
-	if file != null:
-		var parsed = JSON.parse_string(file.get_as_text())
-		if typeof(parsed) == TYPE_DICTIONARY:
-			var char_name = parsed.get("name", file_name.get_basename())
-			var floor_num = parsed.get("floor", 1)
-			var difficulty = parsed.get("difficulty", "")
-			summary.label = str(char_name) + " (Floor " + str(floor_num) + ")"
-			summary.details = "Character: " + str(char_name) + "\nFloor: " + str(floor_num) + "\nDifficulty: " + str(difficulty) + "\nFile: " + file_name
-	return summary
 
 func _on_save_selected(index):
 	if index < 0 or index >= _saves.size():
@@ -151,9 +126,19 @@ func _on_DeleteButton_pressed():
 	DirAccess.remove_absolute(_saves[_selected_index].path)
 	_refresh_saves()
 
+func _on_save_activated(index):
+	_on_save_selected(index)
+	_on_LoadButton_pressed()
+
 func _on_LoadButton_pressed():
 	if _selected_index < 0 or _selected_index >= _saves.size():
 		return
+	var save_path = _saves[_selected_index].path
+	var loaded = SaveManagerScript.load_save_file(save_path)
+	if not loaded.ok:
+		_details_label.text = "Failed to load save: " + str(loaded.get("error", "Unknown error"))
+		return
+	SaveManagerScript.restore_run_settings(loaded.data, save_path)
 	OD.Scenes.goto(OD.Scenes.GAME)
 
 func _on_BackButton_pressed():

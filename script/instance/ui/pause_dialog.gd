@@ -139,6 +139,10 @@ func _build_main_menu_view():
 	save_btn.pressed.connect(_on_save_pressed)
 	_content_vbox.add_child(save_btn)
 
+	var save_quit_btn = OD.Chrome.parchment_button("Save & Quit", _font(), ink_color, blank_tex, 18)
+	save_quit_btn.pressed.connect(_on_save_and_quit_pressed)
+	_content_vbox.add_child(save_quit_btn)
+
 	var settings_btn = OD.Chrome.parchment_button("Settings", _font(), ink_color, blank_tex, 18)
 	settings_btn.pressed.connect(func():
 		_showing_settings = true
@@ -159,10 +163,19 @@ func _build_main_menu_view():
 
 func _on_save_pressed():
 	if _callbacks.has("on_save") and _callbacks.on_save.is_valid():
-		_callbacks.on_save.call()
+		var res = _callbacks.on_save.call()
+		if typeof(res) == TYPE_DICTIONARY and res.get("ok", false):
+			dismiss()
 		return
 	if OD.EventLog != null:
-		OD.EventLog.notify("Save/Load will be available in the next milestone.")
+		OD.EventLog.notify("Save/Load is unavailable in this scene.")
+
+func _on_save_and_quit_pressed():
+	if _callbacks.has("on_save_and_quit") and _callbacks.on_save_and_quit.is_valid():
+		_callbacks.on_save_and_quit.call()
+		return
+	dismiss()
+	OD.Scenes.goto(OD.Scenes.MAIN_MENU)
 
 func _build_settings_view():
 	var title = Label.new()

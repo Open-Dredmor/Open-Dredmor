@@ -29,7 +29,8 @@ func reset():
 		turn_pacing_seconds = 0.12,
 		active_packs = default_packs,
 		debug_teleport = false,
-		save_file_path = ""
+		save_file_path = "",
+		pending_load_data = null
 	}
 
 func set_difficulty(difficulty):
@@ -62,6 +63,15 @@ func set_save_file_path(path):
 
 func get_save_file_path():
 	return str(_settings.get("save_file_path", ""))
+
+func set_pending_load_data(data):
+	_settings.pending_load_data = data
+
+func get_pending_load_data():
+	return _settings.get("pending_load_data", null)
+
+func clear_pending_load_data():
+	_settings.pending_load_data = null
 
 func has_initialized_packs():
 	return _packs_initialized

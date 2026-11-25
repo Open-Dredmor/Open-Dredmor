@@ -1,15 +1,18 @@
 extends Control
 
+const DeathManagerScript = preload("res://script/instance/death_manager.gd")
+
 static func init_container():
 	return Control.new()
 
-const HIGH_SCORES_PATH = "user://high_scores.json"
+const HIGH_SCORES_PATH = DeathManagerScript.HIGH_SCORES_PATH
 
 var _scores = []
 var _sort_key = "score"
 var _sort_descending = true
 var _score_tree = null
 var _empty_label = null
+var _sort_buttons = {}
 
 func _ready():
 	call_deferred("_build_gui")
@@ -57,14 +60,17 @@ func _build_gui():
 	content_vbox.add_child(sort_row)
 
 	for sort_option in [
-		{ key = "score", label = "Sort by Score" },
-		{ key = "floor", label = "Sort by Floor" },
-		{ key = "name", label = "Sort by Name" }
+		{ key = "score", label = "Score" },
+		{ key = "floor", label = "Floor" },
+		{ key = "name", label = "Name" },
+		{ key = "difficulty", label = "Difficulty" },
+		{ key = "timestamp", label = "Date" }
 	]:
 		var btn = Button.new()
 		btn.text = sort_option.label
 		btn.pressed.connect(func(): _sort_by(sort_option.key))
 		sort_row.add_child(btn)
+		_sort_buttons[sort_option.key] = { button = btn, label = sort_option.label }
 
 	_empty_label = Label.new()
 	_empty_label.text = "No high scores recorded yet."
@@ -90,17 +96,7 @@ func _build_gui():
 	_render_scores()
 
 func _load_scores():
-	_scores = []
-	if not FileAccess.file_exists(HIGH_SCORES_PATH):
-		return
-	var file = FileAccess.open(HIGH_SCORES_PATH, FileAccess.READ)
-	if file == null:
-		return
-	var parsed = JSON.parse_string(file.get_as_text())
-	if typeof(parsed) == TYPE_ARRAY:
-		for entry in parsed:
-			if typeof(entry) == TYPE_DICTIONARY:
-				_scores.append(entry)
+	_scores = DeathManagerScript.load_high_scores(HIGH_SCORES_PATH)
 
 func _sort_by(key):
 	if _sort_key == key:
@@ -110,19 +106,32 @@ func _sort_by(key):
 		_sort_descending = key != "name"
 	_render_scores()
 
+func _update_sort_button_labels():
+	for key in _sort_buttons.keys():
+		var info = _sort_buttons[key]
+		var suffix = ""
+		if key == _sort_key:
+			suffix = " (Desc)" if _sort_descending else " (Asc)"
+		info.button.text = "Sort: " + info.label + suffix
+
 func _render_scores():
+	_update_sort_button_labels()
 	_score_tree.clear()
 	var has_scores = _scores.size() > 0
 	_empty_label.visible = not has_scores
 	_score_tree.visible = has_scores
 	if not has_scores:
 		return
+	var is_numeric = _sort_key in ["score", "floor", "level"]
 	_scores.sort_custom(func(entry_a, entry_b):
-		var val_a = entry_a.get(_sort_key, 0)
-		var val_b = entry_b.get(_sort_key, 0)
-		if _sort_descending:
-			return val_a > val_b
-		return val_a < val_b
+		if is_numeric:
+			var num_a = int(entry_a.get(_sort_key, 0))
+			var num_b = int(entry_b.get(_sort_key, 0))
+			return num_a > num_b if _sort_descending else num_a < num_b
+		var str_a = str(entry_a.get(_sort_key, ""))
+		var str_b = str(entry_b.get(_sort_key, ""))
+		var cmp = str_a.naturalnocasecmp_to(str_b)
+		return cmp > 0 if _sort_descending else cmp < 0
 	)
 	var root = _score_tree.create_item()
 	for entry in _scores:
