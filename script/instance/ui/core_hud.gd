@@ -4,6 +4,9 @@ class_name CoreHud
 
 const SpellEngineScript = preload("res://script/instance/combat/spell_engine.gd")
 const MinimapOverlayScript = preload("res://script/instance/ui/minimap.gd")
+const SkillTreeDialogScript = preload("res://script/instance/ui/skill_tree_dialog.gd")
+const QuestDialogScript = preload("res://script/instance/ui/quest_dialog.gd")
+const PauseDialogScript = preload("res://script/instance/ui/pause_dialog.gd")
 
 const BAR_WIDTH = 1024.0
 const BAR_HEIGHT = 120.0
@@ -12,11 +15,11 @@ const MAX_LOG_LINES = 7
 
 const MENU_TABS = [
 	{ id = "menu", prefix = "ui/gameplay/game_button_menu", tip = "Menu (Esc)" },
-	{ id = "character", prefix = "ui/gameplay/game_button_character", tip = "Character Sheet (I)" },
+	{ id = "character", prefix = "ui/gameplay/game_button_character", tip = "Character Sheet (C)" },
 	{ id = "inventory", prefix = "ui/gameplay/game_button_inventory", tip = "Inventory (I)" },
 	{ id = "skills", prefix = "ui/gameplay/game_button_skills", tip = "Skills & Spells (M)" },
-	{ id = "quests", prefix = "ui/gameplay/game_button_quests", tip = "Quests" },
-	{ id = "crafting", prefix = "ui/gameplay/game_button_crafting", tip = "Crafting (C)" }
+	{ id = "quests", prefix = "ui/gameplay/game_button_quests", tip = "Quests (Q)" },
+	{ id = "crafting", prefix = "ui/gameplay/game_button_crafting", tip = "Crafting (K)" }
 ]
 
 var _dungeon = null
@@ -41,9 +44,10 @@ var _xp_label = null
 
 var _belt_buttons = []
 var _spell_buttons = []
-var _spellbook_popup = null
-var _spellbook_list_vbox = null
-var _menu_popup = null
+var _skill_points_badge = null
+var _skill_dialog = null
+var _quest_dialog = null
+var _pause_dialog = null
 
 func _ready():
 	_update_bar_scale()
@@ -244,10 +248,18 @@ func _build_menu_tabs():
 		btn.texture_hover = _load_tex(tab.prefix + "1.png")
 		btn.texture_pressed = _load_tex(tab.prefix + "2.png")
 		btn.tooltip_text = tab.tip
+		btn.focus_mode = Control.FOCUS_NONE
 		btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		var tab_id = tab.id
 		btn.pressed.connect(func(): _on_menu_tab_pressed(tab_id))
 		_bar_root.add_child(btn)
+		if tab_id == "skills":
+			_skill_points_badge = _styled_label(11, Color(1.0, 0.88, 0.25), 2)
+			_skill_points_badge.position = Vector2(tab_w - 18, -4)
+			_skill_points_badge.size = Vector2(20, 14)
+			_skill_points_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			_skill_points_badge.visible = false
+			btn.add_child(_skill_points_badge)
 
 func _build_zorkmid_box():
 	_zorkmid_label = _styled_label(16, Color(0.95, 0.92, 0.85), 2)
@@ -418,10 +430,16 @@ func _connect_signals():
 		player.hp_changed.connect(func(_c, _m): refresh_vitals())
 		player.mp_changed.connect(func(_c, _m): refresh_vitals())
 		player.xp_changed.connect(func(_x, _n, _l): refresh_vitals())
-		player.leveled_up.connect(func(_l, _sp): refresh_vitals())
+		player.leveled_up.connect(func(_l, _sp):
+			refresh_vitals()
+			refresh_skill_badge()
+		)
 		player.zorkmids_changed.connect(func(_z): refresh_zorkmids())
 		player.stats_changed.connect(refresh_vitals)
-		player.skills_changed.connect(refresh_spell_hotbar)
+		player.skills_changed.connect(func():
+			refresh_spell_hotbar()
+			refresh_skill_badge()
+		)
 		player.inventory_changed.connect(func():
 			player.sync_belt_with_inventory()
 			refresh_belt()
@@ -440,6 +458,20 @@ func refresh_all():
 	refresh_zorkmids()
 	refresh_belt()
 	refresh_spell_hotbar()
+	refresh_skill_badge()
+
+func refresh_skill_badge():
+	if _skill_points_badge == null or not is_instance_valid(_skill_points_badge):
+		return
+	if _dungeon == null or not is_instance_valid(_dungeon):
+		_skill_points_badge.visible = false
+		return
+	var player = _dungeon.get_player()
+	if player == null or int(player.skill_points) <= 0:
+		_skill_points_badge.visible = false
+		return
+	_skill_points_badge.text = "+" + str(int(player.skill_points))
+	_skill_points_badge.visible = true
 
 func refresh_location():
 	if _dungeon == null or not is_instance_valid(_dungeon):
@@ -623,33 +655,48 @@ func _on_menu_tab_pressed(tab_id):
 	match tab_id:
 		"menu":
 			toggle_pause_menu()
-		"character", "inventory":
+		"character":
+			close_all_modals()
+			if _callbacks.has("on_character") and _callbacks.on_character.is_valid():
+				_callbacks.on_character.call()
+			elif _callbacks.has("on_inventory") and _callbacks.on_inventory.is_valid():
+				_callbacks.on_inventory.call()
+		"inventory":
+			close_all_modals()
 			if _callbacks.has("on_inventory") and _callbacks.on_inventory.is_valid():
 				_callbacks.on_inventory.call()
 		"skills":
-			toggle_spellbook()
+			toggle_skill_tree()
 		"crafting":
-			if _dungeon != null and is_instance_valid(_dungeon):
+			close_all_modals()
+			if _callbacks.has("on_crafting") and _callbacks.on_crafting.is_valid():
+				_callbacks.on_crafting.call()
+			elif _dungeon != null and is_instance_valid(_dungeon):
 				_dungeon.open_crafting_dialog()
 		"quests":
-			if OD.EventLog != null:
-				OD.EventLog.notify("No active quests.")
+			toggle_quest_log()
 
 func is_modal_open():
-	return is_instance_valid(_spellbook_popup) or is_instance_valid(_menu_popup)
+	return is_instance_valid(_skill_dialog) or is_instance_valid(_quest_dialog) or is_instance_valid(_pause_dialog)
 
 func is_spellbook_open():
-	return is_instance_valid(_spellbook_popup)
+	return is_instance_valid(_skill_dialog)
+
+func close_all_modals():
+	_close_pause_menu()
+	_close_skill_tree()
+	_close_quest_log()
+
+func _notify_before_open_modal():
+	close_all_modals()
+	if _callbacks.has("on_before_open_modal") and _callbacks.on_before_open_modal.is_valid():
+		_callbacks.on_before_open_modal.call()
 
 func handle_key_input(ev):
 	if not (ev is InputEventKey) or not ev.is_pressed() or ev.echo:
 		return false
-	if is_instance_valid(_menu_popup) and ev.keycode == KEY_ESCAPE:
-		_close_pause_menu()
-		return true
-	if is_instance_valid(_spellbook_popup) and ev.keycode == KEY_ESCAPE:
-		_close_spellbook()
-		return true
+	if is_modal_open():
+		return false
 	if _log_expanded and ev.keycode == KEY_ESCAPE:
 		toggle_log_history()
 		return true
@@ -657,7 +704,10 @@ func handle_key_input(ev):
 		toggle_log_history()
 		return true
 	if ev.keycode == KEY_M:
-		toggle_spellbook()
+		toggle_skill_tree()
+		return true
+	if ev.keycode == KEY_Q:
+		toggle_quest_log()
 		return true
 	if ev.keycode == KEY_TAB:
 		if _minimap != null and is_instance_valid(_minimap):
@@ -681,173 +731,62 @@ func handle_key_input(ev):
 	return false
 
 func toggle_pause_menu():
-	if is_instance_valid(_menu_popup):
+	if is_instance_valid(_pause_dialog):
 		_close_pause_menu()
 		return
-	var center = CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(center)
-	_menu_popup = center
-
-	var panel = PanelContainer.new()
-	panel.custom_minimum_size = Vector2(340, 220)
-	panel.add_theme_stylebox_override("panel", _create_dialog_style())
-	center.add_child(panel)
-
-	var vbox = VBoxContainer.new()
-	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	vbox.add_theme_constant_override("separation", 12)
-	panel.add_child(vbox)
-
-	var title = _styled_label(24, Color(0.22, 0.14, 0.08), 0)
-	title.text = "Game Menu"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(title)
-
-	var dialog_assets = OD.Assets.dialog() if OD.Assets != null else null
-	var blank_tex = dialog_assets.textures.blank if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("blank") else null
-	var ink_color = Color(0.18, 0.12, 0.08)
-
-	var resume_btn = OD.Chrome.parchment_button("Resume", _font(), ink_color, blank_tex, 18)
-	resume_btn.pressed.connect(_close_pause_menu)
-	vbox.add_child(resume_btn)
-
-	var main_btn = OD.Chrome.parchment_button("Main Menu", _font(), ink_color, blank_tex, 18)
-	main_btn.pressed.connect(func(): OD.Scenes.goto(OD.Scenes.MAIN_MENU))
-	vbox.add_child(main_btn)
-
-	var quit_btn = OD.Chrome.parchment_button("Quit", _font(), ink_color, blank_tex, 18)
-	quit_btn.pressed.connect(func(): OD.Scenes.quit())
-	vbox.add_child(quit_btn)
+	_notify_before_open_modal()
+	_pause_dialog = PauseDialogScript.new().init({
+		on_close = func(): _pause_dialog = null
+	})
+	add_child(_pause_dialog)
 
 func _close_pause_menu():
-	if is_instance_valid(_menu_popup):
-		_menu_popup.queue_free()
-		_menu_popup = null
+	if is_instance_valid(_pause_dialog):
+		_pause_dialog.queue_free()
+		_pause_dialog = null
 
-func toggle_spellbook():
-	if is_instance_valid(_spellbook_popup):
-		_close_spellbook()
-	else:
-		_open_spellbook()
-
-func _close_spellbook():
-	if is_instance_valid(_spellbook_popup):
-		_spellbook_popup.queue_free()
-		_spellbook_popup = null
-		_spellbook_list_vbox = null
-
-func _create_dialog_style():
-	var dialog_assets = OD.Assets.dialog() if OD.Assets != null else null
-	var bg_tex = dialog_assets.textures.alert_bigger if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("alert_bigger") else null
-	if bg_tex != null:
-		var style_box = StyleBoxTexture.new()
-		style_box.texture = bg_tex
-		style_box.texture_margin_left = 44
-		style_box.texture_margin_right = 44
-		style_box.texture_margin_top = 44
-		style_box.texture_margin_bottom = 44
-		style_box.content_margin_left = 36
-		style_box.content_margin_right = 36
-		style_box.content_margin_top = 30
-		style_box.content_margin_bottom = 32
-		return style_box
-	var fallback = StyleBoxFlat.new()
-	fallback.bg_color = Color(0.14, 0.11, 0.09, 0.94)
-	fallback.border_color = Color(0.6, 0.48, 0.3, 0.95)
-	fallback.set_border_width_all(2)
-	fallback.set_content_margin_all(24)
-	return fallback
-
-func _open_spellbook():
-	_close_spellbook()
-	var viewport_size = get_viewport_rect().size
-	var panel_w = clamp(viewport_size.x * 0.55, 480.0, 760.0)
-	var panel_h = clamp(viewport_size.y * 0.65, 360.0, 560.0)
-
-	var center = CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(center)
-	_spellbook_popup = center
-
-	var panel = PanelContainer.new()
-	panel.custom_minimum_size = Vector2(panel_w, panel_h)
-	panel.add_theme_stylebox_override("panel", _create_dialog_style())
-	center.add_child(panel)
-
-	var root_vbox = VBoxContainer.new()
-	root_vbox.add_theme_constant_override("separation", 10)
-	panel.add_child(root_vbox)
-
-	var header = HBoxContainer.new()
-	root_vbox.add_child(header)
-	var title = Label.new()
-	title.text = "Spellbook"
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.add_theme_font_size_override("font_size", 22)
-	header.add_child(title)
-	var close_btn = Button.new()
-	close_btn.text = "Close"
-	close_btn.pressed.connect(_close_spellbook)
-	header.add_child(close_btn)
-
-	var scroll = ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	root_vbox.add_child(scroll)
-
-	_spellbook_list_vbox = VBoxContainer.new()
-	_spellbook_list_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_spellbook_list_vbox.add_theme_constant_override("separation", 8)
-	scroll.add_child(_spellbook_list_vbox)
-
-	_populate_spellbook()
-
-func _populate_spellbook():
-	if _spellbook_list_vbox == null or _dungeon == null:
+func toggle_skill_tree(initial_tab = "skills"):
+	if is_instance_valid(_skill_dialog):
+		_close_skill_tree()
 		return
-	for child in _spellbook_list_vbox.get_children():
-		child.queue_free()
+	if _dungeon == null or not is_instance_valid(_dungeon):
+		return
 	var player = _dungeon.get_player()
 	if player == null:
 		return
-	if player.unlocked_spells.is_empty():
-		var empty_lbl = Label.new()
-		empty_lbl.text = "No spells unlocked yet. Unlock wizard or skill abilities as you level up."
-		empty_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_spellbook_list_vbox.add_child(empty_lbl)
+	_notify_before_open_modal()
+	_skill_dialog = SkillTreeDialogScript.new().init(player, {
+		on_cast_spell = func(spell_name):
+			_skill_dialog = null
+			_dungeon.begin_spell_targeting(spell_name),
+		on_close = func(): _skill_dialog = null
+	}, initial_tab)
+	add_child(_skill_dialog)
+
+func _close_skill_tree():
+	if is_instance_valid(_skill_dialog):
+		_skill_dialog.queue_free()
+		_skill_dialog = null
+
+func toggle_spellbook():
+	toggle_skill_tree("spells")
+
+func toggle_quest_log():
+	if is_instance_valid(_quest_dialog):
+		_close_quest_log()
 		return
-	for spell_name in player.unlocked_spells:
-		var spell_def = OD.Database.get_spell(spell_name) if OD.Database != null else null
-		if spell_def == null:
-			continue
-		var row = HBoxContainer.new()
-		row.add_theme_constant_override("separation", 10)
-		_spellbook_list_vbox.add_child(row)
+	if _dungeon == null or not is_instance_valid(_dungeon):
+		return
+	var player = _dungeon.get_player()
+	if player == null:
+		return
+	_notify_before_open_modal()
+	_quest_dialog = QuestDialogScript.new().init(player, {
+		on_close = func(): _quest_dialog = null
+	})
+	add_child(_quest_dialog)
 
-		var info_vbox = VBoxContainer.new()
-		info_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(info_vbox)
-
-		var cost = SpellEngineScript.compute_mana_cost(player, spell_def)
-		var cd = player.get_spell_cooldown(spell_name)
-		var max_cd = SpellEngineScript.get_cooldown_turns(spell_def)
-		var header_lbl = Label.new()
-		header_lbl.text = spell_name + "  [MP: " + str(cost) + " | CD: " + str(cd) + "/" + str(max_cd) + " | " + str(spell_def.type) + "]"
-		info_vbox.add_child(header_lbl)
-
-		if str(spell_def.description) != "":
-			var desc_lbl = Label.new()
-			desc_lbl.text = str(spell_def.description)
-			desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			desc_lbl.add_theme_font_size_override("font_size", 13)
-			info_vbox.add_child(desc_lbl)
-
-		var cast_btn = Button.new()
-		cast_btn.text = "Cast"
-		var chosen = spell_name
-		cast_btn.pressed.connect(func():
-			_close_spellbook()
-			_dungeon.begin_spell_targeting(chosen)
-		)
-		row.add_child(cast_btn)
+func _close_quest_log():
+	if is_instance_valid(_quest_dialog):
+		_quest_dialog.queue_free()
+		_quest_dialog = null

@@ -191,6 +191,7 @@ const TOOLTIP_MIN_WIDTH = 240
 const TOOLTIP_FONT_SIZE = 14
 
 var _player = null
+var _mode = "both"
 var _drop_inv_cb = Callable()
 var _drop_equip_cb = Callable()
 var _use_inv_cb = Callable()
@@ -225,8 +226,9 @@ var _drop_all_btn = null
 var _last_click_time_ms = 0
 var _last_click_key = ""
 
-func init(player, callbacks = {}):
+func init(player, callbacks = {}, mode = "both"):
 	_player = player
+	_mode = mode if mode in ["character", "inventory", "both"] else "both"
 	_drop_inv_cb = callbacks.get("on_drop_inventory", Callable())
 	_drop_equip_cb = callbacks.get("on_drop_equipped", Callable())
 	_use_inv_cb = callbacks.get("on_use_inventory", Callable())
@@ -288,7 +290,12 @@ func _build_ui():
 	var dialog_assets = OD.Assets.dialog()
 	var font = dialog_assets.font if dialog_assets != null else null
 	var vp_size = _get_viewport_size()
-	var ui_scale = clamp(min((vp_size.x - UI_SCALE_MARGIN.x) / UI_SCALE_REF_SIZE.x, (vp_size.y - UI_SCALE_MARGIN.y) / UI_SCALE_REF_SIZE.y), UI_SCALE_MIN, UI_SCALE_MAX)
+	var ref_size = UI_SCALE_REF_SIZE
+	if _mode == "character":
+		ref_size = Vector2(340.0, 560.0)
+	elif _mode == "inventory":
+		ref_size = Vector2(660.0, 620.0)
+	var ui_scale = clamp(min((vp_size.x - UI_SCALE_MARGIN.x) / ref_size.x, (vp_size.y - UI_SCALE_MARGIN.y) / ref_size.y), UI_SCALE_MIN, UI_SCALE_MAX)
 
 	var backdrop = ColorRect.new()
 	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -309,202 +316,207 @@ func _build_ui():
 	windows_hbox.add_theme_constant_override("separation", WINDOWS_HBOX_SEPARATION)
 	root_vbox.add_child(windows_hbox)
 
-	var char_scale = ui_scale * CHAR_PANEL_EXTRA_SCALE
-	var char_holder = Control.new()
-	char_holder.custom_minimum_size = CHAR_PANEL_SIZE * char_scale
-	windows_hbox.add_child(char_holder)
+	var show_char = _mode in ["character", "both"]
+	var show_inv = _mode in ["inventory", "both"]
 
-	var char_panel = Control.new()
-	char_panel.custom_minimum_size = CHAR_PANEL_SIZE
-	char_panel.size = CHAR_PANEL_SIZE
-	char_panel.scale = Vector2(char_scale, char_scale)
-	char_holder.add_child(char_panel)
-
-	var char_bg = TextureRect.new()
-	char_bg.texture = _load_tex(CHAR_PANEL_TEX)
-	char_bg.size = CHAR_PANEL_SIZE
-	char_bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	char_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	char_panel.add_child(char_bg)
-
-	_char_name_label = Label.new()
-	_char_name_label.position = CHAR_NAME_RECT.position
-	_char_name_label.size = CHAR_NAME_RECT.size
-	_char_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_style_label(_char_name_label, font, CHAR_NAME_FONT_SIZE, Color(0.95, 0.9, 0.72))
-	char_panel.add_child(_char_name_label)
-
-	var char_close = _make_texture_button(CLOSE_BTN_TEXS, CHAR_CLOSE_BTN_RECT.size)
-	char_close.position = CHAR_CLOSE_BTN_RECT.position
-	char_close.pressed.connect(dismiss)
-	char_panel.add_child(char_close)
-
-	var resist_scroll = ScrollContainer.new()
-	resist_scroll.position = RESIST_SCROLL_RECT.position
-	resist_scroll.size = RESIST_SCROLL_RECT.size
-	resist_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	char_panel.add_child(resist_scroll)
-
-	_resist_vbox = VBoxContainer.new()
-	_resist_vbox.add_theme_constant_override("separation", RESIST_VBOX_SEPARATION)
-	resist_scroll.add_child(_resist_vbox)
-
-	var slot_fill = _load_tex(SLOT_FILL_TEX)
 	_equip_buttons.clear()
-	for slot_name in CHAR_SLOT_RECTS:
-		var rect = CHAR_SLOT_RECTS[slot_name]
-		var slot_btn = _make_slot_button(rect.size, null, font)
-		slot_btn.position = rect.position
-		slot_btn.size = rect.size
-		slot_btn.gui_input.connect(func(ev): _on_equip_slot_gui_input(ev, slot_name))
-		slot_btn.mouse_entered.connect(func(): _show_tooltip_for_equip(slot_name))
-		slot_btn.mouse_exited.connect(_hide_tooltip)
-		char_panel.add_child(slot_btn)
-		_equip_buttons[slot_name] = slot_btn
+	if show_char:
+		var char_scale = ui_scale * CHAR_PANEL_EXTRA_SCALE
+		var char_holder = Control.new()
+		char_holder.custom_minimum_size = CHAR_PANEL_SIZE * char_scale
+		windows_hbox.add_child(char_holder)
 
-	_melee_label = Label.new()
-	_melee_label.position = MELEE_LABEL_RECT.position
-	_melee_label.size = MELEE_LABEL_RECT.size
-	_melee_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_melee_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_style_label(_melee_label, font, COMBAT_STAT_FONT_SIZE, Color(0.95, 0.92, 0.84))
-	char_panel.add_child(_melee_label)
+		var char_panel = Control.new()
+		char_panel.custom_minimum_size = CHAR_PANEL_SIZE
+		char_panel.size = CHAR_PANEL_SIZE
+		char_panel.scale = Vector2(char_scale, char_scale)
+		char_holder.add_child(char_panel)
 
-	_ranged_label = Label.new()
-	_ranged_label.position = RANGED_LABEL_RECT.position
-	_ranged_label.size = RANGED_LABEL_RECT.size
-	_ranged_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_ranged_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_style_label(_ranged_label, font, COMBAT_STAT_FONT_SIZE, Color(0.95, 0.92, 0.84))
-	char_panel.add_child(_ranged_label)
+		var char_bg = TextureRect.new()
+		char_bg.texture = _load_tex(CHAR_PANEL_TEX)
+		char_bg.size = CHAR_PANEL_SIZE
+		char_bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		char_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		char_panel.add_child(char_bg)
 
-	_level_label = Label.new()
-	_level_label.position = LEVEL_LABEL_RECT.position
-	_level_label.size = LEVEL_LABEL_RECT.size
-	_level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_style_label(_level_label, font, LEVEL_FONT_SIZE, Color(0.96, 0.92, 0.8))
-	char_panel.add_child(_level_label)
+		_char_name_label = Label.new()
+		_char_name_label.position = CHAR_NAME_RECT.position
+		_char_name_label.size = CHAR_NAME_RECT.size
+		_char_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_style_label(_char_name_label, font, CHAR_NAME_FONT_SIZE, Color(0.95, 0.9, 0.72))
+		char_panel.add_child(_char_name_label)
 
-	_skillbar_labels.clear()
-	for branch_key in SKILLBAR_Y:
-		var num_lbl = Label.new()
-		num_lbl.position = Vector2(SKILLNUM_X, SKILLNUM_Y[branch_key])
-		num_lbl.size = SKILLNUM_SIZE
-		num_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		num_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		_style_label(num_lbl, font, SKILLNUM_FONT_SIZE, Color(0.96, 0.94, 0.88))
-		char_panel.add_child(num_lbl)
-		_skillbar_labels[branch_key] = num_lbl
+		var char_close = _make_texture_button(CLOSE_BTN_TEXS, CHAR_CLOSE_BTN_RECT.size)
+		char_close.position = CHAR_CLOSE_BTN_RECT.position
+		char_close.pressed.connect(dismiss)
+		char_panel.add_child(char_close)
 
-		var bar_hbox = HBoxContainer.new()
-		bar_hbox.position = Vector2(SKILLBAR_X, SKILLBAR_Y[branch_key])
-		bar_hbox.size = SKILLBAR_SIZE
-		bar_hbox.add_theme_constant_override("separation", 0)
-		char_panel.add_child(bar_hbox)
-		_skillbar_containers[branch_key] = bar_hbox
+		var resist_scroll = ScrollContainer.new()
+		resist_scroll.position = RESIST_SCROLL_RECT.position
+		resist_scroll.size = RESIST_SCROLL_RECT.size
+		resist_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		char_panel.add_child(resist_scroll)
 
-	_primary_labels.clear()
-	for p_info in PRIMARY_STAT_POSITIONS:
-		var lbl = Label.new()
-		lbl.position = p_info.pos
-		lbl.size = PRIMARY_STAT_SIZE
-		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		_style_label(lbl, font, PRIMARY_STAT_FONT_SIZE, Color(0.96, 0.94, 0.88))
-		char_panel.add_child(lbl)
-		_primary_labels[p_info.key] = lbl
+		_resist_vbox = VBoxContainer.new()
+		_resist_vbox.add_theme_constant_override("separation", RESIST_VBOX_SEPARATION)
+		resist_scroll.add_child(_resist_vbox)
 
-	_secondary_labels.clear()
-	for row_idx in range(SECONDARY_GRID_KEYS.size()):
-		for col_idx in range(3):
-			var sec_key = SECONDARY_GRID_KEYS[row_idx][col_idx]
+		var slot_fill = _load_tex(SLOT_FILL_TEX)
+		for slot_name in CHAR_SLOT_RECTS:
+			var rect = CHAR_SLOT_RECTS[slot_name]
+			var slot_btn = _make_slot_button(rect.size, null, font)
+			slot_btn.position = rect.position
+			slot_btn.size = rect.size
+			slot_btn.gui_input.connect(func(ev): _on_equip_slot_gui_input(ev, slot_name))
+			slot_btn.mouse_entered.connect(func(): _show_tooltip_for_equip(slot_name))
+			slot_btn.mouse_exited.connect(_hide_tooltip)
+			char_panel.add_child(slot_btn)
+			_equip_buttons[slot_name] = slot_btn
+
+		_melee_label = Label.new()
+		_melee_label.position = MELEE_LABEL_RECT.position
+		_melee_label.size = MELEE_LABEL_RECT.size
+		_melee_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		_melee_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_style_label(_melee_label, font, COMBAT_STAT_FONT_SIZE, Color(0.95, 0.92, 0.84))
+		char_panel.add_child(_melee_label)
+
+		_ranged_label = Label.new()
+		_ranged_label.position = RANGED_LABEL_RECT.position
+		_ranged_label.size = RANGED_LABEL_RECT.size
+		_ranged_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		_ranged_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_style_label(_ranged_label, font, COMBAT_STAT_FONT_SIZE, Color(0.95, 0.92, 0.84))
+		char_panel.add_child(_ranged_label)
+
+		_level_label = Label.new()
+		_level_label.position = LEVEL_LABEL_RECT.position
+		_level_label.size = LEVEL_LABEL_RECT.size
+		_level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_style_label(_level_label, font, LEVEL_FONT_SIZE, Color(0.96, 0.92, 0.8))
+		char_panel.add_child(_level_label)
+
+		_skillbar_labels.clear()
+		for branch_key in SKILLBAR_Y:
+			var num_lbl = Label.new()
+			num_lbl.position = Vector2(SKILLNUM_X, SKILLNUM_Y[branch_key])
+			num_lbl.size = SKILLNUM_SIZE
+			num_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			num_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			_style_label(num_lbl, font, SKILLNUM_FONT_SIZE, Color(0.96, 0.94, 0.88))
+			char_panel.add_child(num_lbl)
+			_skillbar_labels[branch_key] = num_lbl
+
+			var bar_hbox = HBoxContainer.new()
+			bar_hbox.position = Vector2(SKILLBAR_X, SKILLBAR_Y[branch_key])
+			bar_hbox.size = SKILLBAR_SIZE
+			bar_hbox.add_theme_constant_override("separation", 0)
+			char_panel.add_child(bar_hbox)
+			_skillbar_containers[branch_key] = bar_hbox
+
+		_primary_labels.clear()
+		for p_info in PRIMARY_STAT_POSITIONS:
 			var lbl = Label.new()
-			lbl.position = Vector2(SECONDARY_COL_X[col_idx], SECONDARY_START_Y + row_idx * SECONDARY_ROW_STEP_Y)
-			lbl.size = SECONDARY_STAT_SIZE
+			lbl.position = p_info.pos
+			lbl.size = PRIMARY_STAT_SIZE
 			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			_style_label(lbl, font, SECONDARY_STAT_FONT_SIZE, Color(0.96, 0.94, 0.88))
+			_style_label(lbl, font, PRIMARY_STAT_FONT_SIZE, Color(0.96, 0.94, 0.88))
 			char_panel.add_child(lbl)
-			_secondary_labels[sec_key] = lbl
+			_primary_labels[p_info.key] = lbl
 
-	_life_label = Label.new()
-	_life_label.position = LIFE_LABEL_RECT.position
-	_life_label.size = LIFE_LABEL_RECT.size
-	_life_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_life_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_style_label(_life_label, font, VITALS_FONT_SIZE, Color(0.98, 0.92, 0.9))
-	char_panel.add_child(_life_label)
+		_secondary_labels.clear()
+		for row_idx in range(SECONDARY_GRID_KEYS.size()):
+			for col_idx in range(3):
+				var sec_key = SECONDARY_GRID_KEYS[row_idx][col_idx]
+				var lbl = Label.new()
+				lbl.position = Vector2(SECONDARY_COL_X[col_idx], SECONDARY_START_Y + row_idx * SECONDARY_ROW_STEP_Y)
+				lbl.size = SECONDARY_STAT_SIZE
+				lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+				_style_label(lbl, font, SECONDARY_STAT_FONT_SIZE, Color(0.96, 0.94, 0.88))
+				char_panel.add_child(lbl)
+				_secondary_labels[sec_key] = lbl
 
-	_mana_label = Label.new()
-	_mana_label.position = MANA_LABEL_RECT.position
-	_mana_label.size = MANA_LABEL_RECT.size
-	_mana_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_mana_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_style_label(_mana_label, font, VITALS_FONT_SIZE, Color(0.9, 0.94, 0.98))
-	char_panel.add_child(_mana_label)
+		_life_label = Label.new()
+		_life_label.position = LIFE_LABEL_RECT.position
+		_life_label.size = LIFE_LABEL_RECT.size
+		_life_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_life_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_style_label(_life_label, font, VITALS_FONT_SIZE, Color(0.98, 0.92, 0.9))
+		char_panel.add_child(_life_label)
 
-	_hp_regen_label = Label.new()
-	_hp_regen_label.position = HP_REGEN_LABEL_RECT.position
-	_hp_regen_label.size = HP_REGEN_LABEL_RECT.size
-	_hp_regen_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_hp_regen_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_style_label(_hp_regen_label, font, VITALS_FONT_SIZE, Color(0.95, 0.85, 0.85))
-	char_panel.add_child(_hp_regen_label)
+		_mana_label = Label.new()
+		_mana_label.position = MANA_LABEL_RECT.position
+		_mana_label.size = MANA_LABEL_RECT.size
+		_mana_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_mana_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_style_label(_mana_label, font, VITALS_FONT_SIZE, Color(0.9, 0.94, 0.98))
+		char_panel.add_child(_mana_label)
 
-	_mp_regen_label = Label.new()
-	_mp_regen_label.position = MP_REGEN_LABEL_RECT.position
-	_mp_regen_label.size = MP_REGEN_LABEL_RECT.size
-	_mp_regen_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_mp_regen_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_style_label(_mp_regen_label, font, VITALS_FONT_SIZE, Color(0.85, 0.9, 0.98))
-	char_panel.add_child(_mp_regen_label)
+		_hp_regen_label = Label.new()
+		_hp_regen_label.position = HP_REGEN_LABEL_RECT.position
+		_hp_regen_label.size = HP_REGEN_LABEL_RECT.size
+		_hp_regen_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_hp_regen_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_style_label(_hp_regen_label, font, VITALS_FONT_SIZE, Color(0.95, 0.85, 0.85))
+		char_panel.add_child(_hp_regen_label)
 
-	var inv_holder = Control.new()
-	inv_holder.custom_minimum_size = INV_PANEL_SIZE * ui_scale
-	windows_hbox.add_child(inv_holder)
-
-	var inv_panel = Control.new()
-	inv_panel.custom_minimum_size = INV_PANEL_SIZE
-	inv_panel.size = INV_PANEL_SIZE
-	inv_panel.scale = Vector2(ui_scale, ui_scale)
-	inv_holder.add_child(inv_panel)
-
-	var inv_bg = TextureRect.new()
-	inv_bg.texture = _load_tex(INV_PANEL_TEX)
-	inv_bg.size = INV_PANEL_SIZE
-	inv_bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	inv_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	inv_panel.add_child(inv_bg)
-
-	var inv_close = _make_texture_button(CLOSE_BTN_TEXS, INV_CLOSE_BTN_RECT.size)
-	inv_close.position = INV_CLOSE_BTN_RECT.position
-	inv_close.pressed.connect(dismiss)
-	inv_panel.add_child(inv_close)
-
-	var sort_btn = _make_texture_button(SORT_BTN_TEXS, SORT_BTN_RECT.size)
-	sort_btn.position = SORT_BTN_RECT.position
-	sort_btn.size = SORT_BTN_RECT.size
-	sort_btn.pressed.connect(func():
-		if _player != null:
-			_selected_source = null
-			_player.sort_inventory()
-	)
-	inv_panel.add_child(sort_btn)
+		_mp_regen_label = Label.new()
+		_mp_regen_label.position = MP_REGEN_LABEL_RECT.position
+		_mp_regen_label.size = MP_REGEN_LABEL_RECT.size
+		_mp_regen_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_mp_regen_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_style_label(_mp_regen_label, font, VITALS_FONT_SIZE, Color(0.85, 0.9, 0.98))
+		char_panel.add_child(_mp_regen_label)
 
 	_inv_buttons.clear()
-	for ii in range(PlayerCharacter.INVENTORY_SIZE):
-		var slot_idx = ii
-		var row_idx = ii / PlayerCharacter.INVENTORY_COLS
-		var col_idx = ii % PlayerCharacter.INVENTORY_COLS
-		var inv_btn = _make_slot_button(INV_SLOT_SIZE, null, font)
-		inv_btn.position = Vector2(INV_SLOT_START.x + col_idx * INV_SLOT_STEP.x, INV_SLOT_START.y + row_idx * INV_SLOT_STEP.y)
-		inv_btn.size = INV_SLOT_SIZE
-		inv_btn.gui_input.connect(func(ev): _on_inv_slot_gui_input(ev, slot_idx))
-		inv_btn.mouse_entered.connect(func(): _show_tooltip_for_inv(slot_idx))
-		inv_btn.mouse_exited.connect(_hide_tooltip)
-		inv_panel.add_child(inv_btn)
-		_inv_buttons.append(inv_btn)
+	if show_inv:
+		var inv_holder = Control.new()
+		inv_holder.custom_minimum_size = INV_PANEL_SIZE * ui_scale
+		windows_hbox.add_child(inv_holder)
+
+		var inv_panel = Control.new()
+		inv_panel.custom_minimum_size = INV_PANEL_SIZE
+		inv_panel.size = INV_PANEL_SIZE
+		inv_panel.scale = Vector2(ui_scale, ui_scale)
+		inv_holder.add_child(inv_panel)
+
+		var inv_bg = TextureRect.new()
+		inv_bg.texture = _load_tex(INV_PANEL_TEX)
+		inv_bg.size = INV_PANEL_SIZE
+		inv_bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		inv_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		inv_panel.add_child(inv_bg)
+
+		var inv_close = _make_texture_button(CLOSE_BTN_TEXS, INV_CLOSE_BTN_RECT.size)
+		inv_close.position = INV_CLOSE_BTN_RECT.position
+		inv_close.pressed.connect(dismiss)
+		inv_panel.add_child(inv_close)
+
+		var sort_btn = _make_texture_button(SORT_BTN_TEXS, SORT_BTN_RECT.size)
+		sort_btn.position = SORT_BTN_RECT.position
+		sort_btn.size = SORT_BTN_RECT.size
+		sort_btn.pressed.connect(func():
+			if _player != null:
+				_selected_source = null
+				_player.sort_inventory()
+		)
+		inv_panel.add_child(sort_btn)
+
+		for ii in range(PlayerCharacter.INVENTORY_SIZE):
+			var slot_idx = ii
+			var row_idx = ii / PlayerCharacter.INVENTORY_COLS
+			var col_idx = ii % PlayerCharacter.INVENTORY_COLS
+			var inv_btn = _make_slot_button(INV_SLOT_SIZE, null, font)
+			inv_btn.position = Vector2(INV_SLOT_START.x + col_idx * INV_SLOT_STEP.x, INV_SLOT_START.y + row_idx * INV_SLOT_STEP.y)
+			inv_btn.size = INV_SLOT_SIZE
+			inv_btn.gui_input.connect(func(ev): _on_inv_slot_gui_input(ev, slot_idx))
+			inv_btn.mouse_entered.connect(func(): _show_tooltip_for_inv(slot_idx))
+			inv_btn.mouse_exited.connect(_hide_tooltip)
+			inv_panel.add_child(inv_btn)
+			_inv_buttons.append(inv_btn)
 
 	var action_bar = PanelContainer.new()
 	var action_style = StyleBoxFlat.new()
@@ -523,17 +535,19 @@ func _build_ui():
 	action_hbox.add_theme_constant_override("separation", ACTION_BAR_SEPARATION)
 	action_bar.add_child(action_hbox)
 
-	for ammo_slot in AMMO_SLOTS:
-		var ammo_lbl = Label.new()
-		ammo_lbl.text = SLOT_LABELS.get(ammo_slot, ammo_slot) + ":"
-		_style_label(ammo_lbl, font, AMMO_LABEL_FONT_SIZE, Color(0.88, 0.82, 0.68))
-		action_hbox.add_child(ammo_lbl)
-		var ammo_btn = _make_slot_button(AMMO_SLOT_SIZE, slot_fill, font)
-		ammo_btn.gui_input.connect(func(ev): _on_equip_slot_gui_input(ev, ammo_slot))
-		ammo_btn.mouse_entered.connect(func(): _show_tooltip_for_equip(ammo_slot))
-		ammo_btn.mouse_exited.connect(_hide_tooltip)
-		action_hbox.add_child(ammo_btn)
-		_equip_buttons[ammo_slot] = ammo_btn
+	if show_char:
+		var slot_fill = _load_tex(SLOT_FILL_TEX)
+		for ammo_slot in AMMO_SLOTS:
+			var ammo_lbl = Label.new()
+			ammo_lbl.text = SLOT_LABELS.get(ammo_slot, ammo_slot) + ":"
+			_style_label(ammo_lbl, font, AMMO_LABEL_FONT_SIZE, Color(0.88, 0.82, 0.68))
+			action_hbox.add_child(ammo_lbl)
+			var ammo_btn = _make_slot_button(AMMO_SLOT_SIZE, slot_fill, font)
+			ammo_btn.gui_input.connect(func(ev): _on_equip_slot_gui_input(ev, ammo_slot))
+			ammo_btn.mouse_entered.connect(func(): _show_tooltip_for_equip(ammo_slot))
+			ammo_btn.mouse_exited.connect(_hide_tooltip)
+			action_hbox.add_child(ammo_btn)
+			_equip_buttons[ammo_slot] = ammo_btn
 
 	_selected_info_label = Label.new()
 	_selected_info_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -541,20 +555,22 @@ func _build_ui():
 	_style_label(_selected_info_label, font, SELECTED_INFO_FONT_SIZE, Color(0.95, 0.9, 0.78))
 	action_hbox.add_child(_selected_info_label)
 
-	_use_btn = Button.new()
-	_use_btn.text = "Use"
-	_use_btn.pressed.connect(_on_use_selected_pressed)
-	action_hbox.add_child(_use_btn)
+	if show_inv:
+		_use_btn = Button.new()
+		_use_btn.text = "Use"
+		_use_btn.pressed.connect(_on_use_selected_pressed)
+		action_hbox.add_child(_use_btn)
 
-	_equip_btn = Button.new()
-	_equip_btn.text = "Equip"
-	_equip_btn.pressed.connect(_on_equip_selected_pressed)
-	action_hbox.add_child(_equip_btn)
+		_equip_btn = Button.new()
+		_equip_btn.text = "Equip"
+		_equip_btn.pressed.connect(_on_equip_selected_pressed)
+		action_hbox.add_child(_equip_btn)
 
-	_unequip_btn = Button.new()
-	_unequip_btn.text = "Unequip"
-	_unequip_btn.pressed.connect(_on_unequip_selected_pressed)
-	action_hbox.add_child(_unequip_btn)
+	if show_char:
+		_unequip_btn = Button.new()
+		_unequip_btn.text = "Unequip"
+		_unequip_btn.pressed.connect(_on_unequip_selected_pressed)
+		action_hbox.add_child(_unequip_btn)
 
 	_drop_one_btn = Button.new()
 	_drop_one_btn.text = "Drop 1"
@@ -566,7 +582,7 @@ func _build_ui():
 	_drop_all_btn.pressed.connect(func(): _drop_selected(-1))
 	action_hbox.add_child(_drop_all_btn)
 
-	if _pickup_cb.is_valid():
+	if show_inv and _pickup_cb.is_valid():
 		var pickup_btn = Button.new()
 		pickup_btn.text = "Pickup (G)"
 		pickup_btn.pressed.connect(func():
@@ -659,7 +675,12 @@ func _process(_delta):
 
 func _unhandled_input(ev):
 	if ev is InputEventKey and ev.is_pressed() and not ev.echo:
-		if ev.keycode == KEY_ESCAPE or ev.keycode == KEY_I:
+		var matches_close = ev.keycode == KEY_ESCAPE
+		if _mode == "character" and ev.keycode == KEY_C:
+			matches_close = true
+		elif _mode in ["inventory", "both"] and ev.keycode == KEY_I:
+			matches_close = true
+		if matches_close:
 			get_viewport().set_input_as_handled()
 			dismiss()
 
@@ -837,7 +858,7 @@ func refresh():
 		var is_valid_target = (slot_name in valid_slots)
 		_apply_slot_visuals(btn, item, is_selected, is_valid_target)
 
-	for ii in range(PlayerCharacter.INVENTORY_SIZE):
+	for ii in range(_inv_buttons.size()):
 		var btn = _inv_buttons[ii]
 		var item = _player.inventory[ii]
 		var is_selected = (_selected_source != null and _selected_source.kind == "inv" and _selected_source.index == ii)
@@ -870,9 +891,12 @@ func _apply_slot_visuals(btn, item, is_selected, is_valid_target):
 func _refresh_selected_controls(selected_item):
 	if selected_item == null:
 		_selected_info_label.text = "Click to select/move, Right-click or Double-click to use/equip."
-		_use_btn.disabled = true
-		_equip_btn.disabled = true
-		_unequip_btn.disabled = true
+		if _use_btn != null:
+			_use_btn.disabled = true
+		if _equip_btn != null:
+			_equip_btn.disabled = true
+		if _unequip_btn != null:
+			_unequip_btn.disabled = true
 		_drop_one_btn.disabled = true
 		_drop_all_btn.disabled = true
 		return
@@ -880,10 +904,13 @@ func _refresh_selected_controls(selected_item):
 	var cnt_str = " (x" + str(cnt) + ")" if cnt > 1 else ""
 	_selected_info_label.text = str(selected_item.get("name", "Item")) + cnt_str
 	var is_inv = _selected_source != null and _selected_source.kind == "inv"
-	_use_btn.disabled = not (is_inv and _player.is_item_usable(selected_item))
-	var can_equip = is_inv and not _player.get_valid_slots_for_item(selected_item).is_empty()
-	_equip_btn.disabled = not can_equip
-	_unequip_btn.disabled = not (_selected_source != null and _selected_source.kind == "equip")
+	if _use_btn != null:
+		_use_btn.disabled = not (is_inv and _player.is_item_usable(selected_item))
+	if _equip_btn != null:
+		var can_equip = is_inv and not _player.get_valid_slots_for_item(selected_item).is_empty()
+		_equip_btn.disabled = not can_equip
+	if _unequip_btn != null:
+		_unequip_btn.disabled = not (_selected_source != null and _selected_source.kind == "equip")
 	_drop_one_btn.disabled = false
 	_drop_all_btn.disabled = cnt <= 1
 
@@ -910,7 +937,7 @@ func _compute_ranged_attack_total():
 	return total
 
 func _refresh_stats():
-	if _player == null:
+	if _player == null or _char_name_label == null:
 		return
 	_char_name_label.text = _player.character_name if _player.character_name != "" else "Hero"
 	_level_label.text = str(_player.level)

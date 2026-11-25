@@ -133,6 +133,12 @@ func _handle_enemy_death(enemy, grid_pos):
 	if enemy.has_method("play_die_animation_at"):
 		enemy.play_die_animation_at(_entity_grid, grid_pos)
 	award_xp(xp_gain, grid_pos)
+	if _player != null and _player.has_method("advance_kill_quests"):
+		var done_quests = _player.advance_kill_quests(_floor_level)
+		for completed_quest in done_quests:
+			var q_title = str(completed_quest.get("title", "Quest"))
+			_log_event("Quest Completed: " + q_title + "!")
+			_spawn_floating_text(grid_pos, "Quest Complete!", Color(1.0, 0.88, 0.35))
 	if enemy.has_method("roll_drops") and _entity_grid != null:
 		for drop_data in enemy.roll_drops():
 			_entity_grid.add_loot_item(grid_pos.x, grid_pos.y, drop_data)
@@ -800,6 +806,11 @@ func _spawn_floating_text(grid_pos, text, color):
 func is_dialog_open():
 	return is_instance_valid(_interaction_dialog) or is_instance_valid(_crafting_dialog)
 
+func close_crafting_dialog():
+	if is_instance_valid(_crafting_dialog):
+		_crafting_dialog.dismiss()
+		_crafting_dialog = null
+
 func open_crafting_dialog(tool_tag = ""):
 	if _player == null:
 		return false
@@ -843,6 +854,23 @@ func _handle_element_interaction(element, grid_coords):
 			award_xp(int(break_res.exp), grid_coords)
 		return
 	element.state_data["floor_level"] = _floor_level
+	if element.element_type == "queststatue" and not element.used and _player != null and _player.has_method("add_quest"):
+		var target_kills = 3 + _floor_level
+		var quest_id = "inconsequentia_f" + str(_floor_level) + "_" + str(grid_coords.x) + "_" + str(grid_coords.y)
+		var added_quest = _player.add_quest({
+			id = quest_id,
+			title = "Inconsequentia's Trial (Floor " + str(_floor_level) + ")",
+			giver = "Statue of Inconsequentia",
+			description = "Slay " + str(target_kills) + " monsters on Dungeon Level " + str(_floor_level) + " to prove your valor.",
+			kind = "kill",
+			floor_level = _floor_level,
+			progress = 0,
+			target = target_kills,
+			reward_xp = 75 * _floor_level,
+			reward_zorkmids = 50 * _floor_level
+		})
+		if added_quest:
+			_log_event("New Quest: Inconsequentia's Trial (Floor " + str(_floor_level) + ")")
 	_close_element_dialog()
 	_interaction_dialog = ElementDialogScript.new()
 	add_child(_interaction_dialog)

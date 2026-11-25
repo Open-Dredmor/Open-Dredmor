@@ -143,7 +143,7 @@ func dismiss():
 
 func _unhandled_input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_ESCAPE or event.keycode == KEY_C:
+		if event.keycode == KEY_ESCAPE or event.keycode == KEY_C or event.keycode == KEY_K:
 			get_viewport().set_input_as_handled()
 			dismiss()
 		elif event.keycode == KEY_UP:

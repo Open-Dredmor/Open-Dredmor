@@ -14,6 +14,7 @@ signal buffs_changed
 signal inventory_changed
 signal equipment_changed
 signal belt_changed
+signal quests_changed
 signal died(cause_of_death)
 
 const PRIMARY_STAT_KEYS = [
@@ -161,6 +162,8 @@ var resistances = {}
 var equipment = {}
 var inventory = []
 var known_recipes = {}
+var active_quests = []
+var completed_quests = []
 
 func _init_stat_tables():
 	base_primary_stats.clear()
@@ -1830,3 +1833,59 @@ func encrust_item(encrust_def, target_item, ignore_toolkit_check = false):
 		instability = total_instability,
 		unstable_added = unstable_added
 	}
+
+func get_active_quests():
+	return active_quests.duplicate(true)
+
+func get_completed_quests():
+	return completed_quests.duplicate(true)
+
+func add_quest(quest_data):
+	if typeof(quest_data) != TYPE_DICTIONARY:
+		return false
+	var quest_id = str(quest_data.get("id", ""))
+	if quest_id == "":
+		quest_id = "quest_" + str(active_quests.size() + completed_quests.size() + 1)
+	for existing in active_quests:
+		if str(existing.get("id", "")) == quest_id:
+			return false
+	var entry = {
+		id = quest_id,
+		title = str(quest_data.get("title", "Inconsequentia's Task")),
+		giver = str(quest_data.get("giver", "Statue of Inconsequentia")),
+		description = str(quest_data.get("description", "")),
+		kind = str(quest_data.get("kind", "kill")),
+		floor_level = int(quest_data.get("floor_level", 1)),
+		progress = int(quest_data.get("progress", 0)),
+		target = max(1, int(quest_data.get("target", 1))),
+		reward_xp = int(quest_data.get("reward_xp", 0)),
+		reward_zorkmids = int(quest_data.get("reward_zorkmids", 0))
+	}
+	active_quests.append(entry)
+	quests_changed.emit()
+	return true
+
+func advance_kill_quests(floor_level):
+	var completed_now = []
+	var changed = false
+	for idx in range(active_quests.size() - 1, -1, -1):
+		var quest = active_quests[idx]
+		if str(quest.get("kind", "")) != "kill":
+			continue
+		if int(quest.get("floor_level", floor_level)) != int(floor_level):
+			continue
+		quest["progress"] = min(int(quest.get("target", 1)), int(quest.get("progress", 0)) + 1)
+		changed = true
+		if int(quest["progress"]) >= int(quest.get("target", 1)):
+			var done_quest = quest.duplicate(true)
+			done_quest["completed"] = true
+			active_quests.remove_at(idx)
+			completed_quests.append(done_quest)
+			completed_now.append(done_quest)
+			if int(done_quest.get("reward_xp", 0)) > 0:
+				add_xp(int(done_quest["reward_xp"]))
+			if int(done_quest.get("reward_zorkmids", 0)) > 0:
+				add_zorkmids(int(done_quest["reward_zorkmids"]))
+	if changed:
+		quests_changed.emit()
+	return completed_now

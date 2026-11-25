@@ -14,6 +14,7 @@ var _buff_bar = null
 var _hud_layer = null
 var _death_dialog = null
 var _inventory_dialog = null
+var _character_dialog = null
 
 func _ready():
 	call_deferred("_build_ui")
@@ -60,7 +61,10 @@ func _build_ui():
 	container.add_child(hud_layer)
 	_hud_layer = hud_layer
 	_core_hud = CoreHudScript.new().init(_dungeon, {
+		on_character = toggle_character,
 		on_inventory = toggle_inventory,
+		on_crafting = _toggle_crafting,
+		on_before_open_modal = _close_game_modals,
 		on_wait = _submit_wait_turn
 	})
 	hud_layer.add_child(_core_hud)
@@ -241,6 +245,64 @@ var _drag_press_time_ms = 0
 var _total_pan_px = 0.0
 var old_position
 
+func _close_game_modals():
+	if is_instance_valid(_inventory_dialog):
+		_inventory_dialog.dismiss()
+		_inventory_dialog = null
+	if is_instance_valid(_character_dialog):
+		_character_dialog.dismiss()
+		_character_dialog = null
+	if _dungeon != null and is_instance_valid(_dungeon) and _dungeon.has_method("close_crafting_dialog"):
+		_dungeon.close_crafting_dialog()
+
+func _toggle_crafting():
+	if _dungeon == null or not is_instance_valid(_dungeon):
+		return
+	if is_instance_valid(_inventory_dialog):
+		_inventory_dialog.dismiss()
+		_inventory_dialog = null
+	if is_instance_valid(_character_dialog):
+		_character_dialog.dismiss()
+		_character_dialog = null
+	if _core_hud != null:
+		_core_hud.close_all_modals()
+	_dungeon.open_crafting_dialog()
+
+func _create_item_window_callbacks(close_fn):
+	return {
+		on_drop_inventory = func(inv_idx, count): _dungeon.drop_inventory_item(inv_idx, count),
+		on_drop_equipped = func(slot_name): _dungeon.drop_equipped_item(slot_name),
+		on_use_inventory = func(inv_idx):
+			var use_res = _dungeon.begin_use_inventory_item(inv_idx)
+			if typeof(use_res) == TYPE_DICTIONARY and use_res.get("open_crafting", false):
+				_close_game_modals()
+				_dungeon.open_crafting_dialog(str(use_res.get("tool_tag", "")))
+			elif typeof(use_res) == TYPE_DICTIONARY and use_res.get("targeting", false):
+				_close_game_modals(),
+		on_pickup = func(): _dungeon.pickup_loot_at_player(),
+		on_close = close_fn
+	}
+
+func toggle_character():
+	if _dungeon == null or not is_instance_valid(_dungeon):
+		return
+	if is_instance_valid(_character_dialog):
+		_character_dialog.dismiss()
+		_character_dialog = null
+		return
+	if _core_hud != null:
+		_core_hud.close_all_modals()
+	if is_instance_valid(_inventory_dialog):
+		_inventory_dialog.dismiss()
+		_inventory_dialog = null
+	if _dungeon.has_method("close_crafting_dialog"):
+		_dungeon.close_crafting_dialog()
+	var player = _dungeon.get_player()
+	if player == null:
+		return
+	_character_dialog = InventoryDialogScript.new().init(player, _create_item_window_callbacks(func(): _character_dialog = null), "character")
+	_hud_layer.add_child(_character_dialog)
+
 func toggle_inventory():
 	if _dungeon == null or not is_instance_valid(_dungeon):
 		return
@@ -248,43 +310,47 @@ func toggle_inventory():
 		_inventory_dialog.dismiss()
 		_inventory_dialog = null
 		return
+	if _core_hud != null:
+		_core_hud.close_all_modals()
+	if is_instance_valid(_character_dialog):
+		_character_dialog.dismiss()
+		_character_dialog = null
+	if _dungeon.has_method("close_crafting_dialog"):
+		_dungeon.close_crafting_dialog()
 	var player = _dungeon.get_player()
 	if player == null:
 		return
-	_inventory_dialog = InventoryDialogScript.new().init(player, {
-		on_drop_inventory = func(inv_idx, count): _dungeon.drop_inventory_item(inv_idx, count),
-		on_drop_equipped = func(slot_name): _dungeon.drop_equipped_item(slot_name),
-		on_use_inventory = func(inv_idx):
-			var use_res = _dungeon.begin_use_inventory_item(inv_idx)
-			if typeof(use_res) == TYPE_DICTIONARY and use_res.get("open_crafting", false):
-				toggle_inventory()
-				_dungeon.open_crafting_dialog(str(use_res.get("tool_tag", "")))
-			elif typeof(use_res) == TYPE_DICTIONARY and use_res.get("targeting", false):
-				toggle_inventory(),
-		on_pickup = func(): _dungeon.pickup_loot_at_player(),
-		on_close = func(): _inventory_dialog = null
-	})
+	_inventory_dialog = InventoryDialogScript.new().init(player, _create_item_window_callbacks(func(): _inventory_dialog = null), "inventory")
 	_hud_layer.add_child(_inventory_dialog)
 
 func _input(ev):
 	if _dungeon == null or not is_instance_valid(_dungeon):
 		return
-	if is_instance_valid(_inventory_dialog):
+	if is_instance_valid(_inventory_dialog) or is_instance_valid(_character_dialog):
 		return
 	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_I:
 		if not _dungeon.is_dialog_open() and (_core_hud == null or not _core_hud.is_modal_open()):
+			get_viewport().set_input_as_handled()
 			toggle_inventory()
 			return
 	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_C:
 		if not _dungeon.is_dialog_open() and (_core_hud == null or not _core_hud.is_modal_open()):
-			_dungeon.open_crafting_dialog()
+			get_viewport().set_input_as_handled()
+			toggle_character()
+			return
+	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_K:
+		if not _dungeon.is_dialog_open() and (_core_hud == null or not _core_hud.is_modal_open()):
+			get_viewport().set_input_as_handled()
+			_toggle_crafting()
 			return
 	if _core_hud != null and _core_hud.handle_key_input(ev):
+		get_viewport().set_input_as_handled()
 		return
 	if _core_hud != null and _core_hud.is_modal_open():
 		return
 	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_ESCAPE and not _dungeon.is_dialog_open() and _dungeon.get_pending_spell_name() == "":
 		if _core_hud != null:
+			get_viewport().set_input_as_handled()
 			_core_hud.toggle_pause_menu()
 			return
 	if _dungeon.is_dialog_open():
