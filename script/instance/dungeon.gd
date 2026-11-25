@@ -551,6 +551,14 @@ func get_floor_level():
 func get_branch_name():
 	return _branch_name
 
+func get_current_room_name():
+	if _entity_grid == null or _player == null or not is_instance_valid(_player):
+		return ""
+	var pos = _player.get_grid_position()
+	if pos == null:
+		return ""
+	return _entity_grid.get_room_name_at(pos.x, pos.y)
+
 func get_player():
 	return _player
 

@@ -82,6 +82,8 @@ var _stairs_by_cell = {}
 var _entities_by_cell = {}
 var _named_entities = {}
 var _room_scripts = []
+var room_name = ""
+var _room_names_by_cell = {}
 var _spell_mines = []
 var shop_manager = ShopManagerScript.new()
 var fov = FieldOfViewScript.new()
@@ -121,7 +123,10 @@ func insert(source_grid, offset_position):
 	for wall_cell in source_grid._wall_cells.keys():
 		_wall_cells[wall_cell + offset_cell] = true
 	for floor_cell in source_grid._floor_cells.keys():
-		_floor_cells[floor_cell + offset_cell] = true
+		var target_floor = floor_cell + offset_cell
+		_floor_cells[target_floor] = true
+		if source_grid.room_name != "":
+			_room_names_by_cell[target_floor] = source_grid.room_name
 	for liquid_cell in source_grid._liquid_cells.keys():
 		_liquid_cells[liquid_cell + offset_cell] = source_grid._liquid_cells[liquid_cell]
 	for destructible_cell in source_grid._destructible_cells.keys():
@@ -286,8 +291,12 @@ func get_cell_info(grid_x, grid_y):
 		walkable = is_walkable(grid_x, grid_y),
 		opaque = is_opaque(grid_x, grid_y),
 		hazard = is_hazard(grid_x, grid_y),
-		entities = get_entities_at(grid_x, grid_y)
+		entities = get_entities_at(grid_x, grid_y),
+		room_name = get_room_name_at(grid_x, grid_y)
 	}
+
+func get_room_name_at(grid_x, grid_y):
+	return str(_room_names_by_cell.get(Vector2i(int(grid_x), int(grid_y)), ""))
 
 func add_animation(x, y, name, animation):
 	var layer = get_layer(name)

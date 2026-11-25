@@ -1,6 +1,6 @@
 extends Node2D
 
-const SpellHotbarScript = preload("res://script/instance/ui/spell_hotbar.gd")
+const CoreHudScript = preload("res://script/instance/ui/core_hud.gd")
 const BuffBarScript = preload("res://script/instance/ui/buff_bar.gd")
 const InventoryDialogScript = preload("res://script/instance/ui/inventory_dialog.gd")
 
@@ -9,9 +9,7 @@ static func init_container():
 
 var moveable_container
 var _dungeon = null
-var _floor_label = null
-var _turn_label = null
-var _spell_hotbar = null
+var _core_hud = null
 var _buff_bar = null
 var _hud_layer = null
 var _death_dialog = null
@@ -51,57 +49,25 @@ func _build_ui():
 	_dungeon.init()
 	_dungeon.name = "Dungeon"
 	moveable_container.add_child(_dungeon)
-	
-	var gui = Control.new()
-	gui.name = "GUI"
-	moveable_container.add_child(gui)
 
 	var hud_layer = CanvasLayer.new()
 	hud_layer.name = "FloorHudLayer"
 	container.add_child(hud_layer)
 	_hud_layer = hud_layer
-	_floor_label = Label.new()
-	_floor_label.position = Vector2(16, 12)
-	_floor_label.add_theme_font_override("font", OD.Assets.dialog().font)
-	_floor_label.add_theme_font_size_override("font_size", 20)
-	_floor_label.add_theme_color_override("font_color", Color(0.95, 0.9, 0.65))
-	_floor_label.add_theme_constant_override("outline_size", 3)
-	_floor_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-	_floor_label.text = "Floor " + str(_dungeon.get_floor_level()) + " - " + _dungeon.get_branch_name()
-	hud_layer.add_child(_floor_label)
-	_turn_label = Label.new()
-	_turn_label.position = Vector2(16, 38)
-	_turn_label.add_theme_font_override("font", OD.Assets.dialog().font)
-	_turn_label.add_theme_font_size_override("font_size", 16)
-	_turn_label.add_theme_color_override("font_color", Color(0.85, 0.85, 0.9))
-	_turn_label.add_theme_constant_override("outline_size", 2)
-	_turn_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-	_turn_label.text = "Turn 0"
-	hud_layer.add_child(_turn_label)
-	_spell_hotbar = SpellHotbarScript.new().init(_dungeon)
-	hud_layer.add_child(_spell_hotbar)
+	_core_hud = CoreHudScript.new().init(_dungeon, {
+		on_inventory = toggle_inventory,
+		on_wait = _submit_wait_turn
+	})
+	hud_layer.add_child(_core_hud)
 	_buff_bar = BuffBarScript.new().init(_dungeon.get_player())
 	hud_layer.add_child(_buff_bar)
-	var inv_btn = TextureButton.new()
-	inv_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	inv_btn.offset_left = -128
-	inv_btn.offset_top = 12
-	inv_btn.offset_right = -16
-	inv_btn.offset_bottom = 60
-	inv_btn.ignore_texture_size = true
-	inv_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	inv_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	inv_btn.texture_normal = OD.Load.image("ui/gameplay/game_button_inventory0.png")
-	inv_btn.texture_hover = OD.Load.image("ui/gameplay/game_button_inventory1.png")
-	inv_btn.texture_pressed = OD.Load.image("ui/gameplay/game_button_inventory2.png")
-	inv_btn.tooltip_text = "Inventory (I)"
-	inv_btn.pressed.connect(toggle_inventory)
-	hud_layer.add_child(inv_btn)
 	_dungeon.floor_changed.connect(_on_floor_changed)
 	_dungeon.player_died.connect(_on_player_died)
 	_dungeon.get_turn_scheduler().turn_started.connect(_on_turn_started)
 	_dungeon.get_turn_scheduler().turn_completed.connect(_on_turn_completed)
 	_dungeon.get_input_mapper().sync_from_settings()
+	if OD.EventLog != null:
+		OD.EventLog.notify("Entered Floor " + str(_dungeon.get_floor_level()) + " - " + str(_dungeon.get_branch_name()) + ".")
 	call_deferred("_center_on_player")
 	
 	OD.Audio.play(assets.music.default)
@@ -116,17 +82,28 @@ func _center_on_player():
 	moveable_container.global_position += target_screen - player_global
 
 func _on_floor_changed(floor_level, branch_name):
-	if is_instance_valid(_floor_label):
-		_floor_label.text = "Floor " + str(floor_level) + " - " + branch_name
+	if OD.EventLog != null:
+		OD.EventLog.notify("Descended to Floor " + str(floor_level) + " - " + str(branch_name) + ".")
 	_camera_follow_enabled = true
 	call_deferred("_center_on_player")
 
 func _on_turn_started(_turn_number):
 	_camera_follow_enabled = true
 
-func _on_turn_completed(turn_number, _summary):
-	if is_instance_valid(_turn_label):
-		_turn_label.text = "Turn " + str(turn_number)
+func _on_turn_completed(_turn_number, _summary):
+	pass
+
+func _submit_wait_turn():
+	if _dungeon == null or not is_instance_valid(_dungeon):
+		return
+	var mapper = _dungeon.get_input_mapper()
+	if mapper != null and mapper.has_method("create_wait_command"):
+		_dungeon.submit_command(mapper.create_wait_command())
+		return
+	var wait_ev = InputEventKey.new()
+	wait_ev.keycode = KEY_SPACE
+	wait_ev.pressed = true
+	_dungeon.handle_dungeon_input(wait_ev)
 
 func _on_player_died(summary):
 	if _hud_layer == null or is_instance_valid(_death_dialog):
@@ -288,17 +265,21 @@ func _input(ev):
 	if is_instance_valid(_inventory_dialog):
 		return
 	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_I:
-		if not _dungeon.is_dialog_open() and (_spell_hotbar == null or not _spell_hotbar.is_spellbook_open()):
+		if not _dungeon.is_dialog_open() and (_core_hud == null or not _core_hud.is_modal_open()):
 			toggle_inventory()
 			return
 	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_C:
-		if not _dungeon.is_dialog_open() and (_spell_hotbar == null or not _spell_hotbar.is_spellbook_open()):
+		if not _dungeon.is_dialog_open() and (_core_hud == null or not _core_hud.is_modal_open()):
 			_dungeon.open_crafting_dialog()
 			return
-	if _spell_hotbar != null and _spell_hotbar.handle_key_input(ev):
+	if _core_hud != null and _core_hud.handle_key_input(ev):
 		return
-	if _spell_hotbar != null and _spell_hotbar.is_spellbook_open():
+	if _core_hud != null and _core_hud.is_modal_open():
 		return
+	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_ESCAPE and not _dungeon.is_dialog_open() and _dungeon.get_pending_spell_name() == "":
+		if _core_hud != null:
+			_core_hud.toggle_pause_menu()
+			return
 	if _dungeon.is_dialog_open():
 		drag_enabled = false
 		_is_dragging = false

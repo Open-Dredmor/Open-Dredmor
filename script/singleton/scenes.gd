@@ -31,7 +31,7 @@ var UI_TEST = "dev/ui_test"
 #var FIRST_SCENE = PRELOAD_ASSETS
 
 # For debugging specific levels or gameplay features
-var FIRST_SCENE = CRAFTING_TEST
+var FIRST_SCENE = QUICK_GAME
 
 func quit():
 	get_tree().quit()

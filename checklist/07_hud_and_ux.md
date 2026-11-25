@@ -4,8 +4,8 @@ Screen-fixed HUD, event log, minimap, modal windows, and combat feedback.
 
 ---
 
-- [ ] **Core HUD overlay**
-  - *Current state*: [script/scene/game/game.gd](../script/scene/game/game.gd) creates an empty `Control` named `GUI` inside `moveable_container` (which moves with the map rather than staying screen-fixed).
+- [x] **Core HUD overlay**
+  - *Current state*: [script/instance/ui/core_hud.gd](../script/instance/ui/core_hud.gd) renders a screen-fixed `CanvasLayer` HUD in [script/scene/game/game.gd](../script/scene/game/game.gd) using the retail `bottombar_bg.png` bottom character bar, `lifebar0/1.png`, `manabar0/1.png`, `expbar0/1.png`, dynamic character portrait, Zorkmids, 9-slot item belt (`Shift+1..9`), 10-slot skill/spell hotbar (`1..9, 0`), menu tabs (`Menu`, `Character`, `Inventory`, `Skills`, `Quests`, `Crafting`), Digest/Wait button, top-left event log, top-right floor & room name, and `BuffBar`.
   - *Done when*: A `CanvasLayer` HUD displays screen-fixed HP/MP bars/orbs, XP bar, Zorkmids, current floor & room name, active buffs, and clickable/hotkeyed skill & item belt/hotbar.
 
 - [ ] **Event / Combat Log**

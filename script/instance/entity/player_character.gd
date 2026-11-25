@@ -13,6 +13,7 @@ signal zorkmids_changed(amount)
 signal buffs_changed
 signal inventory_changed
 signal equipment_changed
+signal belt_changed
 signal died(cause_of_death)
 
 const PRIMARY_STAT_KEYS = [
@@ -139,11 +140,13 @@ var unlocked_abilities = []
 var unlocked_spells = []
 var spell_cooldowns = {}
 var hotbar_spells = []
+var belt_items = []
 var active_buffs = []
 var active_dots = []
 var status_flags = {}
 
 const HOTBAR_SIZE = 10
+const BELT_SIZE = 9
 
 var base_primary_stats = {}
 var bonus_primary_stats = {}
@@ -596,6 +599,72 @@ func set_hotbar_slot(slot_index, spell_name):
 		return
 	hotbar_spells[slot_index] = str(spell_name)
 	skills_changed.emit()
+
+func _ensure_belt_initialized():
+	while belt_items.size() < BELT_SIZE:
+		belt_items.append("")
+
+func get_belt_items():
+	_ensure_belt_initialized()
+	return belt_items.duplicate()
+
+func get_belt_item(slot_index):
+	_ensure_belt_initialized()
+	if slot_index < 0 or slot_index >= BELT_SIZE:
+		return ""
+	return belt_items[slot_index]
+
+func set_belt_slot(slot_index, item_name):
+	_ensure_belt_initialized()
+	if slot_index < 0 or slot_index >= BELT_SIZE:
+		return
+	belt_items[slot_index] = str(item_name)
+	belt_changed.emit()
+
+func find_inventory_index_by_name(item_name):
+	var target = str(item_name)
+	if target == "":
+		return -1
+	for ii in range(inventory.size()):
+		var item = inventory[ii]
+		if item != null and typeof(item) == TYPE_DICTIONARY and str(item.get("name", "")) == target:
+			return ii
+	return -1
+
+func get_inventory_count_by_name(item_name):
+	var target = str(item_name)
+	if target == "":
+		return 0
+	var total = 0
+	for item in inventory:
+		if item != null and typeof(item) == TYPE_DICTIONARY and str(item.get("name", "")) == target:
+			total += max(1, int(item.get("stack", 1)))
+	return total
+
+func sync_belt_with_inventory():
+	_ensure_belt_initialized()
+	var changed = false
+	for ii in range(BELT_SIZE):
+		if belt_items[ii] != "" and find_inventory_index_by_name(belt_items[ii]) == -1:
+			belt_items[ii] = ""
+			changed = true
+	var usable_categories = ["food", "potion", "mushroom", "wand", "thrown", "trap", "toolkit"]
+	for item in inventory:
+		if item == null or typeof(item) != TYPE_DICTIONARY:
+			continue
+		var cat = str(item.get("category", ""))
+		var item_name = str(item.get("name", ""))
+		if item_name == "" or not usable_categories.has(cat):
+			continue
+		if belt_items.has(item_name):
+			continue
+		var empty_idx = belt_items.find("")
+		if empty_idx == -1:
+			break
+		belt_items[empty_idx] = item_name
+		changed = true
+	if changed:
+		belt_changed.emit()
 
 func get_spell_cooldown(spell_name):
 	return int(spell_cooldowns.get(str(spell_name), 0))

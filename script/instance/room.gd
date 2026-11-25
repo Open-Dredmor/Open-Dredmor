@@ -63,6 +63,8 @@ func init(room_database_name):
 
 	name_details = OD.Database.create_room_name()
 	name_details.database_id = room_name_str
+	var resolved_name = str(name_details.name) if name_details != null and name_details.get("name") != null and str(name_details.name) != "" else room_name_str
+	entity_grid.room_name = resolved_name
 	#print("Generating room id " + room_database_name + " with name " + name_details.name)
 	for layer_name in layer_names:
 		layer_lookup[layer_name] = prep_tile_data(layer_name)
