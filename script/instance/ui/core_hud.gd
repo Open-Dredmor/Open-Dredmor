@@ -3,6 +3,7 @@ extends Control
 class_name CoreHud
 
 const SpellEngineScript = preload("res://script/instance/combat/spell_engine.gd")
+const MinimapOverlayScript = preload("res://script/instance/ui/minimap.gd")
 
 const BAR_WIDTH = 1024.0
 const BAR_HEIGHT = 120.0
@@ -21,7 +22,7 @@ const MENU_TABS = [
 var _dungeon = null
 var _callbacks = {}
 
-var _floor_label = null
+var _minimap = null
 var _room_label = null
 var _log_vbox = null
 var _log_scroll = null
@@ -46,9 +47,11 @@ var _menu_popup = null
 
 func _ready():
 	_update_bar_scale()
+	_update_top_right_layout()
 	var vp = get_viewport()
 	if vp != null:
 		vp.size_changed.connect(_update_bar_scale)
+		vp.size_changed.connect(_update_top_right_layout)
 
 func init(dungeon, callbacks = {}):
 	_dungeon = dungeon
@@ -151,23 +154,28 @@ func _apply_log_scroll_bottom():
 			_log_scroll.scroll_vertical = int(vbar.max_value)
 
 func _build_top_right_location():
-	var loc_vbox = VBoxContainer.new()
-	loc_vbox.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	loc_vbox.offset_left = -360
-	loc_vbox.offset_top = 12
-	loc_vbox.offset_right = -16
-	loc_vbox.offset_bottom = 72
-	loc_vbox.add_theme_constant_override("separation", 2)
-	loc_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(loc_vbox)
-
-	_floor_label = _styled_label(16, Color(0.95, 0.9, 0.65), 2)
-	_floor_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	loc_vbox.add_child(_floor_label)
+	_minimap = MinimapOverlayScript.new().init(_dungeon, 1)
+	_minimap.zoom_changed.connect(func(_lvl): _update_top_right_layout())
+	add_child(_minimap)
 
 	_room_label = _styled_label(16, Color(0.92, 0.92, 0.95), 2)
 	_room_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	loc_vbox.add_child(_room_label)
+	add_child(_room_label)
+	_update_top_right_layout()
+
+func _update_top_right_layout():
+	if not is_inside_tree():
+		return
+	var vp_size = get_viewport_rect().size
+	var margin_right = 6.0
+	var margin_top = 4.0
+	if _minimap != null and is_instance_valid(_minimap):
+		var frame_size = _minimap.get_frame_size()
+		_minimap.position = Vector2(vp_size.x - frame_size.x - margin_right, margin_top)
+		if _room_label != null and is_instance_valid(_room_label):
+			var label_w = max(340.0, frame_size.x)
+			_room_label.position = Vector2(vp_size.x - label_w - margin_right, margin_top + frame_size.y + 4.0)
+			_room_label.size = Vector2(label_w, 26.0)
 
 func _build_targeting_banner():
 	_targeting_label = _styled_label(18, Color(0.55, 0.9, 1.0), 3)
@@ -393,6 +401,8 @@ func _connect_signals():
 		return
 	if _dungeon.has_signal("floor_changed"):
 		_dungeon.floor_changed.connect(func(_lvl, _branch): refresh_location())
+	if _dungeon.has_signal("fov_updated"):
+		_dungeon.fov_updated.connect(refresh_minimap)
 	if _dungeon.has_signal("spell_cast_completed"):
 		_dungeon.spell_cast_completed.connect(func(_name, _res): refresh_all())
 	if _dungeon.has_signal("spell_targeting_changed"):
@@ -434,11 +444,18 @@ func refresh_all():
 func refresh_location():
 	if _dungeon == null or not is_instance_valid(_dungeon):
 		return
-	if _floor_label != null:
-		_floor_label.text = "LEVEL " + str(_dungeon.get_floor_level())
+	if _minimap != null and is_instance_valid(_minimap):
+		_minimap.refresh()
 	if _room_label != null:
 		var room_name = _dungeon.get_current_room_name()
 		_room_label.text = room_name if room_name != "" else str(_dungeon.get_branch_name())
+
+func refresh_minimap():
+	if _minimap != null and is_instance_valid(_minimap):
+		_minimap.refresh()
+
+func get_minimap():
+	return _minimap
 
 func refresh_vitals():
 	if _dungeon == null or not is_instance_valid(_dungeon):
@@ -641,6 +658,18 @@ func handle_key_input(ev):
 		return true
 	if ev.keycode == KEY_M:
 		toggle_spellbook()
+		return true
+	if ev.keycode == KEY_TAB:
+		if _minimap != null and is_instance_valid(_minimap):
+			_minimap.cycle_zoom(ev.shift_pressed)
+		return true
+	if ev.keycode == KEY_EQUAL or ev.keycode == KEY_KP_ADD:
+		if _minimap != null and is_instance_valid(_minimap):
+			_minimap.zoom_in()
+		return true
+	if ev.keycode == KEY_MINUS or ev.keycode == KEY_KP_SUBTRACT:
+		if _minimap != null and is_instance_valid(_minimap):
+			_minimap.zoom_out()
 		return true
 	for ii in range(HOTBAR_KEYS.size()):
 		if ev.keycode == HOTBAR_KEYS[ii]:

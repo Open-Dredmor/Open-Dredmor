@@ -16,6 +16,7 @@ const UseItemCommandScript = preload("res://script/instance/command/use_item_com
 const DeathManagerScript = preload("res://script/instance/death_manager.gd")
 
 signal floor_changed(floor_level, branch_name)
+signal fov_updated()
 signal spell_cast_completed(spell_name, result)
 signal spell_targeting_changed(spell_name)
 signal player_died(death_summary)
@@ -586,6 +587,9 @@ func get_current_room_name():
 func get_player():
 	return _player
 
+func get_entity_grid():
+	return _entity_grid
+
 func get_player_global_position():
 	if _player != null and is_instance_valid(_player) and _player.is_inside_tree():
 		return _player.global_position
@@ -602,6 +606,7 @@ func update_fov():
 				if not _discovered_rooms.has(room_key):
 					_discovered_rooms[room_key] = true
 					_log_event("You have discovered " + room_name + "!")
+	fov_updated.emit()
 
 func _on_turn_completed(_turn_number, _summary):
 	update_fov()

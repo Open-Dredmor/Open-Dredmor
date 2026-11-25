@@ -12,8 +12,8 @@ Screen-fixed HUD, event log, minimap, modal windows, and combat feedback.
   - *Current state*: [script/singleton/event_log.gd](../script/singleton/event_log.gd) records up to 200 messages and emits `message_logged`; [script/instance/dungeon.gd](../script/instance/dungeon.gd) and [script/scene/game/game.gd](../script/scene/game/game.gd) log room discovery, combat hits/crits/dodges/counters/kills, level-ups, traps, pickups, breakables, and shop alerts; [script/instance/ui/core_hud.gd](../script/instance/ui/core_hud.gd) renders the top-left HUD ticker and toggles a scrollable log history view with `L`.
   - *Done when*: Combat hits, crits, level-ups, traps, pickups, and room messages are recorded and displayed in a scrollable HUD log.
 
-- [ ] **Minimap**
-  - *Current state*: None.
+- [x] **Minimap**
+  - *Current state*: [script/instance/ui/minimap.gd](../script/instance/ui/minimap.gd) renders the retail top-right corner minimap inside [script/instance/ui/core_hud.gd](../script/instance/ui/core_hud.gd) with 4 zoom levels (`1x`–`4x` via `minimap_bg1x..4x.png`), `LEVEL X` header, `+`/`-` zoom buttons (`minimap_but_maximize`/`minimize`), `Tab`/`=`/`-` hotkeys, explored walls, floors, liquids, doors, stairs, dungeon elements, teleporters, and hero/heroine player icon, with the room name anchored below the frame.
   - *Done when*: An overlay/corner minimap shows explored rooms, walls, doors, stairs, shops, and player position, with toggleable full-floor view.
 
 - [ ] **In-game windows (Character, Skills, Inventory, Crafting, Quest, Pause)**
