@@ -3,6 +3,7 @@ extends Node2D
 const CoreHudScript = preload("res://script/instance/ui/core_hud.gd")
 const BuffBarScript = preload("res://script/instance/ui/buff_bar.gd")
 const InventoryDialogScript = preload("res://script/instance/ui/inventory_dialog.gd")
+const FloatingWindowScript = preload("res://script/instance/ui/floating_window.gd")
 
 static func init_container():
 	return Node2D.new()
@@ -258,14 +259,6 @@ func _close_game_modals():
 func _toggle_crafting():
 	if _dungeon == null or not is_instance_valid(_dungeon):
 		return
-	if is_instance_valid(_inventory_dialog):
-		_inventory_dialog.dismiss()
-		_inventory_dialog = null
-	if is_instance_valid(_character_dialog):
-		_character_dialog.dismiss()
-		_character_dialog = null
-	if _core_hud != null:
-		_core_hud.close_all_modals()
 	_dungeon.open_crafting_dialog()
 
 func _create_item_window_callbacks(close_fn):
@@ -275,7 +268,6 @@ func _create_item_window_callbacks(close_fn):
 		on_use_inventory = func(inv_idx):
 			var use_res = _dungeon.begin_use_inventory_item(inv_idx)
 			if typeof(use_res) == TYPE_DICTIONARY and use_res.get("open_crafting", false):
-				_close_game_modals()
 				_dungeon.open_crafting_dialog(str(use_res.get("tool_tag", "")))
 			elif typeof(use_res) == TYPE_DICTIONARY and use_res.get("targeting", false):
 				_close_game_modals(),
@@ -290,13 +282,6 @@ func toggle_character():
 		_character_dialog.dismiss()
 		_character_dialog = null
 		return
-	if _core_hud != null:
-		_core_hud.close_all_modals()
-	if is_instance_valid(_inventory_dialog):
-		_inventory_dialog.dismiss()
-		_inventory_dialog = null
-	if _dungeon.has_method("close_crafting_dialog"):
-		_dungeon.close_crafting_dialog()
 	var player = _dungeon.get_player()
 	if player == null:
 		return
@@ -310,13 +295,6 @@ func toggle_inventory():
 		_inventory_dialog.dismiss()
 		_inventory_dialog = null
 		return
-	if _core_hud != null:
-		_core_hud.close_all_modals()
-	if is_instance_valid(_character_dialog):
-		_character_dialog.dismiss()
-		_character_dialog = null
-	if _dungeon.has_method("close_crafting_dialog"):
-		_dungeon.close_crafting_dialog()
 	var player = _dungeon.get_player()
 	if player == null:
 		return
@@ -326,34 +304,43 @@ func toggle_inventory():
 func _input(ev):
 	if _dungeon == null or not is_instance_valid(_dungeon):
 		return
-	if is_instance_valid(_inventory_dialog) or is_instance_valid(_character_dialog):
+	if _core_hud != null and _core_hud.is_modal_open():
 		return
 	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_I:
-		if not _dungeon.is_dialog_open() and (_core_hud == null or not _core_hud.is_modal_open()):
+		if not _dungeon.has_interaction_dialog_open():
 			get_viewport().set_input_as_handled()
 			toggle_inventory()
 			return
 	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_C:
-		if not _dungeon.is_dialog_open() and (_core_hud == null or not _core_hud.is_modal_open()):
+		if not _dungeon.has_interaction_dialog_open():
 			get_viewport().set_input_as_handled()
 			toggle_character()
 			return
-	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_K:
-		if not _dungeon.is_dialog_open() and (_core_hud == null or not _core_hud.is_modal_open()):
+	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_R:
+		if not _dungeon.has_interaction_dialog_open():
 			get_viewport().set_input_as_handled()
 			_toggle_crafting()
 			return
 	if _core_hud != null and _core_hud.handle_key_input(ev):
 		get_viewport().set_input_as_handled()
 		return
-	if _core_hud != null and _core_hud.is_modal_open():
-		return
-	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_ESCAPE and not _dungeon.is_dialog_open() and _dungeon.get_pending_spell_name() == "":
+	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_ESCAPE and not _dungeon.has_interaction_dialog_open() and _dungeon.get_pending_spell_name() == "":
+		var top_win = FloatingWindowScript.get_topmost_window(get_tree())
+		if top_win != null:
+			var win_owner = top_win.get_parent()
+			if win_owner != null and win_owner.has_method("dismiss"):
+				win_owner.dismiss()
+				get_viewport().set_input_as_handled()
+				return
 		if _core_hud != null:
 			get_viewport().set_input_as_handled()
 			_core_hud.toggle_pause_menu()
 			return
-	if _dungeon.is_dialog_open():
+	if ev is InputEventMouse and FloatingWindowScript.is_point_over_any(get_tree(), ev.position):
+		drag_enabled = false
+		_is_dragging = false
+		return
+	if _dungeon.has_interaction_dialog_open():
 		drag_enabled = false
 		_is_dragging = false
 		_dungeon.handle_dungeon_input(ev)

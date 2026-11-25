@@ -2,6 +2,7 @@ extends CanvasLayer
 
 class_name SkillTreeDialog
 
+const FloatingWindowScript = preload("res://script/instance/ui/floating_window.gd")
 const SpellEngineScript = preload("res://script/instance/combat/spell_engine.gd")
 
 const TOME_BG_TEX = "ui/gameplay/skilltome_bg.png"
@@ -24,7 +25,7 @@ var _player = null
 var _callbacks = {}
 var _active_tab = "skills"
 
-var _backdrop = null
+var _window = null
 var _panel = null
 var _points_label = null
 var _skills_tab_btn = null
@@ -119,19 +120,20 @@ func _create_panel_style():
 	return fallback
 
 func _build_ui():
-	_backdrop = ColorRect.new()
-	_backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_backdrop.color = Color(0, 0, 0, 0.55)
-	add_child(_backdrop)
+	var vp_size = _get_viewport_size()
+	var panel_w = clamp(vp_size.x * 0.62, 560.0, 860.0)
+	var panel_h = clamp(vp_size.y * 0.72, 420.0, 620.0)
 
-	var center = CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_backdrop.add_child(center)
+	_window = FloatingWindowScript.new()
+	_window.min_window_size = Vector2(480.0, 360.0)
+	_window.size = Vector2(panel_w, panel_h)
+	_window.position = Vector2((vp_size.x - panel_w) * 0.5, max(24.0, (vp_size.y - panel_h) * 0.45))
+	add_child(_window)
 
 	_panel = PanelContainer.new()
+	_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_panel.add_theme_stylebox_override("panel", _create_panel_style())
-	center.add_child(_panel)
-	_update_panel_bounds()
+	_window.add_child(_panel)
 
 	var root_vbox = VBoxContainer.new()
 	root_vbox.add_theme_constant_override("separation", 12)
@@ -201,12 +203,8 @@ func _build_tooltip():
 	_tooltip_panel.add_child(_tooltip_label)
 
 func _update_panel_bounds():
-	if _panel == null or not is_instance_valid(_panel):
-		return
-	var vp_size = _get_viewport_size()
-	var panel_w = clamp(vp_size.x * 0.72, 620.0, 920.0)
-	var panel_h = clamp(vp_size.y * 0.82, 440.0, 660.0)
-	_panel.custom_minimum_size = Vector2(panel_w, panel_h)
+	if _window != null and is_instance_valid(_window):
+		_window.clamp_to_viewport()
 
 func _switch_tab(tab_name):
 	_active_tab = tab_name
@@ -216,7 +214,7 @@ func _switch_tab(tab_name):
 func _process(_delta):
 	if _tooltip_panel != null and _tooltip_panel.visible:
 		var vp_size = _get_viewport_size()
-		var mouse_pos = _backdrop.get_global_mouse_position() if _backdrop != null else Vector2.ZERO
+		var mouse_pos = _window.get_global_mouse_position() if _window != null else Vector2.ZERO
 		var tip_size = _tooltip_panel.size
 		var target_pos = mouse_pos + TOOLTIP_OFFSET
 		if target_pos.x + tip_size.x + TOOLTIP_SCREEN_MARGIN > vp_size.x:
@@ -227,9 +225,12 @@ func _process(_delta):
 
 func _unhandled_input(ev):
 	if ev is InputEventKey and ev.is_pressed() and not ev.echo:
-		if ev.keycode == KEY_ESCAPE or ev.keycode == KEY_M:
+		if ev.keycode == KEY_K:
 			dismiss()
 			get_viewport().set_input_as_handled()
+
+func get_floating_window():
+	return _window
 
 func dismiss():
 	_hide_tooltip()

@@ -99,6 +99,9 @@ func _unhandled_input(ev):
 			else:
 				dismiss()
 			get_viewport().set_input_as_handled()
+		elif ev.keycode == KEY_M and not _showing_settings:
+			dismiss()
+			get_viewport().set_input_as_handled()
 
 func dismiss():
 	if _callbacks.has("on_close") and _callbacks.on_close.is_valid():

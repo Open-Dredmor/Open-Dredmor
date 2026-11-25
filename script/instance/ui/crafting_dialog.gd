@@ -1,5 +1,6 @@
 extends CanvasLayer
 
+const FloatingWindowScript = preload("res://script/instance/ui/floating_window.gd")
 const TOOL_ORDER = ["smithing", "alchemy", "still", "ingot", "grinder", "tinkerer", "lathe"]
 
 const TOOL_ASSET_MAP = {
@@ -93,6 +94,7 @@ var _eligible_targets = []
 var _eligible_target_idx = 0
 var _ui_scale = 1.0
 
+var _window = null
 var _root_ctrl = null
 var _holder = null
 var _panel_root = null
@@ -143,7 +145,7 @@ func dismiss():
 
 func _unhandled_input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_ESCAPE or event.keycode == KEY_C or event.keycode == KEY_K:
+		if event.keycode == KEY_R:
 			get_viewport().set_input_as_handled()
 			dismiss()
 		elif event.keycode == KEY_UP:
@@ -155,6 +157,9 @@ func _unhandled_input(event):
 		elif event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER:
 			get_viewport().set_input_as_handled()
 			_execute_craft()
+
+func get_floating_window():
+	return _window
 
 func _process(_delta):
 	if _tooltip_panel != null and _tooltip_panel.visible:
@@ -200,18 +205,16 @@ func _style_label(label, font, font_size, color):
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
 
+func _on_window_resized():
+	if _window == null or not is_instance_valid(_window) or _panel_root == null:
+		return
+	var panel_w = ENCRUST_PANEL_W if _mode == "encrust" else CRAFT_PANEL_W
+	_ui_scale = clamp(min(_window.size.x / panel_w, _window.size.y / PANEL_H), 0.55, 1.85)
+	_panel_root.scale = Vector2(_ui_scale, _ui_scale)
+
 func _build_ui():
 	var dialog_assets = OD.Assets.dialog()
 	var font = dialog_assets.font
-
-	_root_ctrl = Control.new()
-	_root_ctrl.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(_root_ctrl)
-
-	var backdrop = ColorRect.new()
-	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
-	backdrop.color = Color(0.0, 0.0, 0.0, 0.55)
-	_root_ctrl.add_child(backdrop)
 
 	var vp = get_viewport()
 	var vp_size = vp.get_visible_rect().size if vp != null else OD.Settings.display_size()
@@ -219,14 +222,21 @@ func _build_ui():
 		vp_size = DEFAULT_VIEWPORT_SIZE
 	_ui_scale = clamp(min((vp_size.x - UI_SCALE_MARGIN.x) / ENCRUST_PANEL_W, (vp_size.y - UI_SCALE_MARGIN.y) / PANEL_H), UI_SCALE_MIN, UI_SCALE_MAX)
 	var panel_w = ENCRUST_PANEL_W if _mode == "encrust" else CRAFT_PANEL_W
+	var win_w = panel_w * _ui_scale
+	var win_h = PANEL_H * _ui_scale
 
-	var center = CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_root_ctrl.add_child(center)
+	_window = FloatingWindowScript.new()
+	_window.min_window_size = Vector2(360.0, 340.0)
+	_window.size = Vector2(win_w, win_h)
+	_window.position = Vector2((vp_size.x - win_w) * 0.5, max(24.0, (vp_size.y - win_h) * 0.45))
+	_window.resized.connect(_on_window_resized)
+	add_child(_window)
+
+	_root_ctrl = _window
 
 	_holder = Control.new()
-	_holder.custom_minimum_size = Vector2(panel_w * _ui_scale, PANEL_H * _ui_scale)
-	center.add_child(_holder)
+	_holder.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_window.add_child(_holder)
 
 	_panel_root = Control.new()
 	_panel_root.custom_minimum_size = Vector2(panel_w, PANEL_H)

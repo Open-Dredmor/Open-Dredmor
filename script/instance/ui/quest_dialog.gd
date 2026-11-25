@@ -2,6 +2,7 @@ extends CanvasLayer
 
 class_name QuestDialog
 
+const FloatingWindowScript = preload("res://script/instance/ui/floating_window.gd")
 const QUEST_BG_TEX = "ui/gameplay/panel_quest_bg.png"
 const INPROGRESS_TEXS = {
 	normal = "ui/gameplay/panel_quest_inprogress0.png",
@@ -27,6 +28,7 @@ var _player = null
 var _callbacks = {}
 var _active_tab = "active"
 
+var _window = null
 var _panel = null
 var _list_vbox = null
 var _inprogress_btn = null
@@ -110,19 +112,20 @@ func _create_panel_style():
 	return fallback
 
 func _build_ui():
-	var backdrop = ColorRect.new()
-	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
-	backdrop.color = Color(0, 0, 0, 0.55)
-	add_child(backdrop)
+	var vp_size = _get_viewport_size()
+	var panel_w = clamp(vp_size.x * 0.42, 400.0, 560.0)
+	var panel_h = clamp(vp_size.y * 0.68, 380.0, 540.0)
 
-	var center = CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	backdrop.add_child(center)
+	_window = FloatingWindowScript.new()
+	_window.min_window_size = Vector2(360.0, 320.0)
+	_window.size = Vector2(panel_w, panel_h)
+	_window.position = Vector2((vp_size.x - panel_w) * 0.5, max(24.0, (vp_size.y - panel_h) * 0.45))
+	add_child(_window)
 
 	_panel = PanelContainer.new()
+	_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_panel.add_theme_stylebox_override("panel", _create_panel_style())
-	center.add_child(_panel)
-	_update_panel_bounds()
+	_window.add_child(_panel)
 
 	var root_vbox = VBoxContainer.new()
 	root_vbox.add_theme_constant_override("separation", 10)
@@ -164,12 +167,8 @@ func _build_ui():
 	scroll.add_child(_list_vbox)
 
 func _update_panel_bounds():
-	if _panel == null or not is_instance_valid(_panel):
-		return
-	var vp_size = _get_viewport_size()
-	var panel_w = clamp(vp_size.x * 0.46, 440.0, 620.0)
-	var panel_h = clamp(vp_size.y * 0.72, 420.0, 580.0)
-	_panel.custom_minimum_size = Vector2(panel_w, panel_h)
+	if _window != null and is_instance_valid(_window):
+		_window.clamp_to_viewport()
 
 func _switch_tab(tab_name):
 	_active_tab = tab_name
@@ -177,9 +176,12 @@ func _switch_tab(tab_name):
 
 func _unhandled_input(ev):
 	if ev is InputEventKey and ev.is_pressed() and not ev.echo:
-		if ev.keycode == KEY_ESCAPE or ev.keycode == KEY_Q:
+		if ev.keycode == KEY_Q:
 			dismiss()
 			get_viewport().set_input_as_handled()
+
+func get_floating_window():
+	return _window
 
 func dismiss():
 	if _callbacks.has("on_close") and _callbacks.on_close.is_valid():

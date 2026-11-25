@@ -14,12 +14,12 @@ const HOTBAR_KEYS = [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY
 const MAX_LOG_LINES = 7
 
 const MENU_TABS = [
-	{ id = "menu", prefix = "ui/gameplay/game_button_menu", tip = "Menu (Esc)" },
+	{ id = "menu", prefix = "ui/gameplay/game_button_menu", tip = "Menu (M / Esc)" },
 	{ id = "character", prefix = "ui/gameplay/game_button_character", tip = "Character Sheet (C)" },
 	{ id = "inventory", prefix = "ui/gameplay/game_button_inventory", tip = "Inventory (I)" },
-	{ id = "skills", prefix = "ui/gameplay/game_button_skills", tip = "Skills & Spells (M)" },
+	{ id = "skills", prefix = "ui/gameplay/game_button_skills", tip = "Skills & Spells (K)" },
 	{ id = "quests", prefix = "ui/gameplay/game_button_quests", tip = "Quests (Q)" },
-	{ id = "crafting", prefix = "ui/gameplay/game_button_crafting", tip = "Crafting (K)" }
+	{ id = "crafting", prefix = "ui/gameplay/game_button_crafting", tip = "Crafting (R)" }
 ]
 
 var _dungeon = null
@@ -656,19 +656,16 @@ func _on_menu_tab_pressed(tab_id):
 		"menu":
 			toggle_pause_menu()
 		"character":
-			close_all_modals()
 			if _callbacks.has("on_character") and _callbacks.on_character.is_valid():
 				_callbacks.on_character.call()
 			elif _callbacks.has("on_inventory") and _callbacks.on_inventory.is_valid():
 				_callbacks.on_inventory.call()
 		"inventory":
-			close_all_modals()
 			if _callbacks.has("on_inventory") and _callbacks.on_inventory.is_valid():
 				_callbacks.on_inventory.call()
 		"skills":
 			toggle_skill_tree()
 		"crafting":
-			close_all_modals()
 			if _callbacks.has("on_crafting") and _callbacks.on_crafting.is_valid():
 				_callbacks.on_crafting.call()
 			elif _dungeon != null and is_instance_valid(_dungeon):
@@ -677,7 +674,7 @@ func _on_menu_tab_pressed(tab_id):
 			toggle_quest_log()
 
 func is_modal_open():
-	return is_instance_valid(_skill_dialog) or is_instance_valid(_quest_dialog) or is_instance_valid(_pause_dialog)
+	return is_instance_valid(_pause_dialog)
 
 func is_spellbook_open():
 	return is_instance_valid(_skill_dialog)
@@ -704,6 +701,9 @@ func handle_key_input(ev):
 		toggle_log_history()
 		return true
 	if ev.keycode == KEY_M:
+		toggle_pause_menu()
+		return true
+	if ev.keycode == KEY_K:
 		toggle_skill_tree()
 		return true
 	if ev.keycode == KEY_Q:
@@ -734,7 +734,6 @@ func toggle_pause_menu():
 	if is_instance_valid(_pause_dialog):
 		_close_pause_menu()
 		return
-	_notify_before_open_modal()
 	_pause_dialog = PauseDialogScript.new().init({
 		on_close = func(): _pause_dialog = null
 	})
@@ -754,7 +753,6 @@ func toggle_skill_tree(initial_tab = "skills"):
 	var player = _dungeon.get_player()
 	if player == null:
 		return
-	_notify_before_open_modal()
 	_skill_dialog = SkillTreeDialogScript.new().init(player, {
 		on_cast_spell = func(spell_name):
 			_skill_dialog = null
@@ -780,7 +778,6 @@ func toggle_quest_log():
 	var player = _dungeon.get_player()
 	if player == null:
 		return
-	_notify_before_open_modal()
 	_quest_dialog = QuestDialogScript.new().init(player, {
 		on_close = func(): _quest_dialog = null
 	})

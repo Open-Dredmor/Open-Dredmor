@@ -806,6 +806,9 @@ func _spawn_floating_text(grid_pos, text, color):
 func is_dialog_open():
 	return is_instance_valid(_interaction_dialog) or is_instance_valid(_crafting_dialog)
 
+func has_interaction_dialog_open():
+	return is_instance_valid(_interaction_dialog)
+
 func close_crafting_dialog():
 	if is_instance_valid(_crafting_dialog):
 		_crafting_dialog.dismiss()
