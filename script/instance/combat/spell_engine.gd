@@ -364,12 +364,16 @@ static func _apply_effect(eff, spell_def, caster, caster_pos, cell, context, tri
 					target.modify_hp(-res.total_damage, spell_def.name)
 				else:
 					target.hp = max(0, int(target.hp) - res.total_damage)
+				if target.has_method("refresh_health_bar"):
+					target.refresh_health_bar()
 				if target.has_method("play_hit_animation"):
 					target.play_hit_animation()
 				if dungeon != null and dungeon.has_method("_spawn_floating_text"):
 					dungeon._spawn_floating_text(cell, "-" + str(res.total_damage), Color(0.55, 0.85, 1.0))
 				if target != caster and int(target.hp) <= 0 and dungeon != null and dungeon.has_method("_handle_enemy_death"):
 					dungeon._handle_enemy_death(target, cell)
+			elif res.total_damage <= 0 and dungeon != null and dungeon.has_method("spawn_floating_badge"):
+				dungeon.spawn_floating_badge(cell, "resist", "Resisted!")
 			return "damage"
 
 		"heal":
@@ -395,6 +399,8 @@ static func _apply_effect(eff, spell_def, caster, caster_pos, cell, context, tri
 				mp_amt += int(round(float(target.max_mp) * float(eff.percent) / 100.0))
 			if mp_amt != 0 and target.has_method("modify_mp"):
 				target.modify_mp(mp_amt)
+				if mp_amt > 0 and dungeon != null and dungeon.has_method("_spawn_floating_text"):
+					dungeon._spawn_floating_text(cell, "+" + str(mp_amt) + " MP", Color(0.45, 0.78, 1.0))
 			return "spellpoints"
 
 		"drain":

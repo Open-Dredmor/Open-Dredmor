@@ -40,6 +40,8 @@ var _die_sprite_path = ""
 var _palette_path = null
 var _active_sprite = null
 var _facing_dir = "down"
+var _hp_bar_bg = null
+var _hp_bar_fill = null
 
 func _init_stat_tables():
 	damage_profile.clear()
@@ -200,6 +202,9 @@ func _show_sprite(sprite_dict, dir_key, kind_key = "idle"):
 	_active_sprite.visible = true
 
 func play_hit_animation():
+	modulate = Color(1.4, 0.45, 0.45, 1.0)
+	var flash_tween = create_tween()
+	flash_tween.tween_property(self, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.16)
 	if _sprite_defs.get("hit", null) == null:
 		return
 	_show_sprite(_hit_sprites, _facing_dir, "hit")
@@ -406,6 +411,8 @@ func step_ai(entity_grid, player_pos, player, dungeon = null):
 						dungeon = dungeon,
 						free_cast = true
 					})
+		elif dungeon != null and dungeon.has_method("spawn_floating_badge"):
+			dungeon.spawn_floating_badge(target_pos, "dodge", "Dodged!")
 		elif dungeon != null and dungeon.has_method("_spawn_floating_text"):
 			dungeon._spawn_floating_text(target_pos, "Dodged!", Color(0.75, 0.75, 0.85))
 		return "attack"
@@ -470,7 +477,39 @@ func apply_buff(buff_def, source_spell = ""):
 	})
 	return true
 
+func refresh_health_bar():
+	if max_hp <= 0 or hp <= 0 or hp >= max_hp:
+		if _hp_bar_bg != null:
+			_hp_bar_bg.visible = false
+		return
+	if _hp_bar_bg == null and OD.Load != null:
+		var bg_tex = OD.Load.image("ui/tiny_healthbar_bg.png") if OD.Load.exists("ui/tiny_healthbar_bg.png") else null
+		var fill_tex = OD.Load.image("ui/tiny_healthbar.png") if OD.Load.exists("ui/tiny_healthbar.png") else null
+		if bg_tex != null and fill_tex != null:
+			_hp_bar_bg = TextureRect.new()
+			_hp_bar_bg.texture = bg_tex
+			_hp_bar_bg.size = bg_tex.get_size()
+			_hp_bar_bg.position = Vector2(-bg_tex.get_width() * 0.5, -24.0)
+			_hp_bar_bg.scale = Vector2(0.75, 1.0)
+			_hp_bar_bg.pivot_offset = Vector2(bg_tex.get_width() * 0.5, 0.0)
+			_hp_bar_bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			_hp_bar_bg.z_index = 10
+			add_child(_hp_bar_bg)
+
+			_hp_bar_fill = TextureRect.new()
+			_hp_bar_fill.texture = fill_tex
+			_hp_bar_fill.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			_hp_bar_fill.position = Vector2(2.0, 2.0)
+			_hp_bar_fill.size = fill_tex.get_size()
+			_hp_bar_fill.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			_hp_bar_bg.add_child(_hp_bar_fill)
+	if _hp_bar_bg != null and _hp_bar_fill != null:
+		_hp_bar_bg.visible = true
+		var ratio = clamp(float(hp) / float(max(1, max_hp)), 0.0, 1.0)
+		_hp_bar_fill.size.x = max(1.0, 64.0 * ratio)
+
 func on_hit_received():
+	refresh_health_bar()
 	var ii = 0
 	while ii < active_buffs.size():
 		var brit = int(active_buffs[ii].get("brittle_remaining", 0))

@@ -14,6 +14,7 @@ const SpellEngineScript = preload("res://script/instance/combat/spell_engine.gd"
 const CastSpellCommandScript = preload("res://script/instance/command/cast_spell_command.gd")
 const UseItemCommandScript = preload("res://script/instance/command/use_item_command.gd")
 const DeathManagerScript = preload("res://script/instance/death_manager.gd")
+const FloatingCombatTextScript = preload("res://script/instance/ui/floating_combat_text.gd")
 
 signal floor_changed(floor_level, branch_name)
 signal fov_updated()
@@ -172,7 +173,7 @@ func _resolve_player_attack(target, target_cell, options = {}):
 	var target_name = str(target.get("monster_name")) if target.get("monster_name") != null else "Enemy"
 	var res = CombatResolverScript.resolve_attack(_player, target, attack_opts)
 	if not res.hit:
-		_spawn_floating_text(target_cell, "Dodged!", Color(0.75, 0.75, 0.85))
+		spawn_floating_badge(target_cell, "dodge", "Dodged!")
 		_log_event("The " + target_name + " dodges your attack!")
 		if res.ammo_recovered and _entity_grid != null and attack_opts.has("ammo_item"):
 			_entity_grid.add_loot_item(target_cell.x, target_cell.y, attack_opts.ammo_item)
@@ -187,9 +188,13 @@ func _resolve_player_attack(target, target_cell, options = {}):
 	var tag_suffix = ""
 	if res.critical:
 		tag_suffix += " CRIT!"
+		spawn_floating_badge(target_cell, "crit", "CRIT!")
 	if res.blocked:
 		tag_suffix += " (Blocked)"
-	_spawn_floating_text(target_cell, "-" + str(res.total_damage) + tag_suffix, Color(1.0, 0.85, 0.25))
+		spawn_floating_badge(target_cell, "block", "Blocked!")
+	var dmg_color = Color(1.0, 0.55, 0.15) if res.critical else Color(1.0, 0.85, 0.25)
+	var dmg_scale = 1.25 if res.critical else 1.0
+	_spawn_floating_text(target_cell, "-" + str(res.total_damage), dmg_color, dmg_scale)
 	_log_event("You hit the " + target_name + " for " + str(res.total_damage) + " damage!" + tag_suffix)
 	if target.has_method("on_hit_received"):
 		target.on_hit_received()
@@ -210,7 +215,8 @@ func _resolve_player_attack(target, target_cell, options = {}):
 		if counter_res.hit and counter_res.total_damage > 0:
 			_player.modify_hp(-counter_res.total_damage, str(target.get("monster_name")))
 			var p_cell = Vector2i(int(player_pos.x), int(player_pos.y))
-			_spawn_floating_text(p_cell, "Counter! -" + str(counter_res.total_damage), Color(1.0, 0.3, 0.3))
+			spawn_floating_badge(p_cell, "counter", "Counter!")
+			_spawn_floating_text(p_cell, "-" + str(counter_res.total_damage), Color(1.0, 0.3, 0.3))
 			_log_event("The " + target_name + " counters for " + str(counter_res.total_damage) + " damage!")
 			_trigger_player_hit_procs(target_cell)
 	return true
@@ -321,7 +327,7 @@ func execute_use_item(item_data, target_cell):
 		var p_pos = _player.get_grid_position()
 		var p_cell = Vector2i(int(p_pos.x), int(p_pos.y)) if p_pos != null else target_cell
 		if not res.get("executed", false):
-			_spawn_floating_text(p_cell, str(res.get("reason", "Cannot use")), Color(1.0, 0.5, 0.45))
+			_log_event(str(res.get("reason", "Cannot use")))
 			return false
 		var res_kind = str(res.get("kind", ""))
 		if res_kind == "food":
@@ -330,14 +336,13 @@ func execute_use_item(item_data, target_cell):
 			_spawn_floating_text(p_cell, "Tipsy! +" + str(res.get("mp_per_turn", 1)) + " MP/turn", Color(0.45, 0.78, 1.0))
 		elif res_kind == "wand":
 			if res.get("burned_out", false):
-				_spawn_floating_text(p_cell, str(res.get("item_name", "Wand")) + " burned out!", Color(1.0, 0.65, 0.3))
+				_log_event(str(res.get("item_name", "Wand")) + " burned out!")
 			else:
-				_spawn_floating_text(p_cell, str(res.get("spell_name", "Wand")) + " (" + str(res.get("remaining_charges", 0)) + " left)", Color(0.7, 0.85, 1.0))
+				_log_event("Used " + str(res.get("spell_name", "Wand")) + " (" + str(res.get("remaining_charges", 0)) + " charges left).")
 		else:
-			_spawn_floating_text(p_cell, str(res.get("item_name", "Used")), Color(0.75, 0.95, 0.65))
+			_log_event("Used " + str(res.get("item_name", "Item")) + ".")
 		return true
-	var pos = target_cell if target_cell != Vector2i.ZERO else Vector2i(int(_player.get_grid_position().x), int(_player.get_grid_position().y))
-	_spawn_floating_text(pos, "Used " + str(item_data.get("name", "Item")), Color(0.75, 0.95, 0.65))
+	_log_event("Used " + str(item_data.get("name", "Item")) + ".")
 	return true
 
 func global_coordinates_to_grid(x, y):
@@ -544,8 +549,7 @@ func _resolve_floor_spawn_cell(grid, direction):
 func _change_floor(direction):
 	var target_level = _floor_level + 1 if direction == "down" else _floor_level - 1
 	if target_level < 1:
-		var pos = _player.get_grid_position()
-		_spawn_floating_text(pos, "The exit is blocked.", Color(0.9, 0.7, 0.5))
+		_log_event("The exit is blocked.")
 		return
 	_pending_interaction = null
 	_turn_scheduler.cancel_auto_actions()
@@ -573,7 +577,6 @@ func _change_floor(direction):
 	_entity_grid.update_trap_visibility(_player.get_grid_position())
 	update_fov()
 	OD.Audio.play_sfx("stairs")
-	_spawn_floating_text(spawn_cell, "Floor " + str(_floor_level), Color(0.95, 0.9, 0.45))
 	floor_changed.emit(_floor_level, _branch_name)
 
 func get_floor_level():
@@ -673,7 +676,7 @@ func _on_teleporter_stepped(teleporter_info, _grid_pos):
 	_entity_grid.update_trap_visibility(dest)
 	update_fov()
 	OD.Audio.play_sfx("teleport")
-	_spawn_floating_text(dest, "Teleported!", Color(0.55, 0.85, 1.0))
+	_log_event("Teleported!")
 
 func _toggle_pocket_dimension(_portal_pos):
 	_pending_interaction = null
@@ -779,29 +782,17 @@ func _log_event(message):
 	if OD.EventLog != null:
 		OD.EventLog.notify(message)
 
-func _spawn_floating_text(grid_pos, text, color):
+func _spawn_floating_text(grid_pos, text, color, scale_mult = 1.0):
 	if _entity_grid == null:
 		return
-	var label = Label.new()
-	label.text = text
-	var px = OD.Math.grid_to_pixel(grid_pos.x, grid_pos.y)
-	label.position = px + Vector2(-80, -32)
-	label.custom_minimum_size = Vector2(160, 24)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_override("font", OD.Assets.dialog().font)
-	label.add_theme_font_size_override("font_size", 18)
-	label.add_theme_color_override("font_color", color)
-	label.add_theme_constant_override("outline_size", 3)
-	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-	_entity_grid.get_layer("floating_text").add_child(label)
-	var tween = create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(label, "position:y", label.position.y - 28.0, 0.9)
-	tween.tween_property(label, "modulate:a", 0.0, 0.9)
-	tween.chain().tween_callback(func():
-		if is_instance_valid(label):
-			label.queue_free()
-	)
+	FloatingCombatTextScript.spawn_text(self, _entity_grid.get_layer("floating_text"), grid_pos, text, color, scale_mult)
+
+func spawn_floating_badge(grid_pos, badge_key, fallback_text = ""):
+	if _entity_grid == null:
+		return
+	var layer_node = _entity_grid.get_layer("floating_text")
+	if not FloatingCombatTextScript.spawn_badge(self, layer_node, grid_pos, badge_key) and fallback_text != "":
+		FloatingCombatTextScript.spawn_text(self, layer_node, grid_pos, fallback_text, Color(0.95, 0.9, 0.6))
 
 func is_dialog_open():
 	return is_instance_valid(_interaction_dialog) or is_instance_valid(_crafting_dialog)
@@ -823,9 +814,7 @@ func open_crafting_dialog(tool_tag = ""):
 		return false
 	var possessed = _player.get_possessed_toolkits()
 	if possessed.is_empty():
-		var p_pos = _player.get_grid_position()
-		if p_pos != null:
-			_spawn_floating_text(Vector2i(int(p_pos.x), int(p_pos.y)), "No crafting tools in inventory!", Color(1.0, 0.55, 0.35))
+		_log_event("No crafting tools in inventory!")
 		return false
 	_crafting_dialog = CraftingDialogScript.new().init(_player, tool_tag, {
 		on_drop_overflow = func(drop_item):
@@ -851,7 +840,6 @@ func _handle_element_interaction(element, grid_coords):
 		var break_res = element.interact()
 		_entity_grid.unblock_cell(grid_coords.x, grid_coords.y)
 		var smash_msg = break_res.get("message", "Smashed!")
-		_spawn_floating_text(grid_coords, smash_msg, Color(0.95, 0.85, 0.45))
 		_log_event(smash_msg)
 		if int(break_res.get("exp", 0)) > 0:
 			award_xp(int(break_res.exp), grid_coords)
@@ -895,14 +883,12 @@ func _grant_loot_to_player(item_inst, fallback_pos):
 	var add_res = _player.add_item(item_inst)
 	if add_res.added:
 		var item_label = str(item_inst.get("name", "Item"))
-		_spawn_floating_text(fallback_pos, "+" + item_label, Color(0.95, 0.85, 0.35))
 		_log_event("You put " + item_label + " in your bag.")
 		return
 	if _entity_grid != null:
 		var drop_pos = _player.get_grid_position()
 		var target_cell = Vector2i(int(drop_pos.x), int(drop_pos.y)) if drop_pos != null else fallback_pos
 		_entity_grid.add_loot_item(target_cell.x, target_cell.y, { kind = "item", item = item_inst })
-		_spawn_floating_text(target_cell, "Inventory full! Dropped on floor.", Color(1.0, 0.55, 0.35))
 		_log_event("Your bag is full!")
 
 func _seed_player_bag():
@@ -943,7 +929,6 @@ func pickup_loot_at_player(target_pos = null):
 			_player.add_zorkmids(amt)
 			_entity_grid.remove_loot_at(pos.x, pos.y, idx)
 			OD.Audio.play_sfx("coin")
-			_spawn_floating_text(pos, "+" + str(amt) + " zm", Color(1.0, 0.85, 0.25))
 			_log_event("You pick up " + str(amt) + " Zorkmids.")
 			picked_any = true
 		elif kind == "lockpick":
@@ -965,11 +950,9 @@ func pickup_loot_at_player(target_pos = null):
 			if lp_res.added:
 				_entity_grid.remove_loot_at(pos.x, pos.y, idx)
 				OD.Audio.play_sfx("metal_get")
-				_spawn_floating_text(pos, "+Lockpick", Color(0.75, 0.92, 1.0))
 				_log_event("You put Lockpick in your bag.")
 				picked_any = true
 			else:
-				_spawn_floating_text(pos, "Inventory full!", Color(1.0, 0.45, 0.35))
 				_log_event("Your bag is full!")
 		else:
 			var raw_item = loot_data.get("item", loot_data)
@@ -982,16 +965,14 @@ func pickup_loot_at_player(target_pos = null):
 			if add_res.added:
 				if add_res.remaining > 0:
 					item_inst["count"] = add_res.remaining
-					_spawn_floating_text(pos, "Inventory full!", Color(1.0, 0.45, 0.35))
+					_log_event("Your bag is full!")
 				else:
 					_entity_grid.remove_loot_at(pos.x, pos.y, idx)
 				OD.Audio.play_sfx("metal_get")
 				var picked_name = str(item_inst.get("name", "Item"))
-				_spawn_floating_text(pos, "+" + picked_name, Color(0.75, 0.92, 1.0))
 				_log_event("You put " + picked_name + " in your bag.")
 				picked_any = true
 			else:
-				_spawn_floating_text(pos, "Inventory full!", Color(1.0, 0.45, 0.35))
 				_log_event("Your bag is full!")
 		idx -= 1
 	return picked_any
@@ -1006,7 +987,7 @@ func drop_inventory_item(inv_idx, count = -1):
 	if removed == null:
 		return false
 	_entity_grid.add_loot_item(int(p_pos.x), int(p_pos.y), { kind = "item", item = removed })
-	_spawn_floating_text(Vector2i(int(p_pos.x), int(p_pos.y)), "Dropped " + str(removed.get("name", "Item")), Color(0.85, 0.85, 0.7))
+	_log_event("Dropped " + str(removed.get("name", "Item")) + ".")
 	return true
 
 func drop_equipped_item(slot_name):
@@ -1022,7 +1003,7 @@ func drop_equipped_item(slot_name):
 	_player.recalculate_stats()
 	_player.equipment_changed.emit()
 	_entity_grid.add_loot_item(int(p_pos.x), int(p_pos.y), { kind = "item", item = equipped })
-	_spawn_floating_text(Vector2i(int(p_pos.x), int(p_pos.y)), "Dropped " + str(equipped.get("name", "Item")), Color(0.85, 0.85, 0.7))
+	_log_event("Dropped " + str(equipped.get("name", "Item")) + ".")
 	return true
 
 func _on_shop_alert(message, grid_pos, color):
@@ -1066,8 +1047,15 @@ func _on_player_died(cause_of_death):
 	}
 	player_died.emit(summary)
 
-func on_monster_attack_player(monster, res, monster_pos, _player_pos):
+func on_monster_attack_player(monster, res, monster_pos, player_pos):
 	var m_name = str(monster.get("monster_name")) if monster != null else "Monster"
+	if player_pos != null:
+		var p_cell = Vector2i(int(player_pos.x), int(player_pos.y))
+		if res.get("critical", false):
+			spawn_floating_badge(p_cell, "crit", "CRIT!")
+		if res.get("blocked", false):
+			spawn_floating_badge(p_cell, "block", "Blocked!")
+		_spawn_floating_text(p_cell, "-" + str(res.total_damage), Color(1.0, 0.28, 0.28), 1.15 if res.get("critical", false) else 1.0)
 	_log_event("The " + m_name + " hits you for " + str(res.total_damage) + " damage!")
 	_trigger_player_hit_procs(monster_pos)
 
@@ -1097,9 +1085,9 @@ func _handle_shopkeeper_interaction(keeper, pos):
 		func(): _entity_grid.shop_manager.teleport_brax_home(shop, player_cell, _entity_grid)
 	)
 
-func _handle_shop_pedestal_interaction(pedestal, pos):
+func _handle_shop_pedestal_interaction(pedestal, _pos):
 	if not pedestal.has_item():
-		_spawn_floating_text(pos, "Empty pedestal", Color(0.85, 0.85, 0.85))
+		_log_event("Empty pedestal.")
 		return
 	var shop = _entity_grid.shop_manager.get_shop_by_id(pedestal.shop_id)
 	var player_pos = _player.get_grid_position()
