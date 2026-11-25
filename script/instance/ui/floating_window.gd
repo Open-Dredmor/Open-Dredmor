@@ -17,7 +17,10 @@ const MIN_VISIBLE_Y = 48.0
 
 var min_window_size = Vector2(280, 220)
 var max_window_size = Vector2(1400, 1000)
+var base_size = Vector2.ZERO
 
+var _content_root = null
+var _grip_overlay = null
 var _drag_mode = ""
 var _drag_start_mouse = Vector2.ZERO
 var _drag_start_pos = Vector2.ZERO
@@ -81,7 +84,48 @@ static func get_topmost_window(tree):
 func _ready():
 	add_to_group(GROUP_NAME)
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	_ensure_grip_overlay()
 	raise_window(self)
+
+func _ensure_grip_overlay():
+	if _grip_overlay != null and is_instance_valid(_grip_overlay):
+		return
+	_grip_overlay = Control.new()
+	_grip_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_grip_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_grip_overlay.z_index = 20
+	_grip_overlay.draw.connect(_draw_grip)
+	add_child(_grip_overlay)
+
+func get_content_root():
+	if _content_root == null or not is_instance_valid(_content_root):
+		_content_root = Control.new()
+		_content_root.mouse_filter = Control.MOUSE_FILTER_PASS
+		add_child(_content_root)
+		if _grip_overlay != null and is_instance_valid(_grip_overlay):
+			_grip_overlay.move_to_front()
+	return _content_root
+
+func set_base_size(target_base_size, initial_scale = 1.0):
+	base_size = target_base_size
+	var root = get_content_root()
+	root.custom_minimum_size = base_size
+	root.size = base_size
+	size = base_size * initial_scale
+	_sync_content_scale()
+	if _grip_overlay != null and is_instance_valid(_grip_overlay):
+		_grip_overlay.queue_redraw()
+
+func get_current_scale():
+	if base_size.x <= 0.0:
+		return 1.0
+	return size.x / base_size.x
+
+func _sync_content_scale():
+	if _content_root == null or not is_instance_valid(_content_root) or base_size.x <= 0.0:
+		return
+	var scale_factor = size.x / base_size.x
+	_content_root.scale = Vector2(scale_factor, scale_factor)
 
 func is_interacting():
 	return _drag_mode != ""
@@ -102,6 +146,7 @@ func clamp_to_viewport():
 		if max_scale < 1.0 or min_scale > 1.0:
 			var clamped_scale = clamp(1.0, min_scale, max(min_scale, max_scale))
 			size = size * clamped_scale
+	_sync_content_scale()
 	var min_x = -size.x + MIN_VISIBLE_X
 	var max_x = vp_size.x - MIN_VISIBLE_X
 	var min_y = -size.y + MIN_VISIBLE_Y
@@ -219,10 +264,14 @@ func _apply_drag_motion(mouse_pos):
 	var max_scale = min(max_w / _drag_start_size.x, max_h / _drag_start_size.y)
 	var final_scale = clamp(raw_scale, min_scale, max(min_scale, max_scale))
 	size = _drag_start_size * final_scale
-	queue_redraw()
+	_sync_content_scale()
+	if _grip_overlay != null and is_instance_valid(_grip_overlay):
+		_grip_overlay.queue_redraw()
 
-func _draw():
-	var grip_color = Color(0.85, 0.72, 0.42, 0.75)
+func _draw_grip():
+	if _grip_overlay == null:
+		return
+	var grip_color = Color(0.92, 0.78, 0.44, 0.85)
 	for ii in range(3):
 		var offset = 4.0 + ii * 4.0
-		draw_line(Vector2(size.x - offset, size.y - 2.0), Vector2(size.x - 2.0, size.y - offset), grip_color, 1.5)
+		_grip_overlay.draw_line(Vector2(size.x - offset, size.y - 2.0), Vector2(size.x - 2.0, size.y - offset), grip_color, 1.5)

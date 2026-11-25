@@ -297,38 +297,28 @@ func _build_ui():
 	var dialog_assets = OD.Assets.dialog()
 	var font = dialog_assets.font if dialog_assets != null else null
 	var vp_size = _get_viewport_size()
-	var ref_size = UI_SCALE_REF_SIZE
+	var base_size = Vector2(946.0, 628.0)
 	if _mode == "character":
-		ref_size = Vector2(340.0, 580.0)
+		base_size = Vector2(360.0, 628.0)
 	elif _mode == "inventory":
-		ref_size = Vector2(660.0, 620.0)
-	var ui_scale = clamp(min((vp_size.x - UI_SCALE_MARGIN.x) / ref_size.x, (vp_size.y - UI_SCALE_MARGIN.y) / ref_size.y), UI_SCALE_MIN, UI_SCALE_MAX)
-
-	var win_w = ref_size.x * ui_scale
-	var win_h = ref_size.y * ui_scale
-	if _mode == "character":
-		win_w = max(360.0, CHAR_PANEL_SIZE.x * ui_scale * CHAR_PANEL_EXTRA_SCALE + 16.0)
-		win_h = CHAR_PANEL_SIZE.y * ui_scale * CHAR_PANEL_EXTRA_SCALE + 64.0
-	elif _mode == "inventory":
-		win_w = max(520.0, INV_PANEL_SIZE.x * ui_scale + 16.0)
-		win_h = INV_PANEL_SIZE.y * ui_scale + 64.0
+		base_size = Vector2(608.0, 606.0)
+	var ui_scale = clamp(min((vp_size.x - UI_SCALE_MARGIN.x) / base_size.x, (vp_size.y - UI_SCALE_MARGIN.y) / base_size.y), UI_SCALE_MIN, UI_SCALE_MAX)
 
 	_window = FloatingWindowScript.new()
-	_window.min_window_size = Vector2(280.0, 340.0) if _mode == "character" else Vector2(440.0, 380.0)
-	_window.size = Vector2(win_w, win_h)
+	_window.min_window_size = base_size * 0.55
+	_window.set_base_size(base_size, ui_scale)
 	if _mode == "character":
-		_window.position = Vector2(36.0, max(24.0, (vp_size.y - win_h) * 0.38))
+		_window.position = Vector2(36.0, max(24.0, (vp_size.y - _window.size.y) * 0.38))
 	elif _mode == "inventory":
-		_window.position = Vector2(max(36.0, vp_size.x - win_w - 36.0), max(24.0, (vp_size.y - win_h) * 0.38))
+		_window.position = Vector2(max(36.0, vp_size.x - _window.size.x - 36.0), max(24.0, (vp_size.y - _window.size.y) * 0.38))
 	else:
-		_window.position = Vector2((vp_size.x - win_w) * 0.5, max(24.0, (vp_size.y - win_h) * 0.45))
-	_window.resized.connect(_on_window_resized)
+		_window.position = Vector2((vp_size.x - _window.size.x) * 0.5, max(24.0, (vp_size.y - _window.size.y) * 0.45))
 	add_child(_window)
 
 	var root_vbox = VBoxContainer.new()
 	root_vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root_vbox.add_theme_constant_override("separation", ROOT_VBOX_SEPARATION)
-	_window.add_child(root_vbox)
+	_window.get_content_root().add_child(root_vbox)
 
 	var windows_hbox = HBoxContainer.new()
 	windows_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -340,15 +330,14 @@ func _build_ui():
 
 	_equip_buttons.clear()
 	if show_char:
-		var char_scale = ui_scale * CHAR_PANEL_EXTRA_SCALE
 		_char_holder = Control.new()
-		_char_holder.custom_minimum_size = CHAR_PANEL_SIZE * char_scale
+		_char_holder.custom_minimum_size = CHAR_PANEL_SIZE * CHAR_PANEL_EXTRA_SCALE
 		windows_hbox.add_child(_char_holder)
 
 		_char_panel = Control.new()
 		_char_panel.custom_minimum_size = CHAR_PANEL_SIZE
 		_char_panel.size = CHAR_PANEL_SIZE
-		_char_panel.scale = Vector2(char_scale, char_scale)
+		_char_panel.scale = Vector2(CHAR_PANEL_EXTRA_SCALE, CHAR_PANEL_EXTRA_SCALE)
 		_char_holder.add_child(_char_panel)
 		var char_panel = _char_panel
 		var char_holder = _char_holder
@@ -495,13 +484,12 @@ func _build_ui():
 	_inv_buttons.clear()
 	if show_inv:
 		_inv_holder = Control.new()
-		_inv_holder.custom_minimum_size = INV_PANEL_SIZE * ui_scale
+		_inv_holder.custom_minimum_size = INV_PANEL_SIZE
 		windows_hbox.add_child(_inv_holder)
 
 		_inv_panel = Control.new()
 		_inv_panel.custom_minimum_size = INV_PANEL_SIZE
 		_inv_panel.size = INV_PANEL_SIZE
-		_inv_panel.scale = Vector2(ui_scale, ui_scale)
 		_inv_holder.add_child(_inv_panel)
 		var inv_panel = _inv_panel
 
@@ -695,33 +683,6 @@ func _process(_delta):
 		if target_pos.y + tip_size.y > vp_size.y - TOOLTIP_SCREEN_MARGIN:
 			target_pos.y = max(float(TOOLTIP_SCREEN_MARGIN), mouse_pos.y - tip_size.y - TOOLTIP_FLIP_MARGIN)
 		_tooltip_panel.position = target_pos
-
-func _on_window_resized():
-	if _window == null or not is_instance_valid(_window):
-		return
-	var bar_h = _action_bar.size.y if _action_bar != null else 48.0
-	var avail_w = max(200.0, _window.size.x - 8.0)
-	var avail_h = max(200.0, _window.size.y - bar_h - ROOT_VBOX_SEPARATION - 4.0)
-	var base_w = 0.0
-	var base_h = 0.0
-	if _char_holder != null:
-		base_w += CHAR_PANEL_SIZE.x * CHAR_PANEL_EXTRA_SCALE
-		base_h = max(base_h, CHAR_PANEL_SIZE.y * CHAR_PANEL_EXTRA_SCALE)
-	if _inv_holder != null:
-		base_w += INV_PANEL_SIZE.x
-		base_h = max(base_h, INV_PANEL_SIZE.y)
-	if _char_holder != null and _inv_holder != null:
-		base_w += WINDOWS_HBOX_SEPARATION
-	if base_w <= 0.0 or base_h <= 0.0:
-		return
-	var new_scale = clamp(min(avail_w / base_w, avail_h / base_h), 0.55, 1.85)
-	if _char_holder != null and _char_panel != null:
-		var c_scale = new_scale * CHAR_PANEL_EXTRA_SCALE
-		_char_holder.custom_minimum_size = CHAR_PANEL_SIZE * c_scale
-		_char_panel.scale = Vector2(c_scale, c_scale)
-	if _inv_holder != null and _inv_panel != null:
-		_inv_holder.custom_minimum_size = INV_PANEL_SIZE * new_scale
-		_inv_panel.scale = Vector2(new_scale, new_scale)
 
 func get_floating_window():
 	return _window

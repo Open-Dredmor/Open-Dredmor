@@ -205,13 +205,6 @@ func _style_label(label, font, font_size, color):
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
 
-func _on_window_resized():
-	if _window == null or not is_instance_valid(_window) or _panel_root == null:
-		return
-	var panel_w = ENCRUST_PANEL_W if _mode == "encrust" else CRAFT_PANEL_W
-	_ui_scale = clamp(min(_window.size.x / panel_w, _window.size.y / PANEL_H), 0.55, 1.85)
-	_panel_root.scale = Vector2(_ui_scale, _ui_scale)
-
 func _build_ui():
 	var dialog_assets = OD.Assets.dialog()
 	var font = dialog_assets.font
@@ -222,26 +215,21 @@ func _build_ui():
 		vp_size = DEFAULT_VIEWPORT_SIZE
 	_ui_scale = clamp(min((vp_size.x - UI_SCALE_MARGIN.x) / ENCRUST_PANEL_W, (vp_size.y - UI_SCALE_MARGIN.y) / PANEL_H), UI_SCALE_MIN, UI_SCALE_MAX)
 	var panel_w = ENCRUST_PANEL_W if _mode == "encrust" else CRAFT_PANEL_W
-	var win_w = panel_w * _ui_scale
-	var win_h = PANEL_H * _ui_scale
+	var base_size = Vector2(panel_w, PANEL_H)
 
 	_window = FloatingWindowScript.new()
-	_window.min_window_size = Vector2(360.0, 340.0)
-	_window.size = Vector2(win_w, win_h)
-	_window.position = Vector2((vp_size.x - win_w) * 0.5, max(24.0, (vp_size.y - win_h) * 0.45))
-	_window.resized.connect(_on_window_resized)
+	_window.min_window_size = base_size * 0.6
+	_window.set_base_size(base_size, _ui_scale)
+	_window.position = Vector2((vp_size.x - _window.size.x) * 0.5, max(24.0, (vp_size.y - _window.size.y) * 0.45))
 	add_child(_window)
 
 	_root_ctrl = _window
 
-	_holder = Control.new()
-	_holder.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_window.add_child(_holder)
+	_holder = _window.get_content_root()
 
 	_panel_root = Control.new()
 	_panel_root.custom_minimum_size = Vector2(panel_w, PANEL_H)
 	_panel_root.size = Vector2(panel_w, PANEL_H)
-	_panel_root.scale = Vector2(_ui_scale, _ui_scale)
 	_holder.add_child(_panel_root)
 
 	_bg_rect = TextureRect.new()
@@ -417,8 +405,9 @@ func _set_mode(new_mode):
 func _refresh_mode_chrome():
 	var is_encrust = (_mode == "encrust")
 	var panel_w = ENCRUST_PANEL_W if is_encrust else CRAFT_PANEL_W
-	if _holder != null:
-		_holder.custom_minimum_size = Vector2(panel_w * _ui_scale, PANEL_H * _ui_scale)
+	if _window != null and is_instance_valid(_window):
+		_window.set_base_size(Vector2(panel_w, PANEL_H), _window.get_current_scale())
+		_window.clamp_to_viewport()
 	if _panel_root != null:
 		_panel_root.custom_minimum_size = Vector2(panel_w, PANEL_H)
 		_panel_root.size = Vector2(panel_w, PANEL_H)

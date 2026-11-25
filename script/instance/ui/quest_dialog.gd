@@ -113,19 +113,19 @@ func _create_panel_style():
 
 func _build_ui():
 	var vp_size = _get_viewport_size()
-	var panel_w = clamp(vp_size.x * 0.42, 400.0, 560.0)
-	var panel_h = clamp(vp_size.y * 0.68, 380.0, 540.0)
+	var base_size = Vector2(504.0, 496.0)
+	var initial_scale = clamp(min((vp_size.x - 80.0) / base_size.x, (vp_size.y - 80.0) / base_size.y), 0.72, 1.15)
 
 	_window = FloatingWindowScript.new()
-	_window.min_window_size = Vector2(360.0, 320.0)
-	_window.size = Vector2(panel_w, panel_h)
-	_window.position = Vector2((vp_size.x - panel_w) * 0.5, max(24.0, (vp_size.y - panel_h) * 0.45))
+	_window.min_window_size = base_size * 0.65
+	_window.set_base_size(base_size, initial_scale)
+	_window.position = Vector2((vp_size.x - _window.size.x) * 0.5, max(24.0, (vp_size.y - _window.size.y) * 0.45))
 	add_child(_window)
 
 	_panel = PanelContainer.new()
 	_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_panel.add_theme_stylebox_override("panel", _create_panel_style())
-	_window.add_child(_panel)
+	_window.get_content_root().add_child(_panel)
 
 	var root_vbox = VBoxContainer.new()
 	root_vbox.add_theme_constant_override("separation", 10)
