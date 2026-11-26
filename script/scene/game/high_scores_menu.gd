@@ -69,6 +69,7 @@ func _build_gui():
 		var btn = Button.new()
 		btn.text = sort_option.label
 		btn.pressed.connect(func(): _sort_by(sort_option.key))
+		OD.Chrome.attach_focus_ring(btn)
 		sort_row.add_child(btn)
 		_sort_buttons[sort_option.key] = { button = btn, label = sort_option.label }
 
@@ -94,6 +95,13 @@ func _build_gui():
 
 	_load_scores()
 	_render_scores()
+	OD.Chrome.attach_focus_ring(_score_tree)
+	_sort_buttons["score"].button.call_deferred("grab_focus")
+
+func _unhandled_input(event):
+	if (event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_B) or event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_BackButton_pressed()
 
 func _load_scores():
 	_scores = DeathManagerScript.load_high_scores(HIGH_SCORES_PATH)

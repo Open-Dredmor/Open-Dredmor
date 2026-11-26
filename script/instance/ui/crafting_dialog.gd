@@ -135,6 +135,7 @@ func init(player_character, initial_tool = "", callbacks = {}):
 	if _player != null and not _player.inventory_changed.is_connected(_refresh_all):
 		_player.inventory_changed.connect(_refresh_all)
 	_refresh_all()
+	UiHelpers.enable_gamepad_focus_in_tree(_panel_root, _craft_button)
 	return self
 
 func dismiss():
@@ -147,7 +148,7 @@ func dismiss():
 
 func _unhandled_input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_R:
+		if event.keycode == KEY_R or event.keycode == KEY_ESCAPE:
 			get_viewport().set_input_as_handled()
 			dismiss()
 		elif event.keycode == KEY_UP:
@@ -159,6 +160,36 @@ func _unhandled_input(event):
 		elif event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER:
 			get_viewport().set_input_as_handled()
 			_execute_craft()
+	elif event is InputEventJoypadButton and event.pressed:
+		if event.button_index == JOY_BUTTON_B:
+			get_viewport().set_input_as_handled()
+			dismiss()
+		elif event.button_index == JOY_BUTTON_X:
+			get_viewport().set_input_as_handled()
+			_execute_craft()
+		elif event.button_index == JOY_BUTTON_LEFT_SHOULDER:
+			get_viewport().set_input_as_handled()
+			_cycle_active_tool(-1)
+		elif event.button_index == JOY_BUTTON_RIGHT_SHOULDER:
+			get_viewport().set_input_as_handled()
+			_cycle_active_tool(1)
+
+func _cycle_active_tool(direction):
+	var available = []
+	for tag in TOOL_ORDER:
+		if _tool_buttons.has(tag) and not _tool_buttons[tag].disabled:
+			available.append(tag)
+	if available.is_empty():
+		return
+	var current_index = available.find(_active_tool)
+	if current_index == -1:
+		current_index = 0
+	else:
+		current_index = (current_index + direction + available.size()) % available.size()
+	_active_tool = available[current_index]
+	_selected_index = 0
+	_scroll_offset = 0
+	_refresh_all()
 
 func get_floating_window():
 	return _window

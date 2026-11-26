@@ -126,6 +126,7 @@ func _build_ui():
 	var tooltip = UiHelpers.create_tooltip(self, 240, 14)
 	_tooltip_panel = tooltip.panel
 	_tooltip_label = tooltip.label
+	_skills_tab_button.call_deferred("grab_focus")
 
 func _update_panel_bounds():
 	if _window != null and is_instance_valid(_window):
@@ -143,9 +144,20 @@ func _process(_delta):
 
 func _unhandled_input(event):
 	if event is InputEventKey and event.is_pressed() and not event.echo:
-		if event.keycode == KEY_K:
+		if event.keycode == KEY_K or event.keycode == KEY_ESCAPE:
 			dismiss()
 			get_viewport().set_input_as_handled()
+	elif UiHelpers.is_gamepad_cancel(event):
+		dismiss()
+		get_viewport().set_input_as_handled()
+	elif UiHelpers.is_gamepad_button(event, JOY_BUTTON_LEFT_SHOULDER):
+		_switch_tab("skills")
+		_skills_tab_button.call_deferred("grab_focus")
+		get_viewport().set_input_as_handled()
+	elif UiHelpers.is_gamepad_button(event, JOY_BUTTON_RIGHT_SHOULDER):
+		_switch_tab("spells")
+		_spells_tab_button.call_deferred("grab_focus")
+		get_viewport().set_input_as_handled()
 
 func get_floating_window():
 	return _window
@@ -293,6 +305,9 @@ func _build_tier_button(skill_id, tier_index, tier_entry, is_unlocked, is_next, 
 		button.pressed.connect(func(): _unlock_skill(skill_id))
 	button.mouse_entered.connect(func(): _show_tier_tooltip(tier_index + 1, tier_entry, is_unlocked, can_buy))
 	button.mouse_exited.connect(_hide_tooltip)
+	button.focus_entered.connect(func(): _show_tier_tooltip(tier_index + 1, tier_entry, is_unlocked, can_buy))
+	button.focus_exited.connect(_hide_tooltip)
+	UiHelpers.attach_focus_ring(button)
 	frame.add_child(button)
 	return frame
 
@@ -377,6 +392,7 @@ func _populate_spellbook():
 			slot_button.text = key_label
 			slot_button.custom_minimum_size = Vector2(24, 22)
 			slot_button.add_theme_font_size_override("font_size", 11)
+			UiHelpers.attach_focus_ring(slot_button)
 			var is_assigned = slot_index < current_slots.size() and current_slots[slot_index] == spell_name
 			slot_button.modulate = Color(1.0, 0.88, 0.45) if is_assigned else Color(0.85, 0.82, 0.76)
 			var chosen_spell = spell_name

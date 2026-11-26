@@ -150,6 +150,25 @@ func _build_gui():
 
 	_build_content_packs_panel(difficulty_menu, assets)
 
+	var left_buttons = [easy_button, medium_button, hard_button, permadeath_button, no_time_to_grind_button]
+	for ii in range(left_buttons.size()):
+		var current_button = left_buttons[ii]
+		if ii > 0:
+			current_button.focus_neighbor_top = current_button.get_path_to(left_buttons[ii - 1])
+		else:
+			current_button.focus_neighbor_top = current_button.get_path_to(back_button)
+		if ii < left_buttons.size() - 1:
+			current_button.focus_neighbor_bottom = current_button.get_path_to(left_buttons[ii + 1])
+	easy_button.call_deferred("grab_focus")
+
+func _unhandled_input(event):
+	if (event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_B) or event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_BackButton_pressed()
+	elif event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_START:
+		get_viewport().set_input_as_handled()
+		_on_DoneButton_pressed()
+
 func _build_content_packs_panel(parent, assets):
 	var dialog_assets = OD.Assets.dialog()
 	var font_result = dialog_assets.font if dialog_assets != null else null

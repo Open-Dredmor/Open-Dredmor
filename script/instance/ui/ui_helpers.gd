@@ -35,6 +35,34 @@ static func style_label(label, font_size, font_color, font = null, outline_size 
 		label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.92))
 	return label
 
+static func attach_focus_ring(control):
+	if OD != null and OD.Chrome != null:
+		return OD.Chrome.attach_focus_ring(control)
+	if control == null or not is_instance_valid(control):
+		return control
+	if control.focus_mode == Control.FOCUS_NONE:
+		control.focus_mode = Control.FOCUS_ALL
+	return control
+
+static func enable_gamepad_focus_in_tree(root_node, initial_control = null):
+	if root_node == null or not is_instance_valid(root_node):
+		return
+	var stack = [root_node]
+	while not stack.is_empty():
+		var current = stack.pop_back()
+		if current is BaseButton or current is Slider or current is LineEdit or current is ItemList or current is Tree:
+			attach_focus_ring(current)
+		for child in current.get_children():
+			stack.append(child)
+	if initial_control != null and is_instance_valid(initial_control) and initial_control.visible:
+		initial_control.call_deferred("grab_focus")
+
+static func is_gamepad_button(event, button_index):
+	return event is InputEventJoypadButton and event.pressed and event.button_index == button_index
+
+static func is_gamepad_cancel(event):
+	return is_gamepad_button(event, JOY_BUTTON_B)
+
 static func make_texture_button(texture_paths, minimum_size, cache = null):
 	var button = TextureButton.new()
 	button.custom_minimum_size = minimum_size
@@ -50,6 +78,7 @@ static func make_texture_button(texture_paths, minimum_size, cache = null):
 		button.texture_pressed = load_texture(texture_paths.pressed, cache)
 	if texture_paths.has("disabled"):
 		button.texture_disabled = load_texture(texture_paths.disabled, cache)
+	attach_focus_ring(button)
 	return button
 
 static func make_close_button(dialog_assets, on_pressed, scale_factor = 2.0):
@@ -64,6 +93,7 @@ static func make_close_button(dialog_assets, on_pressed, scale_factor = 2.0):
 	close_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if on_pressed.is_valid():
 		close_button.pressed.connect(on_pressed)
+	attach_focus_ring(close_button)
 	return close_button
 
 static func create_panel_style(background_texture, texture_margins, content_margins, fallback_background = Color(0.16, 0.13, 0.10, 0.96), fallback_border = Color(0.62, 0.50, 0.32, 0.95), fallback_border_width = 3, fallback_content_margin = 28):

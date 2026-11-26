@@ -61,17 +61,16 @@ func _update_panel_bounds():
 	_panel.custom_minimum_size = Vector2(panel_width, panel_height)
 
 func _unhandled_input(event):
-	if event is InputEventKey and event.is_pressed() and not event.echo:
-		if event.keycode == KEY_ESCAPE:
-			if _showing_settings:
-				_showing_settings = false
-				_rebuild_content()
-			else:
-				dismiss()
-			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_M and not _showing_settings:
+	if (event is InputEventKey and event.is_pressed() and not event.echo and event.keycode == KEY_ESCAPE) or UiHelpers.is_gamepad_cancel(event) or UiHelpers.is_gamepad_button(event, JOY_BUTTON_START):
+		if _showing_settings:
+			_showing_settings = false
+			_rebuild_content()
+		else:
 			dismiss()
-			get_viewport().set_input_as_handled()
+		get_viewport().set_input_as_handled()
+	elif event is InputEventKey and event.is_pressed() and not event.echo and event.keycode == KEY_M and not _showing_settings:
+		dismiss()
+		get_viewport().set_input_as_handled()
 
 func dismiss():
 	UiHelpers.invoke_callback(_callbacks, "on_close")
@@ -128,6 +127,7 @@ func _build_main_menu_view():
 	var quit_button = OD.Chrome.parchment_button("Quit", font, ink_color, blank_texture, 18)
 	quit_button.pressed.connect(func(): OD.Scenes.quit())
 	_content_box.add_child(quit_button)
+	resume_button.call_deferred("grab_focus")
 
 func _on_save_pressed():
 	if _callbacks.has("on_save") and _callbacks.on_save.is_valid():
@@ -192,6 +192,7 @@ func _build_settings_view():
 			OD.Settings.change("display", "fullscreen", enabled)
 			OD.Settings.apply_display_settings()
 	)
+	UiHelpers.attach_focus_ring(fullscreen_check)
 	fullscreen_row.add_child(fullscreen_check)
 
 	var dialog_assets = OD.Assets.dialog() if OD.Assets != null else null
@@ -204,6 +205,7 @@ func _build_settings_view():
 		_rebuild_content()
 	)
 	_content_box.add_child(back_button)
+	back_button.call_deferred("grab_focus")
 
 func _add_volume_row(label_text, initial_value, on_changed):
 	var row = HBoxContainer.new()
@@ -223,4 +225,5 @@ func _add_volume_row(label_text, initial_value, on_changed):
 	slider.value = float(initial_value)
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	slider.value_changed.connect(on_changed)
+	UiHelpers.attach_focus_ring(slider)
 	row.add_child(slider)

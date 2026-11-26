@@ -120,6 +120,21 @@ func _build_gui():
 		_character_name = settings.name
 		name_edit.text = _character_name
 
+	OD.Chrome.attach_focus_ring(name_edit)
+	_select_hero_button.call_deferred("grab_focus")
+
+func _unhandled_input(event):
+	if event is InputEventJoypadButton and event.pressed:
+		if event.button_index == JOY_BUTTON_B:
+			get_viewport().set_input_as_handled()
+			_on_BackButton_pressed()
+		elif event.button_index == JOY_BUTTON_START and _done_button != null and _done_button.visible:
+			get_viewport().set_input_as_handled()
+			_on_DoneButton_pressed()
+	elif event.is_action_pressed("ui_cancel") and not (get_viewport().gui_get_focus_owner() is LineEdit):
+		get_viewport().set_input_as_handled()
+		_on_BackButton_pressed()
+
 func _on_DoneButton_pressed():
 	OD.Scenes.goto(OD.Scenes.INTRO_ONE)
 

@@ -13,7 +13,39 @@ const DEFAULT_KEYBINDS = {
 	"interact": KEY_E,
 	"inventory": KEY_I,
 	"character": KEY_C,
-	"skills": KEY_K
+	"skills": KEY_K,
+	"crafting": KEY_R
+}
+
+const DEFAULT_GAMEPAD_BINDS = {
+	"move_up": JOY_BUTTON_DPAD_UP,
+	"move_down": JOY_BUTTON_DPAD_DOWN,
+	"move_left": JOY_BUTTON_DPAD_LEFT,
+	"move_right": JOY_BUTTON_DPAD_RIGHT,
+	"wait": JOY_BUTTON_X,
+	"interact": JOY_BUTTON_A,
+	"inventory": JOY_BUTTON_Y,
+	"character": JOY_BUTTON_BACK,
+	"skills": JOY_BUTTON_LEFT_SHOULDER,
+	"crafting": JOY_BUTTON_RIGHT_SHOULDER
+}
+
+const GAMEPAD_BUTTON_NAMES = {
+	JOY_BUTTON_A: "A / Cross",
+	JOY_BUTTON_B: "B / Circle",
+	JOY_BUTTON_X: "X / Square",
+	JOY_BUTTON_Y: "Y / Triangle",
+	JOY_BUTTON_BACK: "Back / Select",
+	JOY_BUTTON_GUIDE: "Guide",
+	JOY_BUTTON_START: "Start / Menu",
+	JOY_BUTTON_LEFT_STICK: "L3",
+	JOY_BUTTON_RIGHT_STICK: "R3",
+	JOY_BUTTON_LEFT_SHOULDER: "LB / L1",
+	JOY_BUTTON_RIGHT_SHOULDER: "RB / R1",
+	JOY_BUTTON_DPAD_UP: "D-Pad Up",
+	JOY_BUTTON_DPAD_DOWN: "D-Pad Down",
+	JOY_BUTTON_DPAD_LEFT: "D-Pad Left",
+	JOY_BUTTON_DPAD_RIGHT: "D-Pad Right"
 }
 
 func load():
@@ -39,6 +71,9 @@ func load():
 		for action_name in DEFAULT_KEYBINDS.keys():
 			if not config.has_section_key("controls", action_name):
 				config.set_value("controls", action_name, DEFAULT_KEYBINDS[action_name])
+		for action_name in DEFAULT_GAMEPAD_BINDS.keys():
+			if not config.has_section_key("gamepad_controls", action_name):
+				config.set_value("gamepad_controls", action_name, DEFAULT_GAMEPAD_BINDS[action_name])
 		config.save(settings_path)
 	_settings = config
 	apply_display_settings()
@@ -304,8 +339,24 @@ func get_keybinds():
 		binds[action_name] = code
 	return binds
 
+func get_gamepad_binds():
+	var binds = {}
+	for action_name in DEFAULT_GAMEPAD_BINDS.keys():
+		var button_index = DEFAULT_GAMEPAD_BINDS[action_name]
+		if _settings != null:
+			button_index = int(_settings.get_value("gamepad_controls", action_name, button_index))
+		binds[action_name] = button_index
+	return binds
+
+func gamepad_button_name(button_index):
+	var idx = int(button_index)
+	if GAMEPAD_BUTTON_NAMES.has(idx):
+		return GAMEPAD_BUTTON_NAMES[idx]
+	return "Button " + str(idx)
+
 func apply_keybinds():
 	var binds = get_keybinds()
+	var gamepad_binds = get_gamepad_binds()
 	for action_name in binds.keys():
 		if not InputMap.has_action(action_name):
 			InputMap.add_action(action_name)
@@ -313,6 +364,10 @@ func apply_keybinds():
 		var key_event = InputEventKey.new()
 		key_event.keycode = binds[action_name]
 		InputMap.action_add_event(action_name, key_event)
+		if gamepad_binds.has(action_name):
+			var joy_event = InputEventJoypadButton.new()
+			joy_event.button_index = gamepad_binds[action_name]
+			InputMap.action_add_event(action_name, joy_event)
 
 func last_selected_skill_ids():
 	if _settings == null:

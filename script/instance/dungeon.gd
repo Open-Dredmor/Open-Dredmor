@@ -8,6 +8,7 @@ const ShopDialogScript = preload("res://script/instance/ui/shop_dialog.gd")
 const PocketDimensionScript = preload("res://script/instance/room_placement/pocket_dimension.gd")
 const CommandProcessorScript = preload("res://script/instance/command/command_processor.gd")
 const InputMapperScript = preload("res://script/instance/input/input_mapper.gd")
+const GamepadInvokerScript = preload("res://script/instance/input/gamepad_invoker.gd")
 const TurnSchedulerScript = preload("res://script/instance/turn/turn_scheduler.gd")
 const CombatResolverScript = preload("res://script/instance/combat/combat_resolver.gd")
 const SpellEngineScript = preload("res://script/instance/combat/spell_engine.gd")
@@ -56,6 +57,8 @@ var _pocket_dimensions = {}
 var _saved_main_return_cell = null
 var _command_processor = CommandProcessorScript.new()
 var _input_mapper = InputMapperScript.new()
+var _gamepad_invoker = GamepadInvokerScript.new()
+var _command_invokers = [_input_mapper, _gamepad_invoker]
 var _turn_scheduler = TurnSchedulerScript.new()
 
 func get_command_processor():
@@ -63,6 +66,16 @@ func get_command_processor():
 
 func get_input_mapper():
 	return _input_mapper
+
+func get_gamepad_invoker():
+	return _gamepad_invoker
+
+func get_command_invokers():
+	return _command_invokers
+
+func register_command_invoker(invoker):
+	if invoker != null and not _command_invokers.has(invoker):
+		_command_invokers.append(invoker)
 
 func get_turn_scheduler():
 	return _turn_scheduler
@@ -286,6 +299,49 @@ func init():
 func init_async():
 	await _build_ui_async()
 
+func _cast_pending_spell_at(chosen_cell):
+	if _pending_wand_inventory_index >= 0:
+		var chosen_inventory_index = _pending_wand_inventory_index
+		var wand_item = _player.inventory[chosen_inventory_index] if chosen_inventory_index < _player.inventory.size() else {}
+		_pending_wand_inventory_index = -1
+		_pending_spell_name = ""
+		spell_targeting_changed.emit("")
+		var wand_cmd = UseItemCommandScript.new().init(_player, { kind = "inventory_consumable", inv_idx = chosen_inventory_index, item = wand_item }, chosen_cell)
+		submit_command(wand_cmd)
+		return
+	var chosen_spell = _pending_spell_name
+	_pending_spell_name = ""
+	spell_targeting_changed.emit("")
+	var cmd = CastSpellCommandScript.new().init(_player, chosen_spell, chosen_cell)
+	submit_command(cmd)
+
+func _move_target_cursor_by(delta):
+	if _target_cursor == null or _entity_grid == null or _player == null:
+		return
+	var current_position = _target_cursor.get_grid_position()
+	if current_position == null:
+		current_position = _player.get_grid_position()
+	if current_position == null:
+		return
+	var target_x = clamp(int(current_position.x) + delta.x, 0, _entity_grid.width - 1)
+	var target_y = clamp(int(current_position.y) + delta.y, 0, _entity_grid.height - 1)
+	_entity_grid.move(target_x, target_y, _target_cursor)
+
+func process_continuous_invokers(delta):
+	if _player != null and _player.is_dead:
+		return
+	if is_instance_valid(_interaction_dialog) or _turn_scheduler.is_busy() or _turn_scheduler.is_auto_stepping():
+		return
+	if _pending_spell_name != "":
+		return
+	var context = _build_command_context()
+	for invoker in _command_invokers:
+		if invoker != null and invoker.has_method("process_continuous_input"):
+			var command = invoker.process_continuous_input(delta, context)
+			if command != null:
+				submit_command(command)
+				return
+
 func handle_dungeon_input(event):
 	if _player != null and _player.is_dead:
 		return
@@ -301,12 +357,26 @@ func handle_dungeon_input(event):
 			var grid_coordinates = global_coordinates_to_grid(event.position.x, event.position.y)
 			_entity_grid.move(grid_coordinates.x, grid_coordinates.y, _target_cursor)
 		return
-	if _turn_scheduler.is_auto_stepping() and ((event is InputEventKey and event.is_pressed() and not event.echo) or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed)):
+	if _turn_scheduler.is_auto_stepping() and ((event is InputEventKey and event.is_pressed() and not event.echo) or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed) or (event is InputEventJoypadButton and event.pressed)):
 		_turn_scheduler.cancel_auto_actions()
 		return
 	if _turn_scheduler.is_busy():
 		return
 	if _pending_spell_name != "":
+		for invoker in _command_invokers:
+			if invoker != null and invoker.has_method("translate_targeting_input"):
+				var target_action = invoker.translate_targeting_input(event)
+				if target_action != null:
+					match target_action.kind:
+						"move_cursor":
+							_move_target_cursor_by(target_action.delta)
+						"confirm_target":
+							var cursor_position = _target_cursor.get_grid_position() if _target_cursor != null else _player.get_grid_position()
+							if cursor_position != null:
+								_cast_pending_spell_at(Vector2i(int(cursor_position.x), int(cursor_position.y)))
+						"cancel_target":
+							cancel_spell_targeting()
+					return
 		if event is InputEventKey and event.is_pressed() and not event.echo and event.keycode == KEY_ESCAPE:
 			cancel_spell_targeting()
 			return
@@ -316,25 +386,16 @@ func handle_dungeon_input(event):
 		if event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			var target_coordinates = global_coordinates_to_grid(event.position.x, event.position.y)
 			var chosen_cell = Vector2i(int(target_coordinates.x), int(target_coordinates.y))
-			if _pending_wand_inventory_index >= 0:
-				var chosen_inventory_index = _pending_wand_inventory_index
-				var wand_item = _player.inventory[chosen_inventory_index] if chosen_inventory_index < _player.inventory.size() else {}
-				_pending_wand_inventory_index = -1
-				_pending_spell_name = ""
-				spell_targeting_changed.emit("")
-				var wand_cmd = UseItemCommandScript.new().init(_player, { kind = "inventory_consumable", inv_idx = chosen_inventory_index, item = wand_item }, chosen_cell)
-				submit_command(wand_cmd)
-				return
-			var chosen_spell = _pending_spell_name
-			_pending_spell_name = ""
-			spell_targeting_changed.emit("")
-			var cmd = CastSpellCommandScript.new().init(_player, chosen_spell, chosen_cell)
-			submit_command(cmd)
+			_cast_pending_spell_at(chosen_cell)
 			return
 		return
-	var command = _input_mapper.translate_dungeon_input(event, _build_command_context())
-	if command != null:
-		submit_command(command)
+	var context = _build_command_context()
+	for invoker in _command_invokers:
+		if invoker != null and invoker.has_method("translate_dungeon_input"):
+			var command = invoker.translate_dungeon_input(event, context)
+			if command != null:
+				submit_command(command)
+				return
 
 func _is_adjacent(position_a, position_b):
 	return abs(int(position_a.x) - int(position_b.x)) + abs(int(position_a.y) - int(position_b.y)) <= 1

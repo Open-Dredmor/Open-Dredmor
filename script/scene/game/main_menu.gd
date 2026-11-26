@@ -100,6 +100,23 @@ func _build_gui():
 	background_button.anchor_top = .89
 	background_button.pressed.connect(_on_BackgroundButton_pressed)
 	menu_chrome.add_child(background_button)
+
+	var menu_buttons = [
+		new_game_button,
+		load_game_button,
+		high_scores_button,
+		import_saves_button,
+		settings_button,
+		quit_button,
+		background_button
+	]
+	for ii in range(menu_buttons.size()):
+		var current_button = menu_buttons[ii]
+		var prev_button = menu_buttons[(ii - 1 + menu_buttons.size()) % menu_buttons.size()]
+		var next_button = menu_buttons[(ii + 1) % menu_buttons.size()]
+		current_button.focus_neighbor_top = current_button.get_path_to(prev_button)
+		current_button.focus_neighbor_bottom = current_button.get_path_to(next_button)
+	new_game_button.call_deferred("grab_focus")
 	
 	OD.Audio.play(assets.music.title)
 	

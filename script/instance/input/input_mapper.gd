@@ -1,11 +1,6 @@
-extends RefCounted
+extends "res://script/instance/input/command_invoker.gd"
 
 class_name InputMapper
-
-const MoveCmdScript = preload("res://script/instance/command/move_command.gd")
-const AttackCmdScript = preload("res://script/instance/command/attack_command.gd")
-const InteractCmdScript = preload("res://script/instance/command/interact_command.gd")
-const WaitCmdScript = preload("res://script/instance/command/wait_command.gd")
 
 var _key_bindings = {
 	move_left = [KEY_A, KEY_LEFT, KEY_KP_4],
@@ -81,31 +76,6 @@ func _directional_delta(keycode):
 	if is_action_key("move_down", keycode):
 		return Vector2i(0, 1)
 	return Vector2i.ZERO
-
-func _bump_command_for_delta(player, entity_grid, delta):
-	var player_position = player.get_grid_position()
-	if player_position == null:
-		return null
-	var target_cell = Vector2i(int(player_position.x) + delta.x, int(player_position.y) + delta.y)
-	if entity_grid.has_enemy_at(target_cell.x, target_cell.y):
-		return AttackCmdScript.new().init(player, target_cell)
-	var shopkeeper = entity_grid.shop_manager.get_shopkeeper_at(target_cell.x, target_cell.y)
-	if shopkeeper != null:
-		return InteractCmdScript.new().init(player, "shopkeeper", target_cell)
-	var shop_pedestal = entity_grid.shop_manager.get_pedestal_at(target_cell.x, target_cell.y)
-	if shop_pedestal != null:
-		return InteractCmdScript.new().init(player, "shop_pedestal", target_cell)
-	var door = entity_grid.get_door_at(target_cell.x, target_cell.y)
-	if door != null and not door.can_pass():
-		return InteractCmdScript.new().init(player, "door", target_cell)
-	var element = entity_grid.get_element_at(target_cell.x, target_cell.y)
-	if element != null and not element.is_broken:
-		if element.element_type == "custom_breakable":
-			return AttackCmdScript.new().init(player, target_cell)
-		return InteractCmdScript.new().init(player, "element", target_cell)
-	if entity_grid.is_walkable(target_cell.x, target_cell.y):
-		return MoveCmdScript.new().init_step(player, delta)
-	return null
 
 func translate_dungeon_input(event, context):
 	var dungeon = context.get("dungeon", null)

@@ -181,6 +181,7 @@ func show_pedestal_dialog(pedestal, shop, zorkmids_ref, player_bag, on_close = C
 	cancel_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	cancel_button.pressed.connect(_dismiss)
 	button_horizontal_box.add_child(cancel_button)
+	UiHelpers.enable_gamepad_focus_in_tree(panel, buy_button)
 
 func show_brax_dialog(shop, zorkmids_ref, player_bag, on_close = Callable(), on_steal = Callable(), on_pay_tab = Callable()):
 	layer = 10
@@ -469,6 +470,11 @@ func _dismiss():
 		_on_close_callback.call()
 	queue_free()
 
+func _unhandled_input(event):
+	if (event is InputEventKey and event.is_pressed() and not event.echo and event.keycode == KEY_ESCAPE) or UiHelpers.is_gamepad_cancel(event):
+		get_viewport().set_input_as_handled()
+		_dismiss()
+
 func _get_viewport_size():
 	return UiHelpers.viewport_size(self, DEFAULT_VIEWPORT_SIZE)
 
@@ -504,4 +510,5 @@ func _create_nine_patch_dialog(background_texture, minimum_size):
 	panel.custom_minimum_size = minimum_size
 	panel.add_theme_stylebox_override("panel", style_box)
 	center.add_child(panel)
+	UiHelpers.enable_gamepad_focus_in_tree(panel)
 	return panel

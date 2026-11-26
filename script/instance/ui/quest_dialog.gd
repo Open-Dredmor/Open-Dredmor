@@ -104,6 +104,7 @@ func _build_ui():
 	_list_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_list_box.add_theme_constant_override("separation", 10)
 	scroll.add_child(_list_box)
+	_inprogress_button.call_deferred("grab_focus")
 
 func _update_panel_bounds():
 	if _window != null and is_instance_valid(_window):
@@ -115,9 +116,18 @@ func _switch_tab(tab_name):
 
 func _unhandled_input(event):
 	if event is InputEventKey and event.is_pressed() and not event.echo:
-		if event.keycode == KEY_Q:
+		if event.keycode == KEY_Q or event.keycode == KEY_ESCAPE:
 			dismiss()
 			get_viewport().set_input_as_handled()
+	elif UiHelpers.is_gamepad_cancel(event):
+		dismiss()
+		get_viewport().set_input_as_handled()
+	elif UiHelpers.is_gamepad_button(event, JOY_BUTTON_LEFT_SHOULDER):
+		_switch_tab("active")
+		get_viewport().set_input_as_handled()
+	elif UiHelpers.is_gamepad_button(event, JOY_BUTTON_RIGHT_SHOULDER):
+		_switch_tab("completed")
+		get_viewport().set_input_as_handled()
 
 func get_floating_window():
 	return _window

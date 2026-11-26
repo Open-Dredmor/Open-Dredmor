@@ -83,6 +83,7 @@ func _build_ui():
 	_dungeon.get_turn_scheduler().turn_started.connect(_on_turn_started)
 	_dungeon.get_turn_scheduler().turn_completed.connect(_on_turn_completed)
 	_dungeon.get_input_mapper().sync_from_settings()
+	_dungeon.get_gamepad_invoker().sync_from_settings()
 	if OD.EventLog != null:
 		OD.EventLog.notify("Welcome to Dungeons of Dredmor!")
 	call_deferred("_center_on_player")
@@ -227,6 +228,8 @@ func _on_player_died(summary):
 	menu_button.pressed.connect(func(): OD.Scenes.goto(OD.Scenes.MAIN_MENU))
 	button_row.add_child(menu_button)
 
+	scores_button.call_deferred("grab_focus")
+
 func _dev_seed():
 	OD.Audio.setup(get_tree().get_root())
 	await OD.Database.ingest_async(10.0, 75.0)
@@ -314,11 +317,82 @@ func _is_mouse_over_hud():
 	var hovered = get_viewport().gui_get_hovered_control()
 	return hovered != null and _hud_layer.is_ancestor_of(hovered)
 
+func _has_any_floating_window():
+	return FloatingWindowScript.get_topmost_window(get_tree()) != null
+
+func _handle_ui_action(ui_action):
+	match ui_action.kind:
+		"toggle_inventory":
+			if not _dungeon.has_interaction_dialog_open():
+				toggle_inventory()
+				return true
+		"toggle_character":
+			if not _dungeon.has_interaction_dialog_open():
+				toggle_character()
+				return true
+		"toggle_skill_tree":
+			if not _dungeon.has_interaction_dialog_open() and _core_hud != null:
+				_core_hud.toggle_skill_tree()
+				return true
+		"toggle_crafting":
+			if not _dungeon.has_interaction_dialog_open():
+				_toggle_crafting()
+				return true
+		"toggle_pause":
+			if not _dungeon.has_interaction_dialog_open() and _core_hud != null:
+				_core_hud.toggle_pause_menu()
+				return true
+		"cancel":
+			if _dungeon.get_pending_spell_name() != "":
+				_dungeon.cancel_spell_targeting()
+				return true
+			var top_window = FloatingWindowScript.get_topmost_window(get_tree())
+			if top_window != null:
+				var window_owner = top_window.get_parent()
+				if window_owner != null and window_owner.has_method("dismiss"):
+					window_owner.dismiss()
+					return true
+			if not _dungeon.has_interaction_dialog_open() and _core_hud != null:
+				_core_hud.toggle_pause_menu()
+				return true
+		"cycle_minimap_zoom":
+			if _core_hud != null and _core_hud.has_method("cycle_minimap_zoom"):
+				_core_hud.cycle_minimap_zoom()
+				return true
+	return false
+
 func _input(event):
 	if _dungeon == null or not is_instance_valid(_dungeon):
 		return
+	if is_instance_valid(_death_dialog):
+		return
 	if _core_hud != null and _core_hud.is_modal_open():
 		return
+	if _has_any_floating_window():
+		if event is InputEventKey and event.is_pressed() and not event.echo and event.keycode == KEY_ESCAPE:
+			var top_window = FloatingWindowScript.get_topmost_window(get_tree())
+			if top_window != null:
+				var window_owner = top_window.get_parent()
+				if window_owner != null and window_owner.has_method("dismiss"):
+					window_owner.dismiss()
+					get_viewport().set_input_as_handled()
+					return
+		if event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_B:
+			var top_window = FloatingWindowScript.get_topmost_window(get_tree())
+			if top_window != null:
+				var window_owner = top_window.get_parent()
+				if window_owner != null and window_owner.has_method("dismiss"):
+					window_owner.dismiss()
+					get_viewport().set_input_as_handled()
+					return
+		if event is InputEventJoypadButton or event is InputEventJoypadMotion:
+			return
+	for invoker in _dungeon.get_command_invokers():
+		if invoker != null and invoker.has_method("translate_ui_action"):
+			var ui_action = invoker.translate_ui_action(event)
+			if ui_action != null and _handle_ui_action(ui_action):
+				get_viewport().set_input_as_handled()
+				return
 	if event is InputEventKey and event.is_pressed() and not event.echo and event.keycode == KEY_I:
 		if not _dungeon.has_interaction_dialog_open():
 			get_viewport().set_input_as_handled()
@@ -358,45 +432,45 @@ func _input(event):
 		_is_dragging = false
 		_dungeon.handle_dungeon_input(event)
 		return
-	var mapper = _dungeon.get_input_mapper()
-	var cam_action = mapper.translate_camera_input(event) if mapper != null else null
-	if cam_action != null:
-		match cam_action.kind:
-			"pan":
-				_camera_follow_enabled = false
-				moveable_container.position += cam_action.delta * speed
-				return
-			"center_camera":
-				_camera_follow_enabled = true
-				_center_on_player()
-				return
-			"drag":
-				if cam_action.pressed:
-					drag_enabled = true
-					_is_dragging = false
-					_drag_start_position = cam_action.position
-					_drag_press_time_ms = Time.get_ticks_msec()
-					_total_pan_px = 0.0
-					old_position = get_global_mouse_position()
-				else:
-					var held_ms = Time.get_ticks_msec() - _drag_press_time_ms
-					var was_drag = _is_dragging or _total_pan_px >= DRAG_THRESHOLD_PX or cam_action.position.distance_to(_drag_start_position) >= DRAG_THRESHOLD_PX or held_ms >= CLICK_MAX_HOLD_MS
-					drag_enabled = false
-					_is_dragging = false
-					if not was_drag:
-						_dungeon.handle_dungeon_input(event)
-				return
-			"drag_motion":
-				if drag_enabled and cam_action.position.distance_to(_drag_start_position) >= DRAG_THRESHOLD_PX:
-					_is_dragging = true
-			"zoom":
-				_zoom_at(cam_action.factor)
-				return
-			"reset_zoom":
-				_reset_zoom()
-				return
-			"ignore":
-				return
+	for invoker in _dungeon.get_command_invokers():
+		var cam_action = invoker.translate_camera_input(event) if invoker != null and invoker.has_method("translate_camera_input") else null
+		if cam_action != null:
+			match cam_action.kind:
+				"pan":
+					_camera_follow_enabled = false
+					moveable_container.position += cam_action.delta * speed
+					return
+				"center_camera":
+					_camera_follow_enabled = true
+					_center_on_player()
+					return
+				"drag":
+					if cam_action.pressed:
+						drag_enabled = true
+						_is_dragging = false
+						_drag_start_position = cam_action.position
+						_drag_press_time_ms = Time.get_ticks_msec()
+						_total_pan_px = 0.0
+						old_position = get_global_mouse_position()
+					else:
+						var held_ms = Time.get_ticks_msec() - _drag_press_time_ms
+						var was_drag = _is_dragging or _total_pan_px >= DRAG_THRESHOLD_PX or cam_action.position.distance_to(_drag_start_position) >= DRAG_THRESHOLD_PX or held_ms >= CLICK_MAX_HOLD_MS
+						drag_enabled = false
+						_is_dragging = false
+						if not was_drag:
+							_dungeon.handle_dungeon_input(event)
+					return
+				"drag_motion":
+					if drag_enabled and cam_action.position.distance_to(_drag_start_position) >= DRAG_THRESHOLD_PX:
+						_is_dragging = true
+				"zoom":
+					_zoom_at(cam_action.factor)
+					return
+				"reset_zoom":
+					_reset_zoom()
+					return
+				"ignore":
+					return
 	_dungeon.handle_dungeon_input(event)
 
 func _zoom_at(zoom_factor):
@@ -433,6 +507,21 @@ func _apply_smooth_zoom(delta):
 
 func _physics_process(delta):
 	_apply_smooth_zoom(delta)
+	var modal_blocking = is_instance_valid(_death_dialog) or (_core_hud != null and _core_hud.is_modal_open()) or _has_any_floating_window() or (_dungeon != null and is_instance_valid(_dungeon) and _dungeon.has_interaction_dialog_open())
+	if not modal_blocking and _dungeon != null and is_instance_valid(_dungeon):
+		_dungeon.process_continuous_invokers(delta)
+		for invoker in _dungeon.get_command_invokers():
+			if invoker != null and invoker.has_method("get_continuous_camera_pan"):
+				var pan_delta = invoker.get_continuous_camera_pan(delta)
+				if pan_delta != Vector2.ZERO:
+					_camera_follow_enabled = false
+					moveable_container.position += pan_delta
+			if invoker != null and invoker.has_method("get_continuous_camera_zoom"):
+				var zoom_factor = invoker.get_continuous_camera_zoom(delta)
+				if not is_equal_approx(zoom_factor, 1.0):
+					_target_zoom = clamp(_target_zoom * zoom_factor, 0.25, 4.0)
+					_zoom_anchor_local = OD.Settings.display_size() * 0.5
+					_has_zoom_anchor = true
 	if old_position != null and drag_enabled:
 		var new_position = get_global_mouse_position()
 		var delta_position = new_position - old_position

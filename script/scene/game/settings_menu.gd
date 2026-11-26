@@ -6,13 +6,15 @@ static func init_container():
 const INK_COLOR = Color(0.16, 0.10, 0.06)
 const HEADER_INK = Color(0.28, 0.12, 0.05)
 
-var _audio_enabled_checkbox = null
 var _fullscreen_checkbox = null
 var _volume_sliders = {}
 var _volume_labels = {}
 var _keybind_buttons = {}
+var _gamepad_buttons = {}
 var _pending_keybinds = {}
+var _pending_gamepad_binds = {}
 var _listening_action = null
+var _listening_mode = ""
 var _font_result = null
 var _blank_texture = null
 
@@ -62,6 +64,7 @@ func _style_checkbox(check):
 	check.add_theme_stylebox_override("pressed", transparent)
 	check.add_theme_stylebox_override("focus", transparent)
 	check.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	OD.Chrome.attach_focus_ring(check)
 
 func _style_slider(slider):
 	var track = StyleBoxFlat.new()
@@ -77,6 +80,7 @@ func _style_slider(slider):
 	slider.add_theme_stylebox_override("slider", track)
 	slider.add_theme_stylebox_override("grabber_area", fill)
 	slider.add_theme_stylebox_override("grabber_area_highlight", fill)
+	OD.Chrome.attach_focus_ring(slider)
 
 func _build_gui():
 	var load_assets = OD.Assets.load_game_menu()
@@ -157,12 +161,6 @@ func _build_gui():
 	_style_label(audio_header, 24, HEADER_INK)
 	container.add_child(audio_header)
 
-	_audio_enabled_checkbox = CheckBox.new()
-	_audio_enabled_checkbox.text = "Audio Enabled"
-	_audio_enabled_checkbox.button_pressed = OD.Settings.audio_enabled()
-	_style_checkbox(_audio_enabled_checkbox)
-	container.add_child(_audio_enabled_checkbox)
-
 	_add_volume_slider(container, "master", "Master Volume", OD.Settings.master_volume_percent())
 	_add_volume_slider(container, "music", "Music Volume", OD.Settings.music_volume_percent())
 	_add_volume_slider(container, "sfx", "Sound (SFX) Volume", OD.Settings.sfx_volume_percent())
@@ -180,11 +178,18 @@ func _build_gui():
 	container.add_child(keybinds_header)
 
 	_pending_keybinds = OD.Settings.get_keybinds()
+	_pending_gamepad_binds = OD.Settings.get_gamepad_binds()
 	var keybind_grid = GridContainer.new()
-	keybind_grid.columns = 2
-	keybind_grid.add_theme_constant_override("h_separation", 28)
+	keybind_grid.columns = 3
+	keybind_grid.add_theme_constant_override("h_separation", 24)
 	keybind_grid.add_theme_constant_override("v_separation", 8)
 	container.add_child(keybind_grid)
+
+	for column_title in ["Action", "Keyboard", "Gamepad"]:
+		var header_label = Label.new()
+		header_label.text = column_title
+		_style_label(header_label, 20, HEADER_INK)
+		keybind_grid.add_child(header_label)
 
 	var action_names = _pending_keybinds.keys()
 	action_names.sort()
@@ -203,9 +208,24 @@ func _build_gui():
 			18
 		)
 		bind_button.custom_minimum_size = Vector2(180, 34)
-		bind_button.pressed.connect(_on_keybind_button_pressed.bind(action_name))
+		bind_button.pressed.connect(_on_keybind_button_pressed.bind(action_name, "keyboard"))
 		keybind_grid.add_child(bind_button)
 		_keybind_buttons[action_name] = bind_button
+
+		var gamepad_code = _pending_gamepad_binds.get(action_name, -1)
+		var gamepad_text = OD.Settings.gamepad_button_name(gamepad_code) if gamepad_code >= 0 else "Unbound"
+		var gamepad_button = OD.Chrome.parchment_button(
+			gamepad_text,
+			_font_result,
+			INK_COLOR,
+			_blank_texture,
+			18
+		)
+		gamepad_button.custom_minimum_size = Vector2(180, 34)
+		gamepad_button.disabled = gamepad_code < 0
+		gamepad_button.pressed.connect(_on_keybind_button_pressed.bind(action_name, "gamepad"))
+		keybind_grid.add_child(gamepad_button)
+		_gamepad_buttons[action_name] = gamepad_button
 
 	var choose_container = HBoxContainer.new()
 	choose_container.add_theme_constant_override("separation", 16)
@@ -225,6 +245,18 @@ func _build_gui():
 	forget_installation_direction_button.custom_minimum_size = Vector2(280, 40)
 	forget_installation_direction_button.pressed.connect(_on_ForgetInstallationDirButton_pressed)
 	choose_container.add_child(forget_installation_direction_button)
+
+	_volume_sliders["master"].call_deferred("grab_focus")
+
+func _unhandled_input(event):
+	if _listening_action != null:
+		return
+	if (event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_B) or event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_CancelButton_pressed()
+	elif event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_START:
+		get_viewport().set_input_as_handled()
+		_on_SaveButton_pressed()
 
 func _add_volume_slider(parent, key, label_text, initial_value):
 	var row = HBoxContainer.new()
@@ -266,25 +298,49 @@ func _on_volume_slider_changed(value, key):
 		_volume_sliders["dialogue"].value
 	)
 
-func _on_keybind_button_pressed(action_name):
-	if _listening_action != null and _keybind_buttons.has(_listening_action):
+func _restore_listening_button_text():
+	if _listening_action == null:
+		return
+	if _listening_mode == "gamepad" and _gamepad_buttons.has(_listening_action):
+		_gamepad_buttons[_listening_action].text = OD.Settings.gamepad_button_name(_pending_gamepad_binds[_listening_action])
+	elif _keybind_buttons.has(_listening_action):
 		_keybind_buttons[_listening_action].text = OS.get_keycode_string(_pending_keybinds[_listening_action])
+
+func _on_keybind_button_pressed(action_name, mode = "keyboard"):
+	_restore_listening_button_text()
 	_listening_action = action_name
-	_keybind_buttons[action_name].text = "Press a key..."
+	_listening_mode = mode
+	if mode == "gamepad":
+		_gamepad_buttons[action_name].text = "Press a button..."
+	else:
+		_keybind_buttons[action_name].text = "Press a key..."
 
 func _input(event):
 	if _listening_action == null:
 		return
+	if _listening_mode == "gamepad":
+		if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+			_restore_listening_button_text()
+			_listening_action = null
+			_listening_mode = ""
+			get_viewport().set_input_as_handled()
+			return
+		if event is InputEventJoypadButton and event.pressed:
+			_pending_gamepad_binds[_listening_action] = event.button_index
+			_restore_listening_button_text()
+			_listening_action = null
+			_listening_mode = ""
+			get_viewport().set_input_as_handled()
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode != KEY_ESCAPE:
 			_pending_keybinds[_listening_action] = event.keycode
-		_keybind_buttons[_listening_action].text = OS.get_keycode_string(_pending_keybinds[_listening_action])
+		_restore_listening_button_text()
 		_listening_action = null
+		_listening_mode = ""
 		get_viewport().set_input_as_handled()
 
 func _persist_settings():
-	var audio_enabled = _audio_enabled_checkbox.is_pressed()
-	OD.Settings.change("game", "audio_enabled", audio_enabled)
 	OD.Settings.change("game", "audio_volume_master_percent", int(_volume_sliders["master"].value))
 	OD.Settings.change("game", "audio_volume_music_percent", int(_volume_sliders["music"].value))
 	OD.Settings.change("game", "audio_volume_sfx_percent", int(_volume_sliders["sfx"].value))
@@ -292,11 +348,11 @@ func _persist_settings():
 	OD.Settings.change("display", "fullscreen", _fullscreen_checkbox.is_pressed())
 	for action_name in _pending_keybinds.keys():
 		OD.Settings.change("controls", action_name, int(_pending_keybinds[action_name]))
+	for action_name in _pending_gamepad_binds.keys():
+		OD.Settings.change("gamepad_controls", action_name, int(_pending_gamepad_binds[action_name]))
 	OD.Settings.apply_display_settings()
 	OD.Settings.apply_keybinds()
 	OD.Audio.apply_volume_settings()
-	if not audio_enabled:
-		OD.Audio.stop()
 
 func _on_SaveButton_pressed():
 	_persist_settings()

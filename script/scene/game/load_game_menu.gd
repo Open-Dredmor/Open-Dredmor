@@ -97,6 +97,23 @@ func _build_gui():
 	info_vertical_box.add_child(_delete_button)
 
 	_refresh_saves()
+	OD.Chrome.attach_focus_ring(_save_list)
+	if _saves.size() > 0:
+		_save_list.call_deferred("grab_focus")
+	else:
+		back_button.call_deferred("grab_focus")
+
+func _unhandled_input(event):
+	if (event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_B) or event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_BackButton_pressed()
+	elif event is InputEventJoypadButton and event.pressed:
+		if event.button_index == JOY_BUTTON_Y and _delete_button != null and _delete_button.visible:
+			get_viewport().set_input_as_handled()
+			_on_DeleteButton_pressed()
+		elif event.button_index == JOY_BUTTON_START and _load_button != null and _load_button.visible:
+			get_viewport().set_input_as_handled()
+			_on_LoadButton_pressed()
 
 func _refresh_saves():
 	_saves = SaveManagerScript.list_saves(SAVES_DIR)

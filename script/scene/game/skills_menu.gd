@@ -82,6 +82,7 @@ func _build_gui():
 		pick_skill_button.pressed.connect(_select_skill.bind(skill))
 		pick_skill_button.mouse_entered.connect(_describe_skill.bind(skill))	
 		pick_skill_button.mouse_exited.connect(_describe_skill.bind(null))	
+		pick_skill_button.focus_entered.connect(_describe_skill.bind(skill))
 		pick_skill_button.name = "PickSkillButton#" + skill.id
 		pick_skill_button.offset_top = 5
 		pick_skill_button.offset_left = 5
@@ -105,6 +106,7 @@ func _build_gui():
 	random_selection_button.pressed.connect(_on_RandomSelectionButton_pressed)
 	random_selection_button.mouse_entered.connect(_describe_skill.bind("_random"))
 	random_selection_button.mouse_exited.connect(_describe_skill.bind(null))
+	random_selection_button.focus_entered.connect(_describe_skill.bind("_random"))
 	selected_skills_background.add_child(random_selection_button)
 
 	var last_selection_button = OD.Chrome.button(assets.textures.last_selection_button)
@@ -113,6 +115,7 @@ func _build_gui():
 	last_selection_button.pressed.connect(_on_LastSelectionButton_pressed)
 	last_selection_button.mouse_entered.connect(_describe_skill.bind("_last"))
 	last_selection_button.mouse_exited.connect(_describe_skill.bind(null))
+	last_selection_button.focus_entered.connect(_describe_skill.bind("_last"))
 	last_selection_button.disabled = OD.Settings.last_selected_skill_ids().is_empty()
 	selected_skills_background.add_child(last_selection_button)
 	
@@ -165,6 +168,19 @@ func _build_gui():
 	for skill in _skills:
 		if saved_skill_ids.has(skill.id):
 			_select_skill(skill)
+
+	if not _skills.is_empty():
+		var first_button = _get_skill_panel_button(_skills[0].id)
+		if first_button != null:
+			first_button.call_deferred("grab_focus")
+
+func _unhandled_input(event):
+	if (event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_B) or event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_BackButton_pressed()
+	elif event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_START and _done_button != null and _done_button.visible:
+		get_viewport().set_input_as_handled()
+		_on_DoneButton_pressed()
 
 func _remove_selected_skill_buttons():
 	var parent = _get_selected_skills_container()

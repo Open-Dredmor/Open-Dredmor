@@ -32,6 +32,13 @@ func _build_ui():
 	next_button.anchor_bottom = 1
 	next_button.anchor_right = 1
 	container.add_child(next_button)
+	next_button.call_deferred("grab_focus")
+
+func _unhandled_input(event):
+	if event is InputEventJoypadButton and event.pressed:
+		if event.button_index in [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_START]:
+			get_viewport().set_input_as_handled()
+			_on_NextButton_pressed()
 
 func _on_NextButton_pressed():
 	OD.Scenes.goto(OD.Scenes.INTRO_TWO)

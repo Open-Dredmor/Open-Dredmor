@@ -68,6 +68,11 @@ func _dismiss():
 		_on_close_callback.call()
 	queue_free()
 
+func _unhandled_input(event):
+	if (event is InputEventKey and event.is_pressed() and not event.echo and event.keycode == KEY_ESCAPE) or UiHelpers.is_gamepad_cancel(event):
+		get_viewport().set_input_as_handled()
+		_dismiss()
+
 func _style_label(label, font, font_size, color, outline_size = 0):
 	UiHelpers.style_label(label, font_size, color, font, outline_size)
 
@@ -87,6 +92,18 @@ func _build_from_result(element, result, zorkmids_ref, lutefisk_ref):
 			_build_lutefisk_window(element, result, lutefisk_ref, dialog_assets)
 		_:
 			_build_standard_window(element, result, zorkmids_ref, dialog_assets)
+	UiHelpers.enable_gamepad_focus_in_tree(self)
+	_focus_first_interactive(self)
+
+func _focus_first_interactive(root_node):
+	var stack = [root_node]
+	while not stack.is_empty():
+		var current = stack.pop_front()
+		if current is BaseButton and current.visible and not current.disabled:
+			current.call_deferred("grab_focus")
+			return
+		for child in current.get_children():
+			stack.append(child)
 
 func _create_base_overlay(background_texture, custom_size = null):
 	var overlay = UiHelpers.create_modal_overlay(self, 0.45)

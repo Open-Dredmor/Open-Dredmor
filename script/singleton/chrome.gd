@@ -1,7 +1,59 @@
 extends Node
 
+signal input_mode_changed(gamepad_active)
+
+const JOY_MOTION_THRESHOLD = 0.35
+
 var hidden_button_style = null
 var deselected_button_style = null
+var _gamepad_active = false
+
+func is_gamepad_active():
+	return _gamepad_active
+
+func set_gamepad_active(active):
+	var next_state = bool(active)
+	if _gamepad_active == next_state:
+		return
+	_gamepad_active = next_state
+	input_mode_changed.emit(_gamepad_active)
+
+func _input(event):
+	if event is InputEventJoypadButton and event.pressed:
+		set_gamepad_active(true)
+	elif event is InputEventJoypadMotion and abs(event.axis_value) >= JOY_MOTION_THRESHOLD:
+		set_gamepad_active(true)
+	elif (event is InputEventKey and event.pressed) or (event is InputEventMouseButton and event.pressed):
+		set_gamepad_active(false)
+
+func attach_focus_ring(control):
+	if control == null or not is_instance_valid(control):
+		return control
+	if control.focus_mode == Control.FOCUS_NONE:
+		control.focus_mode = Control.FOCUS_ALL
+	if control.has_node("_FocusRing"):
+		return control
+	var ring = ReferenceRect.new()
+	ring.name = "_FocusRing"
+	ring.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ring.border_color = Color(1.0, 0.85, 0.30, 0.95)
+	ring.border_width = 3.0
+	ring.editor_only = false
+	ring.visible = control.has_focus() and _gamepad_active
+	control.add_child(ring)
+	var update_ring = func():
+		if is_instance_valid(ring) and is_instance_valid(control):
+			ring.visible = _gamepad_active and control.has_focus()
+	control.focus_entered.connect(update_ring)
+	control.focus_exited.connect(update_ring)
+	var mode_handler = func(_active): update_ring.call()
+	input_mode_changed.connect(mode_handler)
+	control.tree_exited.connect(func():
+		if input_mode_changed.is_connected(mode_handler):
+			input_mode_changed.disconnect(mode_handler)
+	)
+	return control
 
 func button(textures):
 	var node = TextureButton.new()
@@ -10,6 +62,7 @@ func button(textures):
 	node.offset_left = -(textures.normal.get_width()/2)
 	node.offset_top = -(textures.normal.get_height()/2)	
 	node.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	attach_focus_ring(node)
 	return node
 
 var highlight_color = Color(1,1,1,1)
@@ -25,8 +78,17 @@ func highlight_on_hover_button(texture):
 	button.set_modulate(darken_color)
 	button.mouse_entered.connect(highlight.bind(button))
 	button.mouse_exited.connect(darken.bind(button))
+	button.focus_entered.connect(func():
+		if _gamepad_active:
+			highlight(button)
+	)
+	button.focus_exited.connect(func():
+		if not button.is_hovered():
+			darken(button)
+	)
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	button.texture_normal = texture
+	attach_focus_ring(button)
 	return button
 	
 func invisible_button():
@@ -40,6 +102,7 @@ func invisible_button():
 	node.add_theme_stylebox_override("pressed",hidden_button_style)
 	node.add_theme_stylebox_override("disabled",hidden_button_style)
 	node.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	attach_focus_ring(node)
 	return node
 
 func parchment_button(text_value, font, text_color, textures = null, font_size = 20):
@@ -87,4 +150,5 @@ func parchment_button(text_value, font, text_color, textures = null, font_size =
 		button.add_theme_stylebox_override("hover", hover_box)
 		button.add_theme_stylebox_override("pressed", pressed_box)
 		button.add_theme_stylebox_override("focus", normal_box)
+	attach_focus_ring(button)
 	return button

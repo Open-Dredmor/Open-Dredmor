@@ -364,8 +364,11 @@ func _build_ui():
 			slot_button.position = rect.position
 			slot_button.size = rect.size
 			slot_button.gui_input.connect(func(ev): _on_equip_slot_gui_input(ev, slot_name))
+			slot_button.pressed.connect(func(): _activate_equip_slot(slot_name))
 			slot_button.mouse_entered.connect(func(): _show_tooltip_for_equip(slot_name))
 			slot_button.mouse_exited.connect(_hide_tooltip)
+			slot_button.focus_entered.connect(func(): _show_tooltip_for_equip(slot_name))
+			slot_button.focus_exited.connect(_hide_tooltip)
 			character_panel.add_child(slot_button)
 			_equip_buttons[slot_name] = slot_button
 
@@ -509,8 +512,11 @@ func _build_ui():
 			inventory_button.position = Vector2(INV_SLOT_START.x + col_index * INV_SLOT_STEP.x, INV_SLOT_START.y + row_index * INV_SLOT_STEP.y)
 			inventory_button.size = INV_SLOT_SIZE
 			inventory_button.gui_input.connect(func(ev): _on_inv_slot_gui_input(ev, slot_index))
+			inventory_button.pressed.connect(func(): _activate_inv_slot(slot_index))
 			inventory_button.mouse_entered.connect(func(): _show_tooltip_for_inv(slot_index))
 			inventory_button.mouse_exited.connect(_hide_tooltip)
+			inventory_button.focus_entered.connect(func(): _show_tooltip_for_inv(slot_index))
+			inventory_button.focus_exited.connect(_hide_tooltip)
 			inventory_panel.add_child(inventory_button)
 			_inventory_buttons.append(inventory_button)
 
@@ -541,8 +547,11 @@ func _build_ui():
 			action_horizontal_box.add_child(ammo_label)
 			var ammo_button = _make_slot_button(AMMO_SLOT_SIZE, slot_fill, font)
 			ammo_button.gui_input.connect(func(ev): _on_equip_slot_gui_input(ev, ammo_slot))
+			ammo_button.pressed.connect(func(): _activate_equip_slot(ammo_slot))
 			ammo_button.mouse_entered.connect(func(): _show_tooltip_for_equip(ammo_slot))
 			ammo_button.mouse_exited.connect(_hide_tooltip)
+			ammo_button.focus_entered.connect(func(): _show_tooltip_for_equip(ammo_slot))
+			ammo_button.focus_exited.connect(_hide_tooltip)
 			action_horizontal_box.add_child(ammo_button)
 			_equip_buttons[ammo_slot] = ammo_button
 
@@ -588,6 +597,13 @@ func _build_ui():
 		)
 		action_horizontal_box.add_child(pickup_button)
 
+	UiHelpers.enable_gamepad_focus_in_tree(_action_bar)
+	if not _inventory_buttons.is_empty():
+		_inventory_buttons[0].call_deferred("grab_focus")
+	elif not _equip_buttons.is_empty():
+		var first_equip_key = _equip_buttons.keys()[0]
+		_equip_buttons[first_equip_key].call_deferred("grab_focus")
+
 	_tooltip_panel = PanelContainer.new()
 	_tooltip_panel.visible = false
 	_tooltip_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -615,11 +631,13 @@ func _make_slot_button(min_size, background_texture, font):
 	var button = Button.new()
 	button.custom_minimum_size = min_size
 	button.mouse_filter = Control.MOUSE_FILTER_STOP
-	button.focus_mode = Control.FOCUS_NONE
+	button.focus_mode = Control.FOCUS_ALL
 	var empty_style = StyleBoxEmpty.new()
 	button.add_theme_stylebox_override("normal", empty_style)
 	button.add_theme_stylebox_override("hover", _create_highlight_style(Color(0.9, 0.78, 0.42, 0.9), Color(1, 1, 1, 0.08)))
+	button.add_theme_stylebox_override("focus", empty_style)
 	button.add_theme_stylebox_override("pressed", _create_highlight_style(Color(1.0, 0.9, 0.5, 1.0), Color(1, 1, 1, 0.14)))
+	UiHelpers.attach_focus_ring(button)
 
 	if background_texture != null:
 		var slot_background = TextureRect.new()
@@ -674,7 +692,7 @@ func get_floating_window():
 
 func _unhandled_input(event):
 	if event is InputEventKey and event.is_pressed() and not event.echo:
-		var matches_close = false
+		var matches_close = event.keycode == KEY_ESCAPE
 		if _mode == "character" and event.keycode == KEY_C:
 			matches_close = true
 		elif _mode in ["inventory", "both"] and event.keycode == KEY_I:
@@ -682,6 +700,66 @@ func _unhandled_input(event):
 		if matches_close:
 			get_viewport().set_input_as_handled()
 			dismiss()
+	elif UiHelpers.is_gamepad_cancel(event):
+		get_viewport().set_input_as_handled()
+		dismiss()
+	elif UiHelpers.is_gamepad_button(event, JOY_BUTTON_X):
+		if _use_button != null and not _use_button.disabled:
+			_use_button.pressed.emit()
+		elif _equip_button != null and not _equip_button.disabled:
+			_equip_button.pressed.emit()
+		elif _unequip_button != null and not _unequip_button.disabled:
+			_unequip_button.pressed.emit()
+		get_viewport().set_input_as_handled()
+	elif UiHelpers.is_gamepad_button(event, JOY_BUTTON_Y):
+		if _drop_one_button != null and not _drop_one_button.disabled:
+			_drop_one_button.pressed.emit()
+		get_viewport().set_input_as_handled()
+
+func _activate_inv_slot(slot_index):
+	if _player == null:
+		return
+	var item = _player.inventory[slot_index]
+	if _selected_source == null:
+		if item != null:
+			_selected_source = { kind = "inv", index = slot_index }
+		refresh()
+		return
+	if _selected_source.kind == "inv":
+		if _selected_source.index == slot_index:
+			_selected_source = null
+		else:
+			_player.move_or_swap_inventory_slot(_selected_source.index, slot_index)
+			_selected_source = null
+		refresh()
+		return
+	if _selected_source.kind == "equip":
+		_player.unequip_slot(_selected_source.slot, slot_index)
+		_selected_source = null
+		refresh()
+
+func _activate_equip_slot(slot_name):
+	if _player == null:
+		return
+	var equipped = _player.get_equipped_item(slot_name)
+	if _selected_source == null:
+		if equipped != null:
+			_selected_source = { kind = "equip", slot = slot_name }
+		refresh()
+		return
+	if _selected_source.kind == "inv":
+		if _player.equip_from_inventory(_selected_source.index, slot_name):
+			_selected_source = null
+		elif equipped != null:
+			_selected_source = { kind = "equip", slot = slot_name }
+		refresh()
+		return
+	if _selected_source.kind == "equip":
+		if _selected_source.slot == slot_name:
+			_selected_source = null
+		else:
+			_selected_source = { kind = "equip", slot = slot_name }
+		refresh()
 
 func dismiss():
 	if _close_callback.is_valid():

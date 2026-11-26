@@ -189,6 +189,7 @@ func _build_gui():
 	_directory_input.add_theme_stylebox_override("normal", inset_style)
 	_directory_input.add_theme_stylebox_override("focus", inset_style)
 	_directory_input.text_submitted.connect(func(_text): _scan_custom_dir())
+	OD.Chrome.attach_focus_ring(_directory_input)
 	scan_row.add_child(_directory_input)
 
 	var scan_button = OD.Chrome.parchment_button("Scan Dir", _font_result, INK_COLOR, _blank_texture, 18)
@@ -234,7 +235,9 @@ func _build_gui():
 	_save_tree.add_theme_font_size_override("font_size", 20)
 	_style_tree(_save_tree)
 	_save_tree.item_selected.connect(_on_tree_item_selected)
+	OD.Chrome.attach_focus_ring(_save_tree)
 	left_vertical_box.add_child(_save_tree)
+	_save_tree.call_deferred("grab_focus")
 
 	var batch_row = HBoxContainer.new()
 	batch_row.add_theme_constant_override("separation", 12)
@@ -441,3 +444,11 @@ func _on_files_dropped(files):
 		_saves = added_entries
 		_populate_tree()
 	_status_label.text = "Drag & drop: imported %d save(s)." % imported_count
+
+func _unhandled_input(event):
+	if event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_B:
+		get_viewport().set_input_as_handled()
+		OD.Scenes.goto(OD.Scenes.MAIN_MENU)
+	elif event.is_action_pressed("ui_cancel") and not (get_viewport().gui_get_focus_owner() is LineEdit):
+		get_viewport().set_input_as_handled()
+		OD.Scenes.goto(OD.Scenes.MAIN_MENU)

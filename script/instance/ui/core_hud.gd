@@ -677,6 +677,10 @@ func _notify_before_open_modal():
 	if _callbacks.has("on_before_open_modal") and _callbacks.on_before_open_modal.is_valid():
 		_callbacks.on_before_open_modal.call()
 
+func cycle_minimap_zoom(reverse = false):
+	if _minimap != null and is_instance_valid(_minimap):
+		_minimap.cycle_zoom(reverse)
+
 func handle_key_input(event):
 	if not (event is InputEventKey) or not event.is_pressed() or event.echo:
 		return false
