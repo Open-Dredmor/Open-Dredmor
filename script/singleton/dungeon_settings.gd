@@ -12,9 +12,18 @@ enum Difficulty {
 func reset():
 	var default_packs = []
 	if OD.Settings != null and OD.Settings._settings != null:
-		for pack_info in OD.Settings.get_available_content_packs():
-			if pack_info.kind == "expansion":
-				default_packs.append(pack_info.id)
+		var available_packs = OD.Settings.get_available_content_packs()
+		if OD.Settings.has_saved_active_packs():
+			var available_by_id = {}
+			for pack_info in available_packs:
+				available_by_id[pack_info.id] = true
+			for saved_pack_id in OD.Settings.last_active_packs():
+				if available_by_id.has(saved_pack_id) and not default_packs.has(saved_pack_id):
+					default_packs.append(saved_pack_id)
+		else:
+			for pack_info in available_packs:
+				if pack_info.kind == "expansion":
+					default_packs.append(pack_info.id)
 	_settings = {
 		difficulty = Difficulty.Medium,
 		no_time_to_grind = false,

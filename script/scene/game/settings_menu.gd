@@ -7,6 +7,8 @@ const INK_COLOR = Color(0.16, 0.10, 0.06)
 const HEADER_INK = Color(0.28, 0.12, 0.05)
 
 var _fullscreen_checkbox = null
+var _graphical_cursor_checkbox = null
+var _skip_intro_checkbox = null
 var _volume_sliders = {}
 var _volume_labels = {}
 var _keybind_buttons = {}
@@ -171,6 +173,18 @@ func _build_gui():
 	_fullscreen_checkbox.button_pressed = OD.Settings.fullscreen_enabled()
 	_style_checkbox(_fullscreen_checkbox)
 	container.add_child(_fullscreen_checkbox)
+
+	_graphical_cursor_checkbox = CheckBox.new()
+	_graphical_cursor_checkbox.text = "Use Graphical Cursor"
+	_graphical_cursor_checkbox.button_pressed = OD.Settings.graphical_cursor_enabled()
+	_style_checkbox(_graphical_cursor_checkbox)
+	container.add_child(_graphical_cursor_checkbox)
+
+	_skip_intro_checkbox = CheckBox.new()
+	_skip_intro_checkbox.text = "Skip Intro Story Screens"
+	_skip_intro_checkbox.button_pressed = OD.Settings.skip_intro_enabled()
+	_style_checkbox(_skip_intro_checkbox)
+	container.add_child(_skip_intro_checkbox)
 
 	var keybinds_header = Label.new()
 	keybinds_header.text = "Keybinds (click to rebind)"
@@ -346,6 +360,8 @@ func _persist_settings():
 	OD.Settings.change("game", "audio_volume_sfx_percent", int(_volume_sliders["sfx"].value))
 	OD.Settings.change("game", "audio_volume_dialogue_percent", int(_volume_sliders["dialogue"].value))
 	OD.Settings.change("display", "fullscreen", _fullscreen_checkbox.is_pressed())
+	OD.Settings.change("display", "graphical_cursor", _graphical_cursor_checkbox.is_pressed())
+	OD.Settings.change("game", "skip_intro", _skip_intro_checkbox.is_pressed())
 	for action_name in _pending_keybinds.keys():
 		OD.Settings.change("controls", action_name, int(_pending_keybinds[action_name]))
 	for action_name in _pending_gamepad_binds.keys():

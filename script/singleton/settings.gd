@@ -66,8 +66,12 @@ func load():
 			config.set_value("game", "audio_volume_dialogue_percent", 100)
 		if not config.has_section_key("game", "game_speed"):
 			config.set_value("game", "game_speed", 1.0)
+		if not config.has_section_key("game", "skip_intro"):
+			config.set_value("game", "skip_intro", false)
 		if not config.has_section_key("display", "fullscreen"):
 			config.set_value("display", "fullscreen", false)
+		if not config.has_section_key("display", "graphical_cursor"):
+			config.set_value("display", "graphical_cursor", true)
 		for action_name in DEFAULT_KEYBINDS.keys():
 			if not config.has_section_key("controls", action_name):
 				config.set_value("controls", action_name, DEFAULT_KEYBINDS[action_name])
@@ -468,6 +472,14 @@ func dialogue_volume_percent():
 		return 100
 	return clamp(int(result), 0, 100)
 
+func skip_intro_enabled():
+	if _settings == null:
+		return false
+	var result = _settings.get_value("game", "skip_intro", false)
+	if result == null:
+		return false
+	return bool(result)
+
 func fullscreen_enabled():
 	if _settings == null:
 		return false
@@ -476,11 +488,59 @@ func fullscreen_enabled():
 		return false
 	return bool(result)
 
+func graphical_cursor_enabled():
+	if _settings == null:
+		return true
+	var result = _settings.get_value("display", "graphical_cursor", true)
+	if result == null:
+		return true
+	return bool(result)
+
+func _load_cursor_texture(relative_path):
+	if OD.Load == null or not OD.Load.exists(relative_path):
+		return null
+	var frames = OD.Load._pro_motion_sprite_frames(relative_path)
+	if frames == null or frames.is_empty():
+		return null
+	return frames[0].texture
+
+func apply_cursor_settings():
+	if DisplayServer.get_name() == "headless":
+		return
+	var cursor_shapes = [
+		Input.CURSOR_ARROW,
+		Input.CURSOR_IBEAM,
+		Input.CURSOR_POINTING_HAND,
+		Input.CURSOR_CROSS,
+		Input.CURSOR_WAIT,
+		Input.CURSOR_BUSY,
+		Input.CURSOR_DRAG,
+		Input.CURSOR_CAN_DROP,
+		Input.CURSOR_FORBIDDEN
+	]
+	if not graphical_cursor_enabled():
+		for shape in cursor_shapes:
+			Input.set_custom_mouse_cursor(null, shape)
+		return
+	var install_directory = dredmor_install_dir()
+	if install_directory == null or install_directory == "":
+		return
+	var arrow_texture = _load_cursor_texture("ui/cursor.spr")
+	if arrow_texture == null:
+		return
+	var hand_texture = _load_cursor_texture("ui/cursor_shiny.spr")
+	if hand_texture == null:
+		hand_texture = arrow_texture
+	for shape in cursor_shapes:
+		var shape_texture = hand_texture if shape == Input.CURSOR_POINTING_HAND else arrow_texture
+		Input.set_custom_mouse_cursor(shape_texture, shape, Vector2.ZERO)
+
 func apply_display_settings():
 	if DisplayServer.get_name() == "headless":
 		return
 	var mode = DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen_enabled() else DisplayServer.WINDOW_MODE_WINDOWED
 	DisplayServer.window_set_mode(mode)
+	apply_cursor_settings()
 
 func get_keybinds():
 	var binds = {}
@@ -531,6 +591,33 @@ func last_selected_skill_ids():
 
 func set_last_selected_skill_ids(skill_ids):
 	change("game", "last_selected_skill_ids", skill_ids.duplicate())
+
+func has_saved_active_packs():
+	return _settings != null and _settings.has_section_key("game", "last_active_packs")
+
+func last_active_packs():
+	if _settings == null:
+		return []
+	var result = _settings.get_value("game", "last_active_packs", [])
+	if typeof(result) != TYPE_ARRAY:
+		return []
+	return result.duplicate()
+
+func set_last_active_packs(pack_ids):
+	if _settings != null:
+		change("game", "last_active_packs", pack_ids.duplicate())
+
+func last_pack_order():
+	if _settings == null:
+		return []
+	var result = _settings.get_value("game", "last_pack_order", [])
+	if typeof(result) != TYPE_ARRAY:
+		return []
+	return result.duplicate()
+
+func set_last_pack_order(pack_ids):
+	if _settings != null:
+		change("game", "last_pack_order", pack_ids.duplicate())
 	
 func display_size():
 	# ProjectOD.Settings.get_setting("display/window/size/viewport_width"))

@@ -86,6 +86,8 @@ func _finish_bootstrap():
 		OD.Loading.show_progress("Checking asset cache...", 5.0)
 	if OD.AssetCache != null:
 		await OD.AssetCache.ensure_cache()
+	if OD.Settings != null and OD.Settings.has_method("apply_cursor_settings"):
+		OD.Settings.apply_cursor_settings()
 	if OD.Loading != null:
 		OD.Loading.show_progress("Starting Open Dredmor...", 100.0)
 	OD.Scenes.goto(OD.Scenes.FIRST_SCENE)

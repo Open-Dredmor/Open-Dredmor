@@ -27,6 +27,8 @@ var _ordered_pack_ids = []
 var _available_packs_by_id = {}
 var _pack_list_container = null
 var _pack_list_assets = null
+var _toggle_expansions_button = null
+var _toggle_mods_button = null
 var _tooltip_panel = null
 var _tooltip_label = null
 var _pending_tooltip_text = ""
@@ -264,21 +266,28 @@ func _initialize_pack_order():
 	var available_packs = OD.Database.get_available_packs()
 	for pack_info in available_packs:
 		_available_packs_by_id[pack_info.id] = pack_info
+	if OD.Settings != null and OD.Settings.has_method("last_pack_order"):
+		for saved_pack_id in OD.Settings.last_pack_order():
+			if _available_packs_by_id.has(saved_pack_id) and not _ordered_pack_ids.has(saved_pack_id):
+				_ordered_pack_ids.append(saved_pack_id)
 	for pack_id in _selected_pack_ids:
 		if _available_packs_by_id.has(pack_id) and not _ordered_pack_ids.has(pack_id):
 			_ordered_pack_ids.append(pack_id)
 	for pack_info in available_packs:
 		if not _ordered_pack_ids.has(pack_info.id):
 			_ordered_pack_ids.append(pack_info.id)
-	_sync_selected_pack_order()
+	_sync_selected_pack_order(false)
 
-func _sync_selected_pack_order():
+func _sync_selected_pack_order(persist_to_settings = true):
 	var ordered_selected = []
 	for pack_id in _ordered_pack_ids:
 		if _selected_pack_ids.has(pack_id):
 			ordered_selected.append(pack_id)
 	_selected_pack_ids = ordered_selected
 	OD.DungeonSettings.set_active_packs(_selected_pack_ids)
+	if persist_to_settings and OD.Settings != null and OD.Settings.has_method("set_last_active_packs"):
+		OD.Settings.set_last_active_packs(_selected_pack_ids)
+		OD.Settings.set_last_pack_order(_ordered_pack_ids)
 
 func _build_content_packs_panel(parent, assets, display_size, target_height):
 	var dialog_assets = OD.Assets.dialog()
@@ -313,14 +322,31 @@ func _build_content_packs_panel(parent, assets, display_size, target_height):
 	vertical_box.add_theme_constant_override("separation", 10)
 	panel.add_child(vertical_box)
 
+	var header_row = HBoxContainer.new()
+	header_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header_row.add_theme_constant_override("separation", 8)
+	vertical_box.add_child(header_row)
+
 	var title_label = Label.new()
 	title_label.text = "Expansions & Mods"
-	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	if font_result != null:
 		title_label.add_theme_font_override("font", font_result)
-	title_label.add_theme_font_size_override("font_size", 26)
+	title_label.add_theme_font_size_override("font_size", 24)
 	title_label.add_theme_color_override("font_color", header_ink)
-	vertical_box.add_child(title_label)
+	header_row.add_child(title_label)
+
+	var blank_texture = dialog_assets.textures.blank if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("blank") else null
+	_toggle_expansions_button = OD.Chrome.parchment_button("Expansions Off", font_result, ink_color, blank_texture, 14)
+	_toggle_expansions_button.custom_minimum_size = Vector2(124, 30)
+	_toggle_expansions_button.pressed.connect(func(): _toggle_category_packs("expansion"))
+	header_row.add_child(_toggle_expansions_button)
+
+	_toggle_mods_button = OD.Chrome.parchment_button("Mods Off", font_result, ink_color, blank_texture, 14)
+	_toggle_mods_button.custom_minimum_size = Vector2(94, 30)
+	_toggle_mods_button.pressed.connect(func(): _toggle_category_packs("mod"))
+	header_row.add_child(_toggle_mods_button)
 
 	var subtitle_label = Label.new()
 	subtitle_label.text = "Later packs in load order override earlier ones"
@@ -394,7 +420,49 @@ func _create_reorder_button(direction, enabled, font_result, ink_color):
 	OD.Chrome.attach_focus_ring(fallback_button)
 	return fallback_button
 
+func _has_any_pack_of_kind(kind):
+	for pack_id in _ordered_pack_ids:
+		var pack_info = _available_packs_by_id.get(pack_id, null)
+		if pack_info != null and pack_info.kind == kind:
+			return true
+	return false
+
+func _any_pack_enabled_of_kind(kind):
+	for pack_id in _selected_pack_ids:
+		var pack_info = _available_packs_by_id.get(pack_id, null)
+		if pack_info != null and pack_info.kind == kind:
+			return true
+	return false
+
+func _update_category_toggle_buttons():
+	if _toggle_expansions_button != null:
+		var has_expansions = _has_any_pack_of_kind("expansion")
+		_toggle_expansions_button.disabled = not has_expansions
+		_toggle_expansions_button.text = "Expansions Off" if _any_pack_enabled_of_kind("expansion") else "Expansions On"
+	if _toggle_mods_button != null:
+		var has_mods = _has_any_pack_of_kind("mod")
+		_toggle_mods_button.disabled = not has_mods
+		_toggle_mods_button.text = "Mods Off" if _any_pack_enabled_of_kind("mod") else "Mods On"
+
+func _toggle_category_packs(kind):
+	var turn_off = _any_pack_enabled_of_kind(kind)
+	if turn_off:
+		var remaining = []
+		for pack_id in _selected_pack_ids:
+			var pack_info = _available_packs_by_id.get(pack_id, null)
+			if pack_info == null or pack_info.kind != kind:
+				remaining.append(pack_id)
+		_selected_pack_ids = remaining
+	else:
+		for pack_id in _ordered_pack_ids:
+			var pack_info = _available_packs_by_id.get(pack_id, null)
+			if pack_info != null and pack_info.kind == kind and not _selected_pack_ids.has(pack_id):
+				_selected_pack_ids.append(pack_id)
+	_sync_selected_pack_order()
+	_rebuild_pack_rows()
+
 func _rebuild_pack_rows(focus_pack_id = "", focus_control_kind = ""):
+	_update_category_toggle_buttons()
 	if _pack_list_container == null:
 		return
 	for child in _pack_list_container.get_children():
@@ -570,8 +638,12 @@ func _on_pack_toggled(enabled, pack_id):
 	else:
 		_selected_pack_ids.erase(pack_id)
 	_sync_selected_pack_order()
+	_update_category_toggle_buttons()
 
 func _on_DoneButton_pressed():
+	if OD.Settings != null and OD.Settings.has_method("set_last_active_packs"):
+		OD.Settings.set_last_active_packs(_selected_pack_ids)
+		OD.Settings.set_last_pack_order(_ordered_pack_ids)
 	OD.Database.set_active_packs(_selected_pack_ids)
 	OD.Scenes.goto(OD.Scenes.SKILLS_MENU)
 

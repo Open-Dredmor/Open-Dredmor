@@ -32,6 +32,11 @@ var paths = {
 	load_game_menu = {
 		header = "ui/menus/title_loadgame.png",
 		info_panel = "ui/menus/panel_loadgameinfo.png",
+		painting_frame = "ui/menus/bg_paintingframe.png",
+		widgets = "ui/menus/loadgame_widgets.png",
+		book_normal = "ui/menus/loadgame_book0.png",
+		book_hover = "ui/menus/loadgame_book1.png",
+		stone_tile = "ui/menus/bg_stonetile.png",
 		delete_button = _button_paths("ui/menus/loadgame_delete")
 	},
 	difficulty_menu = {

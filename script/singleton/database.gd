@@ -122,12 +122,28 @@ func get_all_rooms():
 	return raw_rooms
 
 func create_room_name():
-	var noun = OD.DataStructure.choose(_pack_loader.cache.text.noun, 1)
+	var noun_list = _pack_loader.cache.text.get("noun", []) if _pack_loader.cache != null and _pack_loader.cache.has("text") and typeof(_pack_loader.cache.text) == TYPE_DICTIONARY else []
+	var chosen = OD.DataStructure.choose(noun_list, 1)
+	var noun = chosen[0] if typeof(chosen) == TYPE_ARRAY and not chosen.is_empty() else (chosen if typeof(chosen) == TYPE_DICTIONARY else null)
 	if noun == null:
-		return "The Mysterious Room"
-	if noun.has("plural") and int(noun.plural) == 1:
-		return "The Room of " + noun.text
-	return "The " + noun.text + " Room"
+		return {
+			name = "The Mysterious Room",
+			database_id = "",
+			flooring = null,
+			painting = null,
+			statue = null
+		}
+	var text_value = str(noun.get("text", "Mysterious"))
+	var plural_value = str(noun.get("plural", ""))
+	var use_plural = plural_value != "" and plural_value != "0" and (plural_value == text_value or randi() % 2 == 0)
+	var room_title = "The Room of " + (plural_value if use_plural else text_value) if use_plural else "The " + text_value + " Room"
+	return {
+		name = room_title,
+		database_id = "",
+		flooring = noun.get("floor", noun.get("flooring", null)),
+		painting = noun.get("painting", null),
+		statue = noun.get("statue", null)
+	}
 
 func get_branch(branch_id):
 	var info = get_branch_info(branch_id)

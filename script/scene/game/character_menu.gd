@@ -136,7 +136,10 @@ func _unhandled_input(event):
 		_on_BackButton_pressed()
 
 func _on_DoneButton_pressed():
-	OD.Scenes.goto(OD.Scenes.INTRO_ONE)
+	if OD.Settings != null and OD.Settings.has_method("skip_intro_enabled") and OD.Settings.skip_intro_enabled():
+		OD.Scenes.goto(OD.Scenes.GAME)
+	else:
+		OD.Scenes.goto(OD.Scenes.INTRO_ONE)
 
 func _on_BackButton_pressed():
 	OD.Scenes.goto(OD.Scenes.SKILLS_MENU)

@@ -1,5 +1,7 @@
 extends Control
 
+const UiHelpers = preload("res://script/instance/ui/ui_helpers.gd")
+
 static func init_container():
 	return Control.new()
 
@@ -8,11 +10,16 @@ var MAX_SKILL_SELECTION = 7
 var _selected_skills = null
 var _skills = null
 var _highlighted_panel_buttons = null
+var _skill_panel_buttons = {}
+var _selected_skills_container = null
+var _pack_info_by_id = {}
 
 var _container = null
 var _done_button = null
 var _info_header = null
 var _info_details = null
+var _tooltip_panel = null
+var _tooltip_label = null
 
 func _ready():	
 	call_deferred("_build_gui")
@@ -24,19 +31,27 @@ func _process(_delta):
 			OD.Chrome.highlight(button)
 	if _selected_skills != null:
 		_done_button.visible = _selected_skills.keys().size() == MAX_SKILL_SELECTION
+	if _tooltip_panel != null and _tooltip_panel.visible:
+		UiHelpers.position_tooltip(_tooltip_panel, get_viewport().get_mouse_position(), get_viewport().get_visible_rect().size)
 	
 func _build_gui():
 	var assets = OD.Assets.skills_menu()
 	_container = get_node("/root/Container")
-	_container.set_size(OD.Settings.display_size())
+	var display_size = OD.Settings.display_size()
+	_container.set_size(display_size)
 	_skills = OD.Database.character_creation_skill_list()	
 	_selected_skills = {}
 	_highlighted_panel_buttons = {}
+	_skill_panel_buttons.clear()
+	_pack_info_by_id.clear()
+	for pack_info in OD.Database.get_available_packs():
+		_pack_info_by_id[pack_info.id] = pack_info
 
 	var header_background = TextureRect.new()
 	header_background.texture = assets.textures.header_background
 	header_background.stretch_mode = TextureRect.STRETCH_TILE
-	header_background.size = Vector2(OD.Settings.display_size().x, header_background.texture.get_height())
+	var header_height = header_background.texture.get_height()
+	header_background.size = Vector2(display_size.x, header_height)
 	_container.add_child(header_background)
 	
 	var back_button = OD.Chrome.button(assets.textures.back_button)
@@ -60,45 +75,82 @@ func _build_gui():
 	_done_button.offset_top = 0
 	_done_button.pressed.connect(_on_DoneButton_pressed)
 	_container.add_child(_done_button)	
+
+	var center_wrapper = CenterContainer.new()
+	center_wrapper.anchor_left = 0.0
+	center_wrapper.anchor_top = 0.0
+	center_wrapper.anchor_right = 1.0
+	center_wrapper.anchor_bottom = 1.0
+	center_wrapper.offset_top = header_height + 16
+	center_wrapper.offset_bottom = -16
+	center_wrapper.offset_left = 24
+	center_wrapper.offset_right = -24
+	_container.add_child(center_wrapper)
 			
 	var skills_container = VBoxContainer.new()
 	skills_container.name = 'SkillsContainer'
-	skills_container.anchor_left = .25
-	skills_container.anchor_top = .3
-	_container.add_child(skills_container)
+	skills_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	skills_container.add_theme_constant_override("separation", 12)
+	center_wrapper.add_child(skills_container)
+
+	var border_size = assets.textures.skill_button_border.get_size() if assets.textures.skill_button_border != null else Vector2(72, 72)
+	var columns_count = 10
+	var grid_separation = 4
+	var rows_count = max(1, int(ceil(float(_skills.size()) / float(columns_count))))
+	var grid_content_height = rows_count * border_size.y + max(0, rows_count - 1) * grid_separation
+	var selected_panel_height = assets.textures.selected_skills_background.get_height() if assets.textures.selected_skills_background != null else 104
+	var info_panel_height = assets.textures.selected_skill_info_background.get_height() if assets.textures.selected_skill_info_background != null else 120
+	var max_scroll_height = max(240.0, display_size.y - header_height - selected_panel_height - info_panel_height - 96.0)
+	var scroll_height = min(grid_content_height + 8.0, max_scroll_height)
+	var scroll_width = columns_count * border_size.x + (columns_count - 1) * grid_separation + 24.0
+
+	var skills_scroll = ScrollContainer.new()
+	skills_scroll.name = "SkillsScroll"
+	skills_scroll.custom_minimum_size = Vector2(scroll_width, scroll_height)
+	skills_scroll.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	skills_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	skills_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	skills_scroll.follow_focus = true
+	skills_container.add_child(skills_scroll)
 			
 	var skills_selector = GridContainer.new()
 	skills_selector.name = "SkillsSelector"
-	skills_selector.columns = 10	
-	skills_container.add_child(skills_selector)
+	skills_selector.columns = columns_count
+	skills_selector.add_theme_constant_override("h_separation", grid_separation)
+	skills_selector.add_theme_constant_override("v_separation", grid_separation)
+	skills_selector.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	skills_scroll.add_child(skills_selector)
 			
 	for skill in _skills:
 		var skill_border = TextureRect.new()
 		skill_border.texture = assets.textures.skill_button_border
-		skill_border.name = "PickSkillBorder#" + skill.id
+		skill_border.custom_minimum_size = border_size
+		skill_border.name = "PickSkillBorder#" + str(skill.id)
 		skills_selector.add_child(skill_border)
 		
 		var pick_skill_button = OD.Chrome.highlight_on_hover_button(skill.icon)
 		pick_skill_button.pressed.connect(_select_skill.bind(skill))
-		pick_skill_button.mouse_entered.connect(_describe_skill.bind(skill))	
-		pick_skill_button.mouse_exited.connect(_describe_skill.bind(null))	
+		pick_skill_button.mouse_entered.connect(_on_skill_hover_entered.bind(skill))
+		pick_skill_button.mouse_exited.connect(_on_skill_hover_exited)
 		pick_skill_button.focus_entered.connect(_describe_skill.bind(skill))
-		pick_skill_button.name = "PickSkillButton#" + skill.id
+		pick_skill_button.name = "PickSkillButton#" + str(skill.id)
 		pick_skill_button.offset_top = 5
 		pick_skill_button.offset_left = 5
 		skill_border.add_child(pick_skill_button)
+		_skill_panel_buttons[skill.id] = pick_skill_button
 			
 	var selected_skills_background = TextureRect.new()
 	selected_skills_background.texture = assets.textures.selected_skills_background
 	selected_skills_background.name = "SelectedSkillsBackground"
+	selected_skills_background.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	skills_container.add_child(selected_skills_background)
 	
-	var selected_skills_container = HBoxContainer.new()
-	selected_skills_container.name = "SelectedSkillsContainer"
-	selected_skills_container.anchor_left = 0.025
-	selected_skills_container.anchor_top = 0.2
-	selected_skills_container.add_theme_constant_override("separation", 24)
-	selected_skills_background.add_child(selected_skills_container)	
+	_selected_skills_container = HBoxContainer.new()
+	_selected_skills_container.name = "SelectedSkillsContainer"
+	_selected_skills_container.anchor_left = 0.025
+	_selected_skills_container.anchor_top = 0.2
+	_selected_skills_container.add_theme_constant_override("separation", 24)
+	selected_skills_background.add_child(_selected_skills_container)	
 	
 	var random_selection_button = OD.Chrome.button(assets.textures.random_selection_button)
 	random_selection_button.anchor_left = 0.838
@@ -121,6 +173,7 @@ func _build_gui():
 	
 	var selected_skill_info_background = TextureRect.new()
 	selected_skill_info_background.texture = assets.textures.selected_skill_info_background
+	selected_skill_info_background.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	skills_container.add_child(selected_skill_info_background)
 	
 	var info_text_container = HBoxContainer.new()
@@ -164,6 +217,10 @@ func _build_gui():
 	_info_details.size_flags_vertical = SIZE_FILL | SIZE_EXPAND
 	info_text_container.add_child(_info_details)
 
+	var tooltip_nodes = UiHelpers.create_tooltip(_container, 220, 16)
+	_tooltip_panel = tooltip_nodes.panel
+	_tooltip_label = tooltip_nodes.label
+
 	var saved_skill_ids = OD.DungeonSettings.get_settings().starting_skill_ids
 	for skill in _skills:
 		if saved_skill_ids.has(skill.id):
@@ -173,6 +230,32 @@ func _build_gui():
 		var first_button = _get_skill_panel_button(_skills[0].id)
 		if first_button != null:
 			first_button.call_deferred("grab_focus")
+
+func _format_skill_source(skill):
+	var pack_id = str(skill.get("pack_id", "vanilla"))
+	if pack_id == "" or pack_id == "vanilla":
+		return "Dungeons of Dredmor"
+	if _pack_info_by_id.has(pack_id):
+		var pack_info = _pack_info_by_id[pack_id]
+		if pack_info.kind == "expansion":
+			return "Expansion: " + str(pack_info.name)
+		var author = str(pack_info.get("metadata", {}).get("author", "")).strip_edges()
+		if author != "":
+			return "Mod: " + str(pack_info.name) + " - " + author
+		return "Mod: " + str(pack_info.name)
+	return "Source: " + pack_id
+
+func _on_skill_hover_entered(skill):
+	_describe_skill(skill)
+	if _tooltip_label != null and _tooltip_panel != null and skill != null:
+		_tooltip_label.text = _format_skill_source(skill)
+		_tooltip_panel.visible = true
+		UiHelpers.position_tooltip(_tooltip_panel, get_viewport().get_mouse_position(), get_viewport().get_visible_rect().size)
+
+func _on_skill_hover_exited():
+	_describe_skill(null)
+	if _tooltip_panel != null:
+		_tooltip_panel.visible = false
 
 func _unhandled_input(event):
 	if (event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_B) or event.is_action_pressed("ui_cancel"):
@@ -189,12 +272,10 @@ func _remove_selected_skill_buttons():
 		child.queue_free()
 	
 func _get_selected_skills_container():
-	var parent_path = "/root/Container/SkillsContainer/SelectedSkillsBackground/SelectedSkillsContainer"
-	return get_node(parent_path)
+	return _selected_skills_container
 
 func _get_skill_panel_button(skill_id):
-	var skill_panel_path = '/root/Container/SkillsContainer/SkillsSelector/PickSkillBorder#'+skill_id+'/PickSkillButton#'+skill_id
-	return get_node(skill_panel_path)
+	return _skill_panel_buttons.get(skill_id, null)
 
 func _describe_skill(skill):
 	if skill == null:
@@ -231,8 +312,8 @@ func _select_skill(skill):
 			selected_skill_button.texture_normal = selected_skill.icon
 			selected_skill_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 			selected_skill_button.pressed.connect(_select_skill.bind(selected_skill))
-			selected_skill_button.mouse_entered.connect(_describe_skill.bind(selected_skill))	
-			selected_skill_button.mouse_exited.connect(_describe_skill.bind(null))	
+			selected_skill_button.mouse_entered.connect(_on_skill_hover_entered.bind(selected_skill))
+			selected_skill_button.mouse_exited.connect(_on_skill_hover_exited)
 			selected_skills_container.add_child(selected_skill_button)
 
 func _on_DoneButton_pressed():

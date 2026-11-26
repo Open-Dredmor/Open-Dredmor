@@ -61,9 +61,19 @@ func init(room_database_name):
 	grid_width = _definition.row[0].text.length()
 	grid_height = _definition.row.size()
 
-	name_details = OD.Database.create_room_name()
+	var room_name_result = OD.Database.create_room_name()
+	if typeof(room_name_result) == TYPE_DICTIONARY:
+		name_details = room_name_result
+	else:
+		name_details = {
+			name = str(room_name_result),
+			database_id = "",
+			flooring = null,
+			painting = null,
+			statue = null
+		}
 	name_details.database_id = room_name_text
-	var resolved_name = str(name_details.name) if name_details != null and name_details.get("name") != null and str(name_details.name) != "" else room_name_text
+	var resolved_name = str(name_details.name) if name_details.get("name") != null and str(name_details.name) != "" else room_name_text
 	entity_grid.room_name = resolved_name
 	#print("Generating room id " + room_database_name + " with name " + name_details.name)
 	for layer_name in layer_names:

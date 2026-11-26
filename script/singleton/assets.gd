@@ -56,6 +56,11 @@ func load_game_menu():
 			done_button = _button_textures(OD.Resources.paths.shared.button.done),
 			load_header = OD.Load.image(paths.header),
 			info_panel = OD.Load.image(paths.info_panel),
+			painting_frame = OD.Load.image(paths.painting_frame),
+			widgets = OD.Load.image(paths.widgets),
+			book_normal = OD.Load.image(paths.book_normal),
+			book_hover = OD.Load.image(paths.book_hover),
+			stone_tile = OD.Load.image(paths.stone_tile),
 			delete_button = _button_textures(paths.delete_button)
 		},
 		fonts = {

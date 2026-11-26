@@ -361,21 +361,39 @@ static func list_saves(saves_directory = SAVES_DIR):
 				var character_level = int(parsed.get("level", 1))
 				var diff_text = str(parsed.get("difficulty", "Medium"))
 				var saved_at = str(parsed.get("saved_at", ""))
-				var perma_text = " | Permadeath" if bool(parsed.get("permadeath", false)) else ""
+				var branch_name = str(parsed.get("branch_name", "The Dungeon"))
+				var permadeath = bool(parsed.get("permadeath", false))
+				var perma_text = " | Permadeath" if permadeath else ""
+				var player_data = parsed.get("player", {})
+				var skill_entries = player_data.get("skill_entries", []) if typeof(player_data) == TYPE_DICTIONARY else []
+				var dungeon_settings = parsed.get("dungeon_settings", {})
+				var starting_skill_ids = dungeon_settings.get("starting_skill_ids", []) if typeof(dungeon_settings) == TYPE_DICTIONARY else []
+				var base_path = full_path.get_basename()
+				var thumbnail_path = ""
+				for ext in [".png", ".bmp", ".jpg"]:
+					if FileAccess.file_exists(base_path + ext):
+						thumbnail_path = base_path + ext
+						break
 				saves.append({
 					path = full_path,
 					file_name = file_name,
 					name = character_name,
+					hero = str(parsed.get("hero", "hero")),
 					level = character_level,
 					floor = floor_number,
+					branch_name = branch_name,
 					difficulty = diff_text,
+					permadeath = permadeath,
 					saved_at = saved_at,
+					skill_entries = skill_entries,
+					starting_skill_ids = starting_skill_ids,
+					thumbnail_path = thumbnail_path,
 					label = "%s (Lv %d, Floor %d)" % [character_name, character_level, floor_number],
 					details = "Character: %s\nLevel: %d\nFloor: %d (%s)\nDifficulty: %s%s\nSaved: %s\nFile: %s" % [
 						character_name,
 						character_level,
 						floor_number,
-						str(parsed.get("branch_name", "The Dungeon")),
+						branch_name,
 						diff_text,
 						perma_text,
 						saved_at,
