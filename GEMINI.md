@@ -1,6 +1,9 @@
 ## Code Standards
 - Don't abbreviate words to make variable names shorter. For example, use "texture" instead of "tex"
 
+## Architecture Overview
+- See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the module layout across `script/singleton/database/`, `script/instance/entity/player/`, `script/instance/combat/`, mod discovery (`mod.xml`), asset override resolution, and mod-safe saves.
+
 ## Reference Context & Checklist Workflow
 - This is a clean room implementation of Dungeons of Dredmor using Godot.
 - It requires a valid retail version of Dungeons of Dredmor to function
@@ -9,7 +12,7 @@
 - There is a copy of the godot engine binary at `airef/godot` you can use to run tests
 - There is a full copy of the retail steam game at `airef/steam-install`
 - If something you need is in neither the repo nor `airef/`, ask me to place it in `airef/` before proceeding.
-- Project progress is tracked in `CHECKLIST.md`, organized into round directories under `checklist/` (e.g., `checklist/round-1/` for the completed initial core feature set, `checklist/round-2/` for subsequent work).
+- Project progress is tracked in `docs/CHECKLIST.md`, organized into round directories under `checklist/` (e.g., `checklist/round-1/` for the completed initial core feature set, `checklist/round-2/` for subsequent work).
 - When working an item, choose the first ordered `checklist/round-<N>/*` file (in the earliest round with remaining work) that contains unchecked action items.
 - Work on the top-most unchecked item. When finished, check it off. Then explain how to best verify that it works. Create or update a test document in the `testing/` dir if appropriate
 - If there isn't a straightforward way already to verify a completed task is working, then implement a new scene to be accessed in scenes.gd for a human to verify.

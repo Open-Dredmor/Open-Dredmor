@@ -55,8 +55,17 @@ static func serialize_player(player):
 	for sid in player.skill_tiers_unlocked.keys():
 		tiers_out[str(sid)] = int(player.skill_tiers_unlocked[sid])
 	var chosen_out = []
+	var skill_entries_out = []
 	for sid in player.chosen_skills:
-		chosen_out.append(int(sid))
+		var skill_id = int(sid)
+		chosen_out.append(skill_id)
+		var skill_def = OD.Database.get_skill(skill_id) if OD.Database != null else null
+		skill_entries_out.append({
+			id = skill_id,
+			name = str(skill_def.get("name", "")) if skill_def != null else "",
+			pack_id = str(skill_def.get("pack_id", "vanilla")) if skill_def != null else "",
+			tier = int(player.skill_tiers_unlocked.get(sid, 1))
+		})
 	return {
 		grid_pos = [int(p_position.x), int(p_position.y)] if p_position != null else [0, 0],
 		character_name = str(player.character_name),
@@ -73,6 +82,7 @@ static func serialize_player(player):
 		zorkmids = int(player.get_zorkmids()),
 		skill_points = int(player.skill_points),
 		chosen_skills = chosen_out,
+		skill_entries = skill_entries_out,
 		skill_tiers_unlocked = tiers_out,
 		spell_cooldowns = GridSerializerScript._sanitize_value(player.spell_cooldowns),
 		hotbar_spells = player.get_hotbar_spells(),
@@ -103,16 +113,41 @@ static func deserialize_player(player, data):
 	player.rogue_level = 0
 	player.wizard_level = 0
 
-	var saved_tiers = data.get("skill_tiers_unlocked", {})
-	for raw_id in data.get("chosen_skills", []):
-		var sid = int(raw_id)
-		if player.chosen_skills.has(sid):
-			continue
-		player.chosen_skills.append(sid)
-		player.skill_tiers_unlocked[sid] = 0
-		var target_tier = max(1, int(saved_tiers.get(str(sid), 1)))
-		for _step in range(target_tier):
-			player.unlock_next_skill_tier(sid, true)
+	var saved_entries = data.get("skill_entries", [])
+	if typeof(saved_entries) == TYPE_ARRAY and not saved_entries.is_empty():
+		for entry in saved_entries:
+			if typeof(entry) != TYPE_DICTIONARY:
+				continue
+			var raw_id = int(entry.get("id", -1))
+			var saved_name = str(entry.get("name", ""))
+			var resolved_skill = OD.Database.get_skill(raw_id) if OD.Database != null else null
+			if (resolved_skill == null or (saved_name != "" and str(resolved_skill.get("name", "")) != saved_name)) and saved_name != "" and OD.Database != null:
+				resolved_skill = OD.Database.get_skill(saved_name)
+			if resolved_skill == null:
+				push_warning("Saved skill missing from active packs: " + saved_name + " (id=" + str(raw_id) + ")")
+				continue
+			var effective_id = int(resolved_skill.id)
+			if player.chosen_skills.has(effective_id):
+				continue
+			player.chosen_skills.append(effective_id)
+			player.skill_tiers_unlocked[effective_id] = 0
+			var target_tier = max(1, int(entry.get("tier", 1)))
+			for _step in range(target_tier):
+				player.unlock_next_skill_tier(effective_id, true)
+	else:
+		var saved_tiers = data.get("skill_tiers_unlocked", {})
+		for raw_id in data.get("chosen_skills", []):
+			var sid = int(raw_id)
+			if OD.Database != null and OD.Database.get_skill(sid) == null:
+				push_warning("Saved skill id missing from active packs: " + str(sid))
+				continue
+			if player.chosen_skills.has(sid):
+				continue
+			player.chosen_skills.append(sid)
+			player.skill_tiers_unlocked[sid] = 0
+			var target_tier = max(1, int(saved_tiers.get(str(sid), 1)))
+			for _step in range(target_tier):
+				player.unlock_next_skill_tier(sid, true)
 
 	var base_stats = data.get("base_primary_stats", {})
 	if typeof(base_stats) == TYPE_DICTIONARY:
@@ -220,6 +255,7 @@ static func save_run(dungeon, target_path = ""):
 		permadeath = bool(settings.get("permadeath", false)),
 		no_time_to_grind = bool(settings.get("no_time_to_grind", false)),
 		active_packs = settings.get("active_packs", []).duplicate(),
+		pack_manifest = _build_pack_manifest(settings.get("active_packs", [])),
 		rng_seed = rng_seed,
 		turn_count = int(turn_number),
 		monsters_killed = int(dungeon._monsters_killed),
@@ -251,6 +287,24 @@ static func save_run(dungeon, target_path = ""):
 	file.store_string(JSON.stringify(payload, "\t"))
 	file.close()
 	return { ok = true, path = save_path, payload = payload }
+
+static func _build_pack_manifest(active_pack_ids):
+	var manifest = []
+	if OD.Settings == null:
+		return manifest
+	var by_id = {}
+	for pack_info in OD.Settings.get_available_content_packs():
+		by_id[pack_info.id] = pack_info
+	for pack_id in active_pack_ids:
+		if by_id.has(pack_id):
+			var info = by_id[pack_id]
+			var meta = info.get("metadata", {})
+			manifest.append({
+				id = pack_id,
+				name = str(info.get("name", pack_id)),
+				revision = str(meta.get("revision", ""))
+			})
+	return manifest
 
 static func load_save_file(save_path):
 	if not FileAccess.file_exists(save_path):

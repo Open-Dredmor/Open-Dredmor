@@ -111,6 +111,101 @@ func dredmor_install_dir():
 			cached_install_dir = normalize_dir_path(directory)
 	return cached_install_dir
 
+func _parse_mod_manifest(mod_root, fallback_name):
+	var manifest = {
+		name = fallback_name,
+		author = "",
+		description = "",
+		revision = "",
+		require_expansion = []
+	}
+	var candidate_paths = [mod_root + "mod/mod.xml", mod_root + "mod.xml"]
+	var manifest_path = ""
+	for candidate in candidate_paths:
+		if FileAccess.file_exists(candidate):
+			manifest_path = candidate
+			break
+	if manifest_path == "":
+		return manifest
+	var file = FileAccess.open(manifest_path, FileAccess.READ)
+	if file == null:
+		return manifest
+	var xml_parser = XMLParser.new()
+	if xml_parser.open_buffer(file.get_as_text().to_utf8_buffer()) != OK:
+		return manifest
+	var current_tag = ""
+	while xml_parser.read() == OK:
+		var node_type = xml_parser.get_node_type()
+		if node_type == XMLParser.NODE_ELEMENT:
+			current_tag = xml_parser.get_node_name().to_lower()
+			if current_tag == "dredmormod" or current_tag == "mod":
+				for attr_index in range(xml_parser.get_attribute_count()):
+					var attr_name = xml_parser.get_attribute_name(attr_index).to_lower()
+					var attr_value = xml_parser.get_attribute_value(attr_index).strip_edges()
+					if attr_name == "name" and attr_value != "":
+						manifest.name = attr_value
+					elif attr_name == "revision" or attr_name == "version":
+						manifest.revision = attr_value
+			elif current_tag == "info":
+				for attr_index in range(xml_parser.get_attribute_count()):
+					var attr_name = xml_parser.get_attribute_name(attr_index).to_lower()
+					var attr_value = xml_parser.get_attribute_value(attr_index).strip_edges()
+					if attr_name == "totalconversion" or attr_name == "text":
+						continue
+			elif current_tag == "requireexpansion":
+				for attr_index in range(xml_parser.get_attribute_count()):
+					var attr_name = xml_parser.get_attribute_name(attr_index).to_lower()
+					if attr_name == "name" or attr_name == "id":
+						manifest.require_expansion.append(xml_parser.get_attribute_value(attr_index).strip_edges())
+		elif node_type == XMLParser.NODE_TEXT or node_type == XMLParser.NODE_CDATA:
+			var text_value = xml_parser.get_node_data().strip_edges()
+			if text_value == "":
+				continue
+			if current_tag == "name" or current_tag == "title":
+				manifest.name = text_value
+			elif current_tag == "author":
+				manifest.author = text_value
+			elif current_tag == "description":
+				manifest.description = text_value
+			elif current_tag == "revision" or current_tag == "version":
+				manifest.revision = text_value
+		elif node_type == XMLParser.NODE_ELEMENT_END:
+			current_tag = ""
+	return manifest
+
+func _scan_mods_directory(mods_root, relative_prefix_base, seen_ids, output_list):
+	if not DirAccess.dir_exists_absolute(mods_root):
+		return
+	var directory_access = DirAccess.open(mods_root)
+	if directory_access == null:
+		return
+	var entry_names = []
+	directory_access.list_dir_begin()
+	var entry = directory_access.get_next()
+	while entry != "":
+		if directory_access.current_is_dir() and not entry.begins_with("."):
+			entry_names.append(entry)
+		entry = directory_access.get_next()
+	directory_access.list_dir_end()
+	entry_names.sort()
+	for entry_name in entry_names:
+		var pack_id = "mod:" + entry_name
+		if seen_ids.has(pack_id):
+			continue
+		seen_ids[pack_id] = true
+		var root_dir = normalize_dir_path(mods_root + entry_name)
+		var data_subdir = "mod/" if DirAccess.dir_exists_absolute(root_dir + "mod") else ("game/" if DirAccess.dir_exists_absolute(root_dir + "game") else "")
+		var manifest = _parse_mod_manifest(root_dir, entry_name)
+		output_list.append({
+			id = pack_id,
+			name = manifest.name,
+			prefix = relative_prefix_base + entry_name + "/",
+			root_dir = root_dir,
+			data_subdir = data_subdir,
+			kind = "mod",
+			metadata = manifest
+		})
+
 func get_available_content_packs():
 	if _cached_content_packs != null:
 		return _cached_content_packs
@@ -119,33 +214,31 @@ func get_available_content_packs():
 	if install_directory == null or install_directory == "":
 		return _cached_content_packs
 	for expansion_id in EXPANSION_INFO.keys():
-		if DirAccess.dir_exists_absolute(install_directory + expansion_id + "/game"):
+		var root_dir = install_directory + expansion_id + "/"
+		if DirAccess.dir_exists_absolute(root_dir + "game"):
 			_cached_content_packs.append({
 				id = expansion_id,
 				name = EXPANSION_INFO[expansion_id],
 				prefix = expansion_id + "/",
+				root_dir = root_dir,
 				data_subdir = "game/",
-				kind = "expansion"
+				kind = "expansion",
+				metadata = {
+					name = EXPANSION_INFO[expansion_id],
+					author = "Gaslamp Games",
+					description = "",
+					revision = "",
+					require_expansion = []
+				}
 			})
-	var mods_root = install_directory + "mods/"
-	if DirAccess.dir_exists_absolute(mods_root):
-		var directory_access = DirAccess.open(mods_root)
-		if directory_access != null:
-			directory_access.list_dir_begin()
-			var entry = directory_access.get_next()
-			while entry != "":
-				if directory_access.current_is_dir() and not entry.begins_with("."):
-					var prefix = "mods/" + entry + "/"
-					var data_subdir = "mod/" if DirAccess.dir_exists_absolute(install_directory + prefix + "mod") else "game/"
-					_cached_content_packs.append({
-						id = "mod:" + entry,
-						name = entry,
-						prefix = prefix,
-						data_subdir = data_subdir,
-						kind = "mod"
-					})
-				entry = directory_access.get_next()
-			directory_access.list_dir_end()
+	var seen_mod_ids = {}
+	_scan_mods_directory(install_directory + "mods/", "mods/", seen_mod_ids, _cached_content_packs)
+	var user_mods_dir = normalize_dir_path(ProjectSettings.globalize_path("user://mods/"))
+	_scan_mods_directory(user_mods_dir, "", seen_mod_ids, _cached_content_packs)
+	var home_dir = OS.get_environment("HOME")
+	if home_dir != "":
+		var gaslamp_mods = normalize_dir_path(home_dir) + ".local/share/Gaslamp Games/Dungeons of Dredmor/mods/"
+		_scan_mods_directory(gaslamp_mods, "", seen_mod_ids, _cached_content_packs)
 	return _cached_content_packs
 	
 func audio_enabled():

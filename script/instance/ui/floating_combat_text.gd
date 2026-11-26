@@ -49,15 +49,12 @@ static func spawn_text(host_node, layer_node, grid_position, text, color, scale_
 	label.scale = Vector2(1.18, 1.18)
 	layer_node.add_child(label)
 
-	var tween = host_node.create_tween()
+	var tween = label.create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(label, "scale", Vector2.ONE, 0.14)
 	tween.tween_property(label, "position:y", label.position.y - 26.0, 0.85)
 	tween.tween_property(label, "modulate:a", 0.0, 0.85).set_delay(0.15)
-	tween.chain().tween_callback(func():
-		if is_instance_valid(label):
-			label.queue_free()
-	)
+	tween.chain().tween_callback(label.queue_free)
 
 static func spawn_badge(host_node, layer_node, grid_position, badge_key):
 	if host_node == null or layer_node == null:
@@ -79,13 +76,10 @@ static func spawn_badge(host_node, layer_node, grid_position, badge_key):
 	badge_rect.scale = Vector2(1.22, 1.22)
 	layer_node.add_child(badge_rect)
 
-	var tween = host_node.create_tween()
+	var tween = badge_rect.create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(badge_rect, "scale", Vector2.ONE, 0.14)
 	tween.tween_property(badge_rect, "position:y", badge_rect.position.y - 22.0, 0.85)
 	tween.tween_property(badge_rect, "modulate:a", 0.0, 0.85).set_delay(0.18)
-	tween.chain().tween_callback(func():
-		if is_instance_valid(badge_rect):
-			badge_rect.queue_free()
-	)
+	tween.chain().tween_callback(badge_rect.queue_free)
 	return true

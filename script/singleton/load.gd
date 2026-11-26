@@ -7,6 +7,8 @@ var _resolve_cache = {}
 var _directory_entries_cache = {}
 var _exists_cache = {}
 var _animation_frames_cache = {}
+var _fallback_image_texture = null
+var diagnostics = []
 
 func clear_cache():
 	cache = {}
@@ -14,6 +16,35 @@ func clear_cache():
 	_directory_entries_cache = {}
 	_exists_cache = {}
 	_animation_frames_cache = {}
+
+func get_diagnostics():
+	return diagnostics
+
+func clear_diagnostics():
+	diagnostics.clear()
+
+func _get_fallback_texture():
+	if _fallback_image_texture != null:
+		return _fallback_image_texture
+	var image_data = Image.create(32, 32, false, Image.FORMAT_RGBA8)
+	for row_index in range(32):
+		for column_index in range(32):
+			var is_magenta = ((row_index / 8) + (column_index / 8)) % 2 == 0
+			image_data.set_pixel(column_index, row_index, Color(0.9, 0.1, 0.9, 1.0) if is_magenta else Color(0.1, 0.1, 0.1, 1.0))
+	_fallback_image_texture = ImageTexture.create_from_image(image_data)
+	return _fallback_image_texture
+
+func _get_active_pack_roots(install_directory):
+	var roots = []
+	if OD.Database == null:
+		return roots
+	if OD.Database.has_method("get_active_pack_roots"):
+		for root_dir in OD.Database.get_active_pack_roots():
+			roots.append(root_dir)
+		return roots
+	for pack_prefix in OD.Database.get_active_pack_prefixes():
+		roots.append(install_directory + pack_prefix)
+	return roots
 
 func exists(relative_path, internal=false):
 	var cache_key = ("res://" if internal else "") + str(relative_path)
@@ -68,24 +99,29 @@ func resolve(relative_path, internal = false):
 	if _resolve_cache.has(relative_path):
 		return _resolve_cache[relative_path]
 	var install_directory = OD.Settings.dredmor_install_dir()
+	if install_directory == null:
+		install_directory = ""
+	var pack_roots = _get_active_pack_roots(install_directory)
+	for reverse_index in range(pack_roots.size() - 1, -1, -1):
+		var pack_root = pack_roots[reverse_index]
+		var pack_path = pack_root + relative_path
+		if FileAccess.file_exists(pack_path):
+			_resolve_cache[relative_path] = pack_path
+			return pack_path
 	var direct_path = install_directory + relative_path
 	if FileAccess.file_exists(direct_path):
 		_resolve_cache[relative_path] = direct_path
 		return direct_path
-	for pack_prefix in OD.Database.get_active_pack_prefixes():
-		var pack_path = install_directory + pack_prefix + relative_path
-		if FileAccess.file_exists(pack_path):
-			_resolve_cache[relative_path] = pack_path
-			return pack_path
+	for reverse_index in range(pack_roots.size() - 1, -1, -1):
+		var pack_root = pack_roots[reverse_index]
+		var ci_pack = _resolve_case_insensitive(pack_root, relative_path)
+		if ci_pack != null:
+			_resolve_cache[relative_path] = ci_pack
+			return ci_pack
 	var ci_direct = _resolve_case_insensitive(install_directory, relative_path)
 	if ci_direct != null:
 		_resolve_cache[relative_path] = ci_direct
 		return ci_direct
-	for pack_prefix in OD.Database.get_active_pack_prefixes():
-		var ci_pack = _resolve_case_insensitive(install_directory + pack_prefix, relative_path)
-		if ci_pack != null:
-			_resolve_cache[relative_path] = ci_pack
-			return ci_pack
 	if OD.AssetCache != null and OD.AssetCache.has_cached_file(relative_path):
 		var cached_path = OD.AssetCache.resolve_cached_path(relative_path)
 		_resolve_cache[relative_path] = cached_path
@@ -111,11 +147,17 @@ func image(relative_path, internal=false):
 			var raw_texture = ImageTexture.create_from_image(raw_img)
 			cache[relative_path] = raw_texture
 			return raw_texture
-		return null
+		_handle_err(absolute_path, ERR_FILE_NOT_FOUND)
+		return _get_fallback_texture()
 	else:
 		var img = Image.new()	
 		var absolute_path = resolve(relative_path)
-		_handle_err(absolute_path, img.load(absolute_path))
+		var load_err = img.load(absolute_path)
+		if load_err != OK:
+			_handle_err(absolute_path, load_err)
+			var fallback_texture = _get_fallback_texture()
+			cache[relative_path] = fallback_texture
+			return fallback_texture
 		var texture = ImageTexture.create_from_image(img)
 		cache[relative_path] = texture
 		return texture
@@ -124,9 +166,13 @@ func audio(relative_path):
 	if cache.has(relative_path):
 		return cache[relative_path]
 	var absolute_path = resolve(relative_path)
+	if not FileAccess.file_exists(absolute_path):
+		_handle_err(absolute_path, ERR_FILE_NOT_FOUND)
+		return null
 	var stream = AudioStreamOggVorbis.load_from_file(absolute_path)
 	if stream == null:
 		_handle_err(absolute_path, ERR_CANT_OPEN)
+		return null
 	stream.loop = true
 	cache[relative_path] = stream
 	return stream
@@ -160,8 +206,12 @@ func sfx(relative_path):
 func xml(relative_path):	
 	var absolute_path = resolve(relative_path)
 	var file = FileAccess.open(absolute_path, FileAccess.READ)
-	_handle_err(absolute_path, FileAccess.get_open_error() if file == null else OK)
-	var xml_content = file.get_as_text()
+	if file == null:
+		_handle_err(absolute_path, FileAccess.get_open_error())
+		return {}
+	return parse_xml_text(file.get_as_text(), absolute_path)
+
+func parse_xml_text(xml_content, source_label = ""):
 	# Strip out all comments, otherwise godot can crash without any error
 	# https://github.com/godotengine/godot/issues/40415
 	var reg_ex = RegEx.new()
@@ -169,11 +219,18 @@ func xml(relative_path):
 	reg_ex.compile(expression)
 	xml_content = reg_ex.sub(xml_content, "", true)
 	var xml_parser = XMLParser.new()
-	xml_parser.open_buffer(xml_content.to_utf8_buffer())
+	var open_err = xml_parser.open_buffer(xml_content.to_utf8_buffer())
+	if open_err != OK:
+		_handle_err(source_label, open_err)
+		return {}
 	var result = {}
 	var element_stack = []
 	var reading = true
-	var err = null
+	var err = xml_parser.read()
+	if err != OK:
+		if err != ERR_FILE_EOF:
+			_handle_err(source_label, err)
+		return result
 	while reading:
 		var node_type = xml_parser.get_node_type()
 		match node_type:
@@ -218,7 +275,10 @@ func font(relative_path):
 		return cache[relative_path]
 	var font_file = FontFile.new()
 	var absolute_path = resolve(relative_path)
-	_handle_err(absolute_path, font_file.load_dynamic_font(absolute_path))
+	var load_err = font_file.load_dynamic_font(absolute_path)
+	if load_err != OK:
+		_handle_err(absolute_path, load_err)
+		return SystemFont.new()
 	cache[relative_path] = font_file
 	return font_file
 
@@ -269,8 +329,7 @@ func animation(relative_path, palette_path = null):
 		"png":
 			frame_list = [{ texture = image(relative_path), delay_milliseconds = 0 }]
 		_:
-			print("No handler for animation " + relative_path)
-			OD.Scenes.quit()
+			_handle_err(relative_path, ERR_UNAVAILABLE)
 			return null
 	if frame_list == null:
 		return null
@@ -296,7 +355,9 @@ func sprite_palette(relative_path):
 		return cache[relative_path]
 	var absolute_path = resolve(relative_path)
 	var file = FileAccess.open(absolute_path, FileAccess.READ)
-	_handle_err(absolute_path, FileAccess.get_open_error() if file == null else OK)
+	if file == null:
+		_handle_err(absolute_path, FileAccess.get_open_error())
+		return {}
 	var color_table_bytes = file.get_buffer(256 * 3)
 	var color_table = _parse_color_table(color_table_bytes)
 	cache[relative_path] = color_table
@@ -339,8 +400,8 @@ func _pro_motion_sprite_frames(relative_path, palette_path = null):
 		var color_table = frame.color_table
 		var image_data = frame.image_data
 		for jj in range(pixel_count):
-			var color_index = image_data[jj]
-			var rgb = color_table[color_index]
+			var color_index = image_data[jj] if jj < image_data.size() else 0
+			var rgb = color_table.get(color_index, [0, 0, 0])
 			var out_index = jj * 4
 			pixels[out_index] = rgb[0]
 			pixels[out_index + 1] = rgb[1]
@@ -377,5 +438,6 @@ func _xml_sprite_frames(relative_path):
 	
 func _handle_err(resource_path, err):
 	if err != OK:
-		print("An error occurred while loading [" + resource_path + "]. Error code "+str(err))
-		OD.Scenes.quit()
+		var message = "An error occurred while loading [" + str(resource_path) + "]. Error code " + str(err)
+		diagnostics.append(message)
+		push_warning(message)

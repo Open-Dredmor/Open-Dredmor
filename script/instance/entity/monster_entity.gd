@@ -201,6 +201,16 @@ func _show_sprite(sprite_dict, direction_key, kind_key = "idle"):
 	_active_sprite = target
 	_active_sprite.visible = true
 
+func _schedule_return_to_idle(duration_seconds):
+	if not is_inside_tree():
+		return
+	var idle_tween = create_tween()
+	idle_tween.tween_interval(duration_seconds)
+	idle_tween.tween_callback(_on_return_to_idle_timeout)
+
+func _on_return_to_idle_timeout():
+	_show_sprite(_idle_sprites, _facing_direction, "idle")
+
 func play_hit_animation():
 	modulate = Color(1.4, 0.45, 0.45, 1.0)
 	var flash_tween = create_tween()
@@ -208,23 +218,13 @@ func play_hit_animation():
 	if _sprite_defs.get("hit", null) == null:
 		return
 	_show_sprite(_hit_sprites, _facing_direction, "hit")
-	var timer = get_tree().create_timer(0.18) if is_inside_tree() else null
-	if timer != null:
-		timer.timeout.connect(func():
-			if is_instance_valid(self):
-				_show_sprite(_idle_sprites, _facing_direction, "idle")
-		)
+	_schedule_return_to_idle(0.18)
 
 func play_attack_animation():
 	if _sprite_defs.get("attack", null) == null:
 		return
 	_show_sprite(_attack_sprites, _facing_direction, "attack")
-	var timer = get_tree().create_timer(0.22) if is_inside_tree() else null
-	if timer != null:
-		timer.timeout.connect(func():
-			if is_instance_valid(self):
-				_show_sprite(_idle_sprites, _facing_direction, "idle")
-		)
+	_schedule_return_to_idle(0.22)
 
 func play_sfx(kind):
 	if sfx_map.has(kind) and OD.Audio != null:
@@ -241,12 +241,7 @@ func play_cast_animation():
 		play_attack_animation()
 		return
 	_show_sprite(_cast_sprites, _facing_direction, "cast")
-	var timer = get_tree().create_timer(0.24) if is_inside_tree() else null
-	if timer != null:
-		timer.timeout.connect(func():
-			if is_instance_valid(self):
-				_show_sprite(_idle_sprites, _facing_direction, "idle")
-		)
+	_schedule_return_to_idle(0.24)
 
 func play_die_animation_at(entity_grid, cell):
 	if _die_sprite_path == "" or entity_grid == null or OD.Load == null:
@@ -254,14 +249,11 @@ func play_die_animation_at(entity_grid, cell):
 	var die_animation = OD.Load.animation(_die_sprite_path, _palette_path)
 	if die_animation == null:
 		return
-	var px = OD.Math.grid_to_pixel(cell.x, cell.y)
-	entity_grid.add_animation(px.x, px.y, "floating_text", die_animation)
-	var timer = entity_grid.get_tree().create_timer(0.45) if entity_grid.is_inside_tree() else null
-	if timer != null:
-		timer.timeout.connect(func():
-			if is_instance_valid(die_animation):
-				die_animation.queue_free()
-		)
+	var pixel_position = OD.Math.grid_to_pixel(cell.x, cell.y)
+	entity_grid.add_animation(pixel_position.x, pixel_position.y, "floating_text", die_animation)
+	var die_tween = die_animation.create_tween()
+	die_tween.tween_interval(0.45)
+	die_tween.tween_callback(die_animation.queue_free)
 
 func roll_drops():
 	var rolled = []

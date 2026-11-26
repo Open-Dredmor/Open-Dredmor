@@ -2,13 +2,59 @@ extends RefCounted
 
 class_name SpellEngine
 
-const CombatResolverScript = preload("res://script/instance/combat/combat_resolver.gd")
+const EffectHandlers = preload("res://script/instance/combat/spell_effect_handlers.gd")
 
 const MAX_TRIGGER_DEPTH = 6
 
 const TARGETLESS_TYPES = {
 	"self": true
 }
+
+static var _custom_effect_handlers = {}
+static var _custom_shape_handlers = {}
+static var _warned_unknown_effects = {}
+
+static func register_effect_handler(effect_type, handler):
+	_custom_effect_handlers[str(effect_type).to_lower()] = handler
+
+static func register_target_shape(shape_name, handler):
+	_custom_shape_handlers[str(shape_name).to_lower()] = handler
+
+static func _default_effect_handlers():
+	return {
+		"damage": EffectHandlers.handle_damage,
+		"heal": EffectHandlers.handle_heal,
+		"spellpoints": EffectHandlers.handle_spellpoints,
+		"drain": EffectHandlers.handle_drain,
+		"drainmana": EffectHandlers.handle_drain_mana,
+		"draincastermana": EffectHandlers.handle_drain_mana,
+		"dot": EffectHandlers.handle_dot,
+		"trigger": EffectHandlers.handle_trigger,
+		"triggerfromlist": EffectHandlers.handle_trigger_from_list,
+		"knock": EffectHandlers.handle_knock_or_suction,
+		"suction": EffectHandlers.handle_knock_or_suction,
+		"dig": EffectHandlers.handle_dig,
+		"teleport": EffectHandlers.handle_teleport,
+		"blink": EffectHandlers.handle_teleport,
+		"targetblink": EffectHandlers.handle_teleport,
+		"summon": EffectHandlers.handle_summon,
+		"summonhostile": EffectHandlers.handle_summon,
+		"transformmonster": EffectHandlers.handle_transform_monster,
+		"paralyze": EffectHandlers.handle_status_flag,
+		"confuse": EffectHandlers.handle_status_flag,
+		"sleep": EffectHandlers.handle_status_flag,
+		"charm": EffectHandlers.handle_status_flag,
+		"fear": EffectHandlers.handle_status_flag,
+		"pacify": EffectHandlers.handle_status_flag,
+		"lockdown": EffectHandlers.handle_status_flag,
+		"bleed": EffectHandlers.handle_status_flag,
+		"corrupt": EffectHandlers.handle_status_flag,
+		"oil": EffectHandlers.handle_status_flag,
+		"removebuffbyname": EffectHandlers.handle_remove_buff_by_name,
+		"grantxp": EffectHandlers.handle_grant_xp,
+		"drunkenness": EffectHandlers.handle_drunkenness,
+		"consumebooze": EffectHandlers.handle_noop
+	}
 
 static func compute_mana_cost(caster, spell_definition):
 	if spell_definition == null:
@@ -22,7 +68,7 @@ static func compute_mana_cost(caster, spell_definition):
 	var savvy = 10
 	if caster != null and caster.has_method("get_primary_stat"):
 		savvy = int(caster.get_primary_stat("savvy"))
-	var savvy_bonus = float(req.get("savvyBonus", req.get("savvybonus", 0.0)))
+	var savvy_bonus = float(req.get("savvybonus", req.get("savvyBonus", 0.0)))
 	var min_cost = int(req.get("mincost", 1))
 	var reduced = int(round(float(base_mp) - float(savvy) * savvy_bonus))
 	return max(0, max(min_cost, reduced))
@@ -132,6 +178,9 @@ static func resolve_target_cells(spell_definition, caster_position, target_posit
 	var raw = spell_definition.get("raw", {})
 	var raw_dict = raw if typeof(raw) == TYPE_DICTIONARY else {}
 
+	if _custom_shape_handlers.has(stype):
+		return _custom_shape_handlers[stype].call(spell_definition, origin, target, entity_grid)
+
 	if stype == "self":
 		return [origin]
 
@@ -178,9 +227,11 @@ static func resolve_target_cells(spell_definition, caster_position, target_posit
 			elif delta.y < 0:
 				cardinal = Vector2i(0, -1)
 		var out = []
-		if tmpl.affects_player and anchored:
+		var affects_caster = bool(tmpl.get("affectscaster", tmpl.get("affects_player", false)))
+		var offsets = tmpl.get("offsets", tmpl.get("affected_offsets", []))
+		if affects_caster and anchored:
 			out.append(anchor_position)
-		for offset in tmpl.affected_offsets:
+		for offset in offsets:
 			var rotation_off = _rotate_offset(offset, cardinal) if anchored else offset
 			out.append(anchor_position + rotation_off)
 		if out.is_empty():
@@ -293,301 +344,23 @@ static func execute_spell(spell_name, caster, target_position, context = {}, tri
 		effects_applied = effects_applied
 	}
 
-static func _get_target_actor_at(cell, entity_grid, caster, affects_caster = false, self_only = false):
-	if self_only:
-		return caster
-	if entity_grid == null:
-		return caster if affects_caster else null
-	var enemy = entity_grid.get_enemy_at(cell.x, cell.y)
-	if enemy != null:
-		return enemy
-	var actor = entity_grid.get_actor_at(cell.x, cell.y)
-	if actor != null:
-		if actor == caster and not affects_caster:
-			return null
-		return actor
-	if affects_caster and caster != null and caster.has_method("get_grid_position"):
-		var cpos = caster.get_grid_position()
-		if cpos != null and Vector2i(int(cpos.x), int(cpos.y)) == cell:
-			return caster
-	return null
-
 static func _apply_spell_buff(spell_definition, caster, cell, entity_grid):
 	var buff_definition = spell_definition.get("buff", null)
 	if buff_definition == null or typeof(buff_definition) != TYPE_DICTIONARY:
 		return
 	var buff_self = int(buff_definition.get("self", 0)) == 1 or str(spell_definition.get("type", "")).to_lower() == "self"
-	var target = caster if buff_self else _get_target_actor_at(cell, entity_grid, caster, true, false)
+	var target = caster if buff_self else EffectHandlers.get_target_actor_at(cell, entity_grid, caster, true, false)
 	if target != null and target.has_method("apply_buff"):
 		target.apply_buff(buff_definition, spell_definition.name)
 
-static func _get_magic_power(caster):
-	if caster != null and caster.has_method("get_secondary_stat"):
-		return int(caster.get_secondary_stat("magic_power"))
-	return 0
-
 static func _apply_effect(effect, spell_definition, caster, caster_position, cell, context, trigger_depth):
-	var etype = str(effect.get("type", "")).to_lower()
-	var entity_grid = context.get("entity_grid", null)
-	var dungeon = context.get("dungeon", null)
-	var self_only = int(effect.get("self", 0)) == 1
-	var affects_caster = int(effect.get("affectsCaster", effect.get("affectscaster", 0))) == 1
-	var magic_power = _get_magic_power(caster)
-
-	match etype:
-		"damage":
-			var target = _get_target_actor_at(cell, entity_grid, caster, affects_caster, self_only)
-			if target == null:
-				return ""
-			var dmg_map = {}
-			var primary_type = "aethereal"
-			var max_type_value = -1
-			for damage_type in CombatResolverScript.ALL_DAMAGE_TYPES:
-				var base_value = int(effect.get(damage_type, 0))
-				var scale_f = float(effect.get(damage_type + "F", 0.0))
-				var total_value = base_value + int(round(scale_f * float(magic_power)))
-				if total_value > 0:
-					dmg_map[damage_type] = total_value
-					if total_value > max_type_value:
-						max_type_value = total_value
-						primary_type = damage_type
-			if effect.has("percent") and target.get("max_hp") != null:
-				var percent_damage = int(round(float(target.max_hp) * float(effect.percent) / 100.0))
-				if percent_damage > 0:
-					dmg_map[primary_type] = int(dmg_map.get(primary_type, 0)) + percent_damage
-			var result = CombatResolverScript.resolve_attack(caster, target, {
-				kind = "spell",
-				damage_map = dmg_map,
-				primary_damage_type = primary_type,
-				magic_scale = float(effect.get("secondaryScale", 0.0)),
-				force_hit = true
-			})
-			if result.total_damage > 0 and target.get("hp") != null:
-				if target.has_method("modify_hp"):
-					target.modify_hp(-result.total_damage, spell_definition.name)
-				else:
-					target.hp = max(0, int(target.hp) - result.total_damage)
-				if target.has_method("refresh_health_bar"):
-					target.refresh_health_bar()
-				if target.has_method("play_hit_animation"):
-					target.play_hit_animation()
-				if dungeon != null and dungeon.has_method("_spawn_floating_text"):
-					dungeon._spawn_floating_text(cell, "-" + str(result.total_damage), Color(0.55, 0.85, 1.0))
-				if target != caster and int(target.hp) <= 0 and dungeon != null and dungeon.has_method("_handle_enemy_death"):
-					dungeon._handle_enemy_death(target, cell)
-			elif result.total_damage <= 0 and dungeon != null and dungeon.has_method("spawn_floating_badge"):
-				dungeon.spawn_floating_badge(cell, "resist", "Resisted!")
-			return "damage"
-
-		"heal":
-			var target = _get_target_actor_at(cell, entity_grid, caster, true, self_only or str(spell_definition.get("type", "")).to_lower() == "self")
-			if target == null:
-				return ""
-			var heal_amount = int(effect.get("amount", 0)) + int(round(float(effect.get("amountF", 0.0)) * float(magic_power)))
-			if heal_amount > 0:
-				if target.has_method("modify_hp"):
-					target.modify_hp(heal_amount)
-				elif target.get("hp") != null and target.get("max_hp") != null:
-					target.hp = min(int(target.max_hp), int(target.hp) + heal_amount)
-				if dungeon != null and dungeon.has_method("_spawn_floating_text"):
-					dungeon._spawn_floating_text(cell, "+" + str(heal_amount) + " HP", Color(0.4, 0.95, 0.45))
-			return "heal"
-
-		"spellpoints":
-			var target = _get_target_actor_at(cell, entity_grid, caster, true, true)
-			if target == null:
-				return ""
-			var mp_amount = int(effect.get("amount", 0)) + int(round(float(effect.get("amountF", 0.0)) * float(magic_power)))
-			if effect.has("percent") and target.get("max_mp") != null:
-				mp_amount += int(round(float(target.max_mp) * float(effect.percent) / 100.0))
-			if mp_amount != 0 and target.has_method("modify_mp"):
-				target.modify_mp(mp_amount)
-				if mp_amount > 0 and dungeon != null and dungeon.has_method("_spawn_floating_text"):
-					dungeon._spawn_floating_text(cell, "+" + str(mp_amount) + " MP", Color(0.45, 0.78, 1.0))
-			return "spellpoints"
-
-		"drain":
-			var target = _get_target_actor_at(cell, entity_grid, caster, false, false)
-			if target == null:
-				return ""
-			var dmg_map = {}
-			for damage_type in CombatResolverScript.ALL_DAMAGE_TYPES:
-				var base_value = int(effect.get(damage_type, 0))
-				var scale_f = float(effect.get(damage_type + "F", 0.0))
-				var total_value = base_value + int(round(scale_f * float(magic_power)))
-				if total_value > 0:
-					dmg_map[damage_type] = total_value
-			var result = CombatResolverScript.resolve_attack(caster, target, {
-				kind = "spell",
-				damage_map = dmg_map,
-				primary_damage_type = "necromantic",
-				force_hit = true
-			})
-			if result.total_damage > 0:
-				if target.has_method("modify_hp"):
-					target.modify_hp(-result.total_damage)
-				elif target.get("hp") != null:
-					target.hp = max(0, int(target.hp) - result.total_damage)
-				if caster != null and caster.has_method("modify_hp"):
-					caster.modify_hp(max(1, result.total_damage / 2))
-				if target != caster and int(target.hp) <= 0 and dungeon != null and dungeon.has_method("_handle_enemy_death"):
-					dungeon._handle_enemy_death(target, cell)
-			return "drain"
-
-		"drainmana", "draincastermana":
-			var target = caster if etype == "draincastermana" else _get_target_actor_at(cell, entity_grid, caster, affects_caster, self_only)
-			if target != null and target.has_method("modify_mp"):
-				target.modify_mp(-int(effect.get("amount", 0)))
-			return etype
-
-		"dot":
-			var target = _get_target_actor_at(cell, entity_grid, caster, affects_caster, self_only)
-			var dot_spell = str(effect.get("spell", ""))
-			var turns = max(1, int(effect.get("amount", 1)))
-			if target != null and dot_spell != "" and target.has_method("apply_dot"):
-				var bound_context = context.duplicate()
-				bound_context["free_cast"] = true
-				target.apply_dot({
-					spell = dot_spell,
-					remaining_turns = turns,
-					caster = caster,
-					on_tick = func(ticked_actor, _dot_entry):
-						var position_now = ticked_actor.get_grid_position() if ticked_actor != null and is_instance_valid(ticked_actor) and ticked_actor.has_method("get_grid_position") else cell
-						var c_now = Vector2i(int(position_now.x), int(position_now.y)) if position_now != null else cell
-						execute_spell(dot_spell, caster, c_now, bound_context, trigger_depth + 1)
-				})
-			return "dot"
-
-		"trigger":
-			var chance = int(effect.get("percent", effect.get("percentage", 100)))
-			if chance < 100 and (randi() % 100) >= chance:
-				return ""
-			var req_buff = str(effect.get("requirebuffontriggername", ""))
-			if int(effect.get("requirebuffontrigger", 0)) == 1 and req_buff != "":
-				var check_actor = _get_target_actor_at(cell, entity_grid, caster, true, false)
-				if check_actor == null or not check_actor.has_method("has_buff") or not check_actor.has_buff(req_buff):
-					return ""
-			var not_buff = str(effect.get("requirebuffonnottriggername", ""))
-			if int(effect.get("requirebuffonnottrigger", 0)) == 1 and not_buff != "":
-				var check_actor2 = _get_target_actor_at(cell, entity_grid, caster, true, false)
-				if check_actor2 != null and check_actor2.has_method("has_buff") and check_actor2.has_buff(not_buff):
-					return ""
-			var child_spell = str(effect.get("spell", ""))
-			if child_spell != "":
-				var trig_ctx = context.duplicate()
-				trig_ctx["free_cast"] = true
-				execute_spell(child_spell, caster, cell, trig_ctx, trigger_depth + 1)
-			return "trigger"
-
-		"triggerfromlist":
-			var sub_spells = OD.DataStructure.arrayify(effect.get("spell", [])) if OD.DataStructure != null else []
-			if not sub_spells.is_empty():
-				var picked = sub_spells[randi() % sub_spells.size()]
-				var picked_name = str(picked.get("name", picked)) if typeof(picked) == TYPE_DICTIONARY else str(picked)
-				if picked_name != "":
-					var trig_ctx = context.duplicate()
-					trig_ctx["free_cast"] = true
-					execute_spell(picked_name, caster, cell, trig_ctx, trigger_depth + 1)
-			return "triggerfromlist"
-
-		"knock", "suction":
-			var target = _get_target_actor_at(cell, entity_grid, caster, affects_caster, self_only)
-			if target == null or entity_grid == null:
-				return ""
-			var steps = max(1, int(effect.get("amount", 1)))
-			var delta = cell - caster_position
-			if etype == "suction":
-				delta = caster_position - cell
-			var step_direction = Vector2i(signi(delta.x), signi(delta.y))
-			if step_direction == Vector2i.ZERO:
-				return ""
-			var current = cell
-			for _step in range(steps):
-				var next = current + step_direction
-				if entity_grid.is_walkable(next.x, next.y):
-					entity_grid.move_actor_to(target, next.x, next.y)
-					current = next
-				else:
-					break
-			return etype
-
-		"dig":
-			if entity_grid != null and entity_grid.is_wall(cell.x, cell.y):
-				entity_grid.dig_wall(cell.x, cell.y)
-				if dungeon != null and dungeon.has_method("update_fov"):
-					dungeon.update_fov()
-			return "dig"
-
-		"teleport", "blink", "targetblink":
-			if entity_grid == null or caster == null:
-				return ""
-			var destination = cell
-			if etype == "teleport":
-				destination = entity_grid.get_random_walkable_cell()
-			if destination != null and entity_grid.is_walkable(destination.x, destination.y):
-				entity_grid.move_actor_to(caster, destination.x, destination.y)
-				if dungeon != null and dungeon.has_method("update_fov"):
-					dungeon.update_fov()
-			return etype
-
-		"summon", "summonhostile":
-			if entity_grid == null:
-				return ""
-			var mon_type = str(effect.get("monsterType", "Diggle"))
-			var hostile = etype == "summonhostile"
-			entity_grid.spawn_monster_at(mon_type, cell.x, cell.y, -1, hostile)
-			return etype
-
-		"transformmonster":
-			if entity_grid == null or OD.Database == null:
-				return ""
-			var target = entity_grid.get_enemy_at(cell.x, cell.y)
-			if target == null:
-				return ""
-			var new_name = "Diggle"
-			if OD.Database.has_method("get_random_monster"):
-				for _try in range(10):
-					var picked = OD.Database.get_random_monster()
-					if typeof(picked) == TYPE_DICTIONARY and picked.has("name"):
-						var candidate_name = str(picked.name)
-						if candidate_name != str(target.get("monster_name")) and OD.Database.get_monster(candidate_name) != null:
-							new_name = candidate_name
-							break
-			entity_grid.replace_monster_at(target, new_name)
-			return "transformmonster"
-
-		"paralyze", "confuse", "sleep", "charm", "fear", "pacify", "lockdown", "bleed", "corrupt", "oil":
-			var target = _get_target_actor_at(cell, entity_grid, caster, affects_caster, self_only)
-			if target != null and target.has_method("set_status_flag"):
-				var turns = max(1, int(effect.get("turns", effect.get("amount", 2))))
-				target.set_status_flag(etype, turns)
-				if etype == "charm" and target.get("is_hostile") != null:
-					target.is_hostile = false
-			return etype
-
-		"removebuffbyname":
-			var target = _get_target_actor_at(cell, entity_grid, caster, true, self_only)
-			if target != null and target.has_method("remove_buff_by_name"):
-				target.remove_buff_by_name(str(effect.get("name", "")))
-			return "removebuffbyname"
-
-		"grantxp":
-			var xp_amount = int(effect.get("amount", 0))
-			if xp_amount > 0 and dungeon != null and dungeon.has_method("award_xp"):
-				dungeon.award_xp(xp_amount, cell)
-			elif xp_amount > 0 and caster != null and caster.has_method("add_xp"):
-				caster.add_xp(xp_amount)
-			return "grantxp"
-
-		"drunkenness":
-			var target = _get_target_actor_at(cell, entity_grid, caster, true, true)
-			var turns = max(2, int(effect.get("amount", 4)))
-			if target != null and target.has_method("apply_tipsy_buff"):
-				target.apply_tipsy_buff(1, turns)
-			return "drunkenness"
-
-		"consumebooze":
-			return "consumebooze"
-
-		_:
-			return etype
+	var effect_type = str(effect.get("type", "")).to_lower()
+	if _custom_effect_handlers.has(effect_type):
+		return _custom_effect_handlers[effect_type].call(effect, spell_definition, caster, caster_position, cell, context, trigger_depth, execute_spell)
+	var defaults = _default_effect_handlers()
+	if defaults.has(effect_type):
+		return defaults[effect_type].call(effect, spell_definition, caster, caster_position, cell, context, trigger_depth, execute_spell)
+	if effect_type != "" and not _warned_unknown_effects.has(effect_type):
+		_warned_unknown_effects[effect_type] = true
+		push_warning("Unsupported spell effect type [" + effect_type + "] in spell [" + str(spell_definition.get("name", "")) + "]")
+	return effect_type

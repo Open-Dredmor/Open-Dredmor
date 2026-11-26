@@ -12,4 +12,5 @@ A full installation of Dungeons of Dredmor is required. Open Dredmor is an engin
 
 ## I Want to Know More
 
-Check out the [WIKI](https://github.com/Open-Dredmor/Open-Dredmor/wiki).
+- Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for an overview of the engine architecture, mod loading, and subsystem layout.
+- Check out the [WIKI](https://github.com/Open-Dredmor/Open-Dredmor/wiki).

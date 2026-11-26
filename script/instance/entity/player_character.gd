@@ -2,6 +2,10 @@ extends "res://script/instance/entity/entity.gd"
 
 class_name PlayerCharacter
 
+const StatBlock = preload("res://script/instance/entity/player/stat_block.gd")
+const BuffManager = preload("res://script/instance/entity/player/buff_manager.gd")
+const CharacterAnimator = preload("res://script/instance/entity/player/character_animator.gd")
+
 signal stats_changed
 signal hp_changed(current_hp, max_hp)
 signal mp_changed(current_mp, max_mp)
@@ -167,99 +171,10 @@ var active_quests = []
 var completed_quests = []
 
 func _init_stat_tables():
-	base_primary_stats.clear()
-	bonus_primary_stats.clear()
-	primary_stats.clear()
-	for stat_key in PRIMARY_STAT_KEYS:
-		base_primary_stats[stat_key] = 10
-		bonus_primary_stats[stat_key] = 0
-		primary_stats[stat_key] = 10
-
-	bonus_secondary_stats.clear()
-	secondary_stats.clear()
-	for stat_id in SECONDARY_STAT_BY_ID:
-		var stat_key = SECONDARY_STAT_BY_ID[stat_id]
-		bonus_secondary_stats[stat_key] = 0
-		secondary_stats[stat_key] = 0
-
-	damage_bonuses.clear()
-	resistances.clear()
-	for damage_type in DAMAGE_TYPES:
-		damage_bonuses[damage_type] = 0
-		resistances[damage_type] = 0
-
-	equipment.clear()
-	for slot_name in EQUIPMENT_SLOTS:
-		equipment[slot_name] = null
-
-	inventory.clear()
-	for ii in range(INVENTORY_SIZE):
-		inventory.append(null)
+	StatBlock.init_tables(self)
 
 func recalculate_stats():
-	var previous_max_hp = max_hp
-	var previous_max_mp = max_mp
-
-	for stat_key in PRIMARY_STAT_KEYS:
-		primary_stats[stat_key] = int(base_primary_stats.get(stat_key, 10)) + int(bonus_primary_stats.get(stat_key, 0)) + _get_buff_primary_bonus(stat_key) + _get_equipment_primary_bonus(stat_key)
-
-	var burliness = primary_stats["burliness"]
-	var sagacity = primary_stats["sagacity"]
-	var nimbleness = primary_stats["nimbleness"]
-	var caddishness = primary_stats["caddishness"]
-	var savvy = primary_stats["savvy"]
-	var stubbornness = primary_stats["stubbornness"]
-
-	var derived = {
-		hp_max = 20 + burliness * 2,
-		mp_max = 10 + sagacity * 2,
-		melee_power = int(floor(burliness / 2.0)),
-		magic_power = int(floor(sagacity / 2.0)),
-		crit_chance = int(floor(caddishness / 2.0)),
-		haywire_chance = int(floor(savvy / 2.0)),
-		dodge_chance = int(floor(nimbleness / 2.0)),
-		block_chance = int(floor((burliness + stubbornness) / 4.0)),
-		counter_chance = int(floor((nimbleness + caddishness) / 4.0)),
-		enemy_dodge_reduction = int(floor(nimbleness / 3.0)),
-		armour_absorption = 0,
-		magic_resistance = int(floor(stubbornness / 2.0)),
-		sneakiness = int(floor((nimbleness + savvy) / 2.0)),
-		health_regen_bonus = 0,
-		mana_regen_bonus = 0,
-		magic_reflect = 0,
-		trap_affinity = 0,
-		trap_sight_radius = 1,
-		visual_sight_radius = 8,
-		smithing_level = 0,
-		tinkering_level = 0,
-		alchemy_level = 0,
-		resist_bonus = 0,
-		wandcrafting_level = 0
-	}
-
-	for stat_id in SECONDARY_STAT_BY_ID:
-		var stat_key = SECONDARY_STAT_BY_ID[stat_id]
-		var base_value = int(derived.get(stat_key, 0))
-		var bonus_value = int(bonus_secondary_stats.get(stat_key, 0))
-		var buff_value = _get_buff_secondary_bonus(stat_key)
-		var equip_value = _get_equipment_secondary_bonus(stat_key)
-		secondary_stats[stat_key] = base_value + bonus_value + buff_value + equip_value
-
-	max_hp = max(1, int(secondary_stats["hp_max"]))
-	max_mp = max(0, int(secondary_stats["mp_max"]))
-	sight_radius = max(1, int(secondary_stats["visual_sight_radius"]))
-
-	if previous_max_hp > 0 and max_hp != previous_max_hp:
-		hp = clamp(hp + max(0, max_hp - previous_max_hp), 0, max_hp)
-	else:
-		hp = clamp(hp, 0, max_hp)
-
-	if previous_max_mp > 0 and max_mp != previous_max_mp:
-		mp = clamp(mp + max(0, max_mp - previous_max_mp), 0, max_mp)
-	else:
-		mp = clamp(mp, 0, max_mp)
-
-	stats_changed.emit()
+	StatBlock.recalculate(self)
 
 func get_primary_stat(stat_key):
 	return int(primary_stats.get(stat_key, 0))
@@ -492,104 +407,19 @@ func set_sight_radius(radius):
 	recalculate_stats()
 
 func _get_facing_dir_key():
-	if abs(last_delta_x) >= abs(last_delta_y):
-		if last_delta_x < 0:
-			return "left"
-		if last_delta_x > 0:
-			return "right"
-	if last_delta_y < 0:
-		return "up"
-	return "down"
+	return CharacterAnimator.get_facing_dir_key(self)
 
 func face_towards(target_cell):
-	var current_position = get_grid_position()
-	if current_position == null or target_cell == null:
-		return
-	var delta_x = int(target_cell.x) - int(current_position.x)
-	var delta_y = int(target_cell.y) - int(current_position.y)
-	if delta_x == 0 and delta_y == 0:
-		return
-	last_delta_x = delta_x
-	last_delta_y = delta_y
-	idle()
+	CharacterAnimator.face_towards(self, target_cell)
 
 func _get_or_load_action_anim(group_key, direction_key):
-	if not animations.has(group_key):
-		animations[group_key] = {}
-	var group = animations[group_key]
-	if group.has(direction_key):
-		return group[direction_key]
-	var sprite_paths = OD.Resources.paths.player.heroine if hero_kind == "heroine" else OD.Resources.paths.player.hero
-	if not sprite_paths.has(group_key):
-		return null
-	var group_paths = sprite_paths[group_key]
-	var resolved_key = direction_key
-	if not group_paths.has(resolved_key):
-		if group_paths.has("right"):
-			resolved_key = "right"
-		elif group_paths.has("down"):
-			resolved_key = "down"
-		else:
-			return null
-	if group.has(resolved_key):
-		return group[resolved_key]
-	var anim = OD.Load.animation(group_paths[resolved_key])
-	if anim == null:
-		return null
-	anim.visible = false
-	if anim.is_tall():
-		anim.position.y -= OD.Assets.CELL_PIXEL_HEIGHT / 2.0
-	add_child(anim)
-	group[resolved_key] = anim
-	return anim
+	return CharacterAnimator.get_or_load_action_anim(self, group_key, direction_key)
 
 func _play_action_animation(group_key, duration_sec = 0.28, return_to_idle = true):
-	if animations.is_empty():
-		return
-	var direction_key = _get_facing_dir_key()
-	var animation = _get_or_load_action_anim(group_key, direction_key)
-	if animation == null:
-		return
-	_action_animation_token += 1
-	var active_token = _action_animation_token
-	if current_animation != null:
-		current_animation.visible = false
-	current_animation = animation
-	current_animation.visible = true
-	if current_animation.has_method("stop"):
-		current_animation.stop()
-	if current_animation.has_method("play"):
-		current_animation.play()
-	if not return_to_idle or not is_inside_tree():
-		return
-	var timer = get_tree().create_timer(duration_sec)
-	timer.timeout.connect(func():
-		if is_instance_valid(self) and not is_dead and _action_animation_token == active_token and not is_moving():
-			idle()
-	)
+	CharacterAnimator.play_action_animation(self, group_key, duration_sec, return_to_idle)
 
 func _resolve_melee_attack_group():
-	for slot_name in ["weapon_right", "weapon_left"]:
-		var item = equipment.get(slot_name, null)
-		if item != null and typeof(item) == TYPE_DICTIONARY and item.get("category", "") == "weapon":
-			match int(item.get("type", -1)):
-				0:
-					return "attack_sword"
-				1:
-					return "attack_axe"
-				2:
-					return "attack_mace"
-				3:
-					return "attack_staff"
-				4:
-					return "attack_bow"
-				5:
-					return "attack_thrown"
-				7:
-					return "attack_dagger"
-				8:
-					return "attack_polearm"
-	return "attack_unarm"
+	return CharacterAnimator.resolve_melee_attack_group(self)
 
 func play_attack_animation(attack_kind = "melee"):
 	var group_key = "attack_unarm"
@@ -624,62 +454,13 @@ func play_die_animation():
 	_play_action_animation("die", 0.5, false)
 
 func update_animation(delta_x, delta_y):
-	if animations.is_empty():
-		return
-	var next_animation = current_animation
-	if delta_x != 0:
-		next_animation = animations.move.left if delta_x < 0 else animations.move.right
-	elif delta_y != 0:
-		next_animation = animations.move.up if delta_y < 0 else animations.move.down
-	if next_animation != current_animation:
-		if current_animation != null:
-			current_animation.visible = false
-		current_animation = next_animation
-		if current_animation != null:
-			current_animation.visible = true
-	last_delta_x = delta_x
-	last_delta_y = delta_y
+	CharacterAnimator.update_animation(self, delta_x, delta_y)
 
 func idle():
-	if animations.is_empty():
-		return
-	if current_animation != null:
-		current_animation.visible = false
-	if last_delta_x != 0:
-		if last_delta_x < 0:
-			current_animation = animations.idle.left
-		else:
-			current_animation = animations.idle.right
-	elif last_delta_y != 0:
-		if last_delta_y < 0:
-			current_animation = animations.idle.up
-		else:
-			current_animation = animations.idle.down
-	if current_animation != null:
-		current_animation.visible = true
+	CharacterAnimator.idle(self)
 
 func _load_sprite_animations():
-	var sprite_paths = OD.Resources.paths.player.heroine if hero_kind == "heroine" else OD.Resources.paths.player.hero
-	animations.move = {
-		left = OD.Load.animation(sprite_paths.move.left),
-		right = OD.Load.animation(sprite_paths.move.right),
-		up = OD.Load.animation(sprite_paths.move.up),
-		down = OD.Load.animation(sprite_paths.move.down)
-	}
-	animations.idle = {
-		left = OD.Load.animation(sprite_paths.idle.left),
-		right = OD.Load.animation(sprite_paths.idle.right),
-		up = OD.Load.animation(sprite_paths.idle.up),
-		down = OD.Load.animation(sprite_paths.idle.down)
-	}
-	for group in [animations.move, animations.idle]:
-		for direction in group.values():
-			direction.visible = false
-			if direction.is_tall():
-				direction.position.y -= OD.Assets.CELL_PIXEL_HEIGHT / 2.0
-			add_child(direction)
-	current_animation = animations.idle.down
-	current_animation.visible = true
+	CharacterAnimator.load_sprite_animations(self)
 
 func init():
 	_init_stat_tables()
@@ -825,263 +606,40 @@ func tick_cooldowns():
 	return ticked
 
 func _get_buff_primary_bonus(stat_key):
-	var total = 0
-	for buff in active_buffs:
-		var stacks = int(buff.get("stacks", 1))
-		total += int(buff.get("primary_bonuses", {}).get(stat_key, 0)) * stacks
-	return total
+	return BuffManager.get_primary_bonus(self, stat_key)
 
 func _get_buff_secondary_bonus(stat_key):
-	var total = 0
-	for buff in active_buffs:
-		var stacks = int(buff.get("stacks", 1))
-		total += int(buff.get("secondary_bonuses", {}).get(stat_key, 0)) * stacks
-	return total
+	return BuffManager.get_secondary_bonus(self, stat_key)
 
 func _get_buff_resistance_bonus(damage_type):
-	var total = 0
-	for buff in active_buffs:
-		var stacks = int(buff.get("stacks", 1))
-		total += int(buff.get("resist_bonuses", {}).get(damage_type, 0)) * stacks
-	return total
+	return BuffManager.get_resistance_bonus(self, damage_type)
 
 func _get_buff_damage_bonus(damage_type):
-	var total = 0
-	for buff in active_buffs:
-		var stacks = int(buff.get("stacks", 1))
-		total += int(buff.get("damage_bonuses", {}).get(damage_type, 0)) * stacks
-	return total
+	return BuffManager.get_damage_bonus(self, damage_type)
 
 func has_buff(buff_name):
-	var target_name = str(buff_name)
-	for buff in active_buffs:
-		if str(buff.get("name", "")) == target_name:
-			return true
-	return false
+	return BuffManager.has_buff(self, buff_name)
 
 func get_active_buffs():
 	return active_buffs.duplicate(true)
 
 func remove_buff_by_name(buff_name):
-	var target_name = str(buff_name)
-	var removed = false
-	var ii = 0
-	while ii < active_buffs.size():
-		if str(active_buffs[ii].get("name", "")) == target_name:
-			active_buffs.remove_at(ii)
-			removed = true
-		else:
-			ii += 1
-	if removed:
-		recalculate_stats()
-		buffs_changed.emit()
-	return removed
+	return BuffManager.remove_buff_by_name(self, buff_name)
 
 func dismiss_buff(buff_name):
-	var target_name = str(buff_name)
-	for buff in active_buffs:
-		if str(buff.get("name", "")) == target_name:
-			if bool(buff.get("removable", false)) and not bool(buff.get("bad", false)):
-				return remove_buff_by_name(target_name)
-			return false
-	return false
-
-func _extract_buff_array(buff_definition, lower_key, camel_key):
-	var items = []
-	if buff_definition.has(lower_key):
-		items.append_array(OD.DataStructure.arrayify(buff_definition.get(lower_key)))
-	if buff_definition.has(camel_key):
-		items.append_array(OD.DataStructure.arrayify(buff_definition.get(camel_key)))
-	return items
+	return BuffManager.dismiss_buff(self, buff_name)
 
 func apply_buff(buff_definition, source_spell = ""):
-	if buff_definition == null or typeof(buff_definition) != TYPE_DICTIONARY:
-		return false
-	var buff_name = str(buff_definition.get("name", source_spell))
-	var duration = int(buff_definition.get("time", buff_definition.get("duration", 0)))
-	var use_timer = int(buff_definition.get("useTimer", buff_definition.get("usetimer", 1 if duration > 0 else 0))) == 1
-	var allow_stack = int(buff_definition.get("allowstacking", buff_definition.get("allowStacking", buff_definition.get("stackable", 0)))) == 1
-	var max_stacks = max(1, int(buff_definition.get("stacksize", 1)))
-	var brittle_count = int(buff_definition.get("brittle", 0))
-	var attacks_count = int(buff_definition.get("attacks", 0))
-
-	var primary_b = {}
-	for p_item in _extract_buff_array(buff_definition, "primarybuff", "primaryBuff"):
-		if typeof(p_item) == TYPE_DICTIONARY and p_item.has("id"):
-			var index = int(p_item.id)
-			if index >= 0 and index < PRIMARY_STAT_KEYS.size():
-				var key = PRIMARY_STAT_KEYS[index]
-				primary_b[key] = int(primary_b.get(key, 0)) + int(p_item.get("amount", 0))
-
-	var secondary_b = {}
-	for s_item in _extract_buff_array(buff_definition, "secondarybuff", "secondaryBuff"):
-		if typeof(s_item) == TYPE_DICTIONARY and s_item.has("id"):
-			var sec_id = int(s_item.id)
-			if SECONDARY_STAT_BY_ID.has(sec_id):
-				var key = SECONDARY_STAT_BY_ID[sec_id]
-				secondary_b[key] = int(secondary_b.get(key, 0)) + int(s_item.get("amount", 0))
-
-	for sight_item in OD.DataStructure.arrayify(buff_definition.get("sightbuff", [])):
-		if typeof(sight_item) == TYPE_DICTIONARY and sight_item.has("amount"):
-			secondary_b["visual_sight_radius"] = int(secondary_b.get("visual_sight_radius", 0)) + int(sight_item.amount)
-
-	var resist_b = {}
-	for r_item in _extract_buff_array(buff_definition, "resistbuff", "resistBuff"):
-		if typeof(r_item) == TYPE_DICTIONARY:
-			for damage_type in DAMAGE_TYPES:
-				if r_item.has(damage_type):
-					resist_b[damage_type] = int(resist_b.get(damage_type, 0)) + int(r_item[damage_type])
-
-	var damage_b = {}
-	for d_item in _extract_buff_array(buff_definition, "damagebuff", "damageBuff"):
-		if typeof(d_item) == TYPE_DICTIONARY:
-			for damage_type in DAMAGE_TYPES:
-				if d_item.has(damage_type):
-					damage_b[damage_type] = int(damage_b.get(damage_type, 0)) + int(d_item[damage_type])
-
-	var target_hit_procs = []
-	for th_item in OD.DataStructure.arrayify(buff_definition.get("targetHitEffectBuff", [])):
-		if typeof(th_item) == TYPE_DICTIONARY and th_item.has("name"):
-			target_hit_procs.append({
-				name = str(th_item.name),
-				percentage = int(th_item.get("percentage", 100))
-			})
-
-	var player_hit_procs = []
-	for ph_item in OD.DataStructure.arrayify(buff_definition.get("playerHitEffectBuff", [])):
-		if typeof(ph_item) == TYPE_DICTIONARY and ph_item.has("name"):
-			player_hit_procs.append({
-				name = str(ph_item.name),
-				percentage = int(ph_item.get("percentage", 100))
-			})
-
-	var description_text = ""
-	if buff_definition.has("description") and typeof(buff_definition.description) == TYPE_DICTIONARY and buff_definition.description.has("text"):
-		description_text = str(buff_definition.description.text)
-
-	for existing in active_buffs:
-		if str(existing.get("name", "")) == buff_name:
-			if allow_stack and int(existing.get("stacks", 1)) < max_stacks:
-				existing["stacks"] = int(existing.get("stacks", 1)) + 1
-			if use_timer:
-				existing["remaining_turns"] = max(1, duration)
-			if brittle_count > 0:
-				existing["brittle_remaining"] = brittle_count
-			if attacks_count > 0:
-				existing["attacks_remaining"] = attacks_count
-			if int(buff_definition.get("hp_per_turn", 0)) != 0:
-				existing["hp_per_turn"] = int(buff_definition.get("hp_per_turn", 0))
-			if int(buff_definition.get("mp_per_turn", 0)) != 0:
-				existing["mp_per_turn"] = int(buff_definition.get("mp_per_turn", 0))
-			recalculate_stats()
-			buffs_changed.emit()
-			return true
-
-	active_buffs.append({
-		name = buff_name,
-		description = description_text,
-		icon = str(buff_definition.get("smallicon", buff_definition.get("icon", ""))),
-		large_icon = str(buff_definition.get("icon", "")),
-		bad = int(buff_definition.get("bad", 0)) == 1,
-		removable = int(buff_definition.get("removable", 0)) == 1,
-		destroy_on_move = int(buff_definition.get("destroyonmove", 0)) == 1,
-		use_timer = use_timer,
-		remaining_turns = max(1, duration) if use_timer else -1,
-		brittle_remaining = brittle_count,
-		attacks_remaining = attacks_count,
-		stacks = 1,
-		mana_upkeep = int(buff_definition.get("manaUpkeep", buff_definition.get("manaupkeep", 0))),
-		zorkmid_upkeep = int(buff_definition.get("zorkmidUpkeep", 0)),
-		hp_per_turn = int(buff_definition.get("hp_per_turn", 0)),
-		mp_per_turn = int(buff_definition.get("mp_per_turn", 0)),
-		primary_bonuses = primary_b,
-		secondary_bonuses = secondary_b,
-		resist_bonuses = resist_b,
-		damage_bonuses = damage_b,
-		target_hit_procs = target_hit_procs,
-		player_hit_procs = player_hit_procs,
-		raw = buff_definition
-	})
-	recalculate_stats()
-	buffs_changed.emit()
-	return true
+	return BuffManager.apply_buff(self, buff_definition, source_spell)
 
 func on_attack_performed():
-	var procs = []
-	var changed = false
-	var ii = 0
-	while ii < active_buffs.size():
-		var buff = active_buffs[ii]
-		for proc in buff.get("target_hit_procs", []):
-			var percent = clamp(int(proc.get("percentage", 100)), 0, 100)
-			if percent >= 100 or (randi() % 100) < percent:
-				procs.append(str(proc.name))
-		var attack_remaining = int(buff.get("attacks_remaining", 0))
-		if attack_remaining > 0:
-			attack_remaining -= 1
-			buff["attacks_remaining"] = attack_remaining
-			changed = true
-			if attack_remaining <= 0:
-				active_buffs.remove_at(ii)
-				continue
-		ii += 1
-	for slot_name in PASSIVE_EQUIPMENT_SLOTS:
-		var item = equipment.get(slot_name, null)
-		if item == null or typeof(item) != TYPE_DICTIONARY:
-			continue
-		for proc in item.get("target_hit_effects", []):
-			var percent = clamp(int(proc.get("percentage", 100)), 0, 100)
-			if percent >= 100 or (randi() % 100) < percent:
-				procs.append(str(proc.name))
-	if changed:
-		recalculate_stats()
-		buffs_changed.emit()
-	return procs
+	return BuffManager.on_attack_performed(self)
 
 func on_hit_received():
-	var procs = []
-	var changed = false
-	var ii = 0
-	while ii < active_buffs.size():
-		var buff = active_buffs[ii]
-		for proc in buff.get("player_hit_procs", []):
-			var percent = clamp(int(proc.get("percentage", 100)), 0, 100)
-			if percent >= 100 or (randi() % 100) < percent:
-				procs.append(str(proc.name))
-		var brit_rem = int(buff.get("brittle_remaining", 0))
-		if brit_rem > 0:
-			brit_rem -= 1
-			buff["brittle_remaining"] = brit_rem
-			changed = true
-			if brit_rem <= 0:
-				active_buffs.remove_at(ii)
-				continue
-		ii += 1
-	for slot_name in PASSIVE_EQUIPMENT_SLOTS:
-		var item = equipment.get(slot_name, null)
-		if item == null or typeof(item) != TYPE_DICTIONARY:
-			continue
-		for proc in item.get("player_hit_effects", []):
-			var percent = clamp(int(proc.get("percentage", 100)), 0, 100)
-			if percent >= 100 or (randi() % 100) < percent:
-				procs.append(str(proc.name))
-	if changed:
-		recalculate_stats()
-		buffs_changed.emit()
-	return procs
+	return BuffManager.on_hit_received(self)
 
 func on_moved():
-	var changed = false
-	var ii = 0
-	while ii < active_buffs.size():
-		if bool(active_buffs[ii].get("destroy_on_move", false)):
-			active_buffs.remove_at(ii)
-			changed = true
-		else:
-			ii += 1
-	if changed:
-		recalculate_stats()
-		buffs_changed.emit()
+	BuffManager.on_moved(self)
 
 func set_status_flag(flag_name, turns):
 	var key = str(flag_name)
@@ -1108,64 +666,7 @@ func apply_dot(dot_definition):
 	buffs_changed.emit()
 
 func tick_status_effects():
-	var ticked = 0
-	var buff_changed = false
-	var ii = 0
-	while ii < active_buffs.size():
-		var buff = active_buffs[ii]
-		ticked += 1
-		var upkeep = int(buff.get("mana_upkeep", 0))
-		if upkeep > 0:
-			if mp >= upkeep:
-				modify_mp(-upkeep)
-			else:
-				active_buffs.remove_at(ii)
-				buff_changed = true
-				continue
-		var z_upkeep = int(buff.get("zorkmid_upkeep", 0))
-		if z_upkeep > 0:
-			if get_zorkmids() >= z_upkeep:
-				add_zorkmids(-z_upkeep)
-			else:
-				active_buffs.remove_at(ii)
-				buff_changed = true
-				continue
-		var hp_regen = int(buff.get("hp_per_turn", 0))
-		if hp_regen != 0:
-			modify_hp(hp_regen)
-		var mp_regen = int(buff.get("mp_per_turn", 0))
-		if mp_regen != 0:
-			modify_mp(mp_regen)
-		if buff.get("use_timer", false):
-			buff["remaining_turns"] = int(buff.get("remaining_turns", 1)) - 1
-			if buff["remaining_turns"] <= 0:
-				active_buffs.remove_at(ii)
-				buff_changed = true
-				continue
-		ii += 1
-	if buff_changed:
-		recalculate_stats()
-	for flag_key in status_flags.keys():
-		ticked += 1
-		var remaining = int(status_flags[flag_key]) - 1
-		if remaining <= 0:
-			status_flags.erase(flag_key)
-		else:
-			status_flags[flag_key] = remaining
-	var jj = 0
-	while jj < active_dots.size():
-		var dot = active_dots[jj]
-		ticked += 1
-		if dot.has("on_tick") and dot.on_tick is Callable:
-			dot.on_tick.call(self, dot)
-		dot["remaining_turns"] = int(dot.get("remaining_turns", 1)) - 1
-		if dot["remaining_turns"] <= 0:
-			active_dots.remove_at(jj)
-		else:
-			jj += 1
-	if ticked > 0 or buff_changed:
-		buffs_changed.emit()
-	return ticked
+	return BuffManager.tick_status_effects(self)
 
 func _get_equipment_primary_bonus(stat_key):
 	var total = 0

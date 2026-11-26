@@ -1,6 +1,6 @@
 # Save / Load & High Scores Test
 
-Verifies Open Dredmor's JSON save/load serialization (`user://saves/`), floor/player/FOV restoration, and High Scores persistence (`user://high_scores.json`).
+Verifies Open Dredmor's JSON save/load serialization (`user://saves/`), `pack_manifest` and `skill_entries` mod-resilient skill restoration, floor/player/FOV restoration, and High Scores persistence (`user://high_scores.json`).
 
 ## Automated Verification
 
