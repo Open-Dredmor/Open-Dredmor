@@ -14,6 +14,11 @@ func _init_global_state():
 	OD.Settings.load()
 	randomize()	
 	var install_directory = OD.Settings.dredmor_install_dir()
+	if install_directory == null and OD.Settings._settings != null and OD.Settings._settings.get_value("open_dredmor", "dredmor_install_directory") == null:
+		var detected_directory = OD.Settings.detect_default_dredmor_dir()
+		if detected_directory != "":
+			OD.Settings.change("open_dredmor", "dredmor_install_directory", detected_directory)
+			install_directory = OD.Settings.dredmor_install_dir()
 	if install_directory != null and install_directory != "":
 		var validation = OD.Settings.validate_dredmor_dir(install_directory)
 		if validation.valid:

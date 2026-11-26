@@ -25,6 +25,9 @@ func get_or_load_pack(pack_id, available_by_id):
 	if not available_by_id.has(pack_id):
 		return null
 	var pack_info = available_by_id[pack_id]
+	if OD.Settings != null and OD.Settings.has_method("ensure_pack_extracted"):
+		if not OD.Settings.ensure_pack_extracted(pack_info):
+			return null
 	var install_directory = OD.Settings.dredmor_install_dir()
 	if install_directory == null:
 		install_directory = ""

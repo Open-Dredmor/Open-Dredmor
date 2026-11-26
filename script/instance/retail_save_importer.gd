@@ -21,6 +21,8 @@ static func get_common_save_dirs():
 	if home_directory != "":
 		candidates.append(home_directory + "/Documents/Gaslamp Games/Dungeons of Dredmor")
 		candidates.append(home_directory + "/.local/share/Gaslamp Games/Dungeons of Dredmor")
+		candidates.append(home_directory + "/.local/share/Steam/steamapps/compatdata/98800/pfx/drive_c/users/steamuser/Documents/Gaslamp Games/Dungeons of Dredmor")
+		candidates.append(home_directory + "/.steam/steam/steamapps/compatdata/98800/pfx/drive_c/users/steamuser/Documents/Gaslamp Games/Dungeons of Dredmor")
 		candidates.append(home_directory + "/Library/Application Support/Dungeons of Dredmor")
 	var dev_directory = ProjectSettings.globalize_path("res://airef/retail-save-dir/Dungeons of Dredmor")
 	if dev_directory != "":
