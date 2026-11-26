@@ -307,7 +307,7 @@ func dialog():
 			dont_buy = _button_textures(paths.dont_buy),
 			sell = _button_textures(paths.sell),
 			dont_sell = _button_textures(paths.dont_sell),
-			blank = _button_textures(paths.blank, true),
+			blank = _button_textures(paths.blank),
 			awesome = _button_textures(paths.awesome),
 			shucks = _button_textures(paths.shucks)
 		},

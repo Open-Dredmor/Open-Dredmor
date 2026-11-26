@@ -2,6 +2,7 @@ extends Node
 
 var ActionQueue
 var Animations
+var AssetCache
 var Assets
 var Actions
 var Audio
@@ -36,6 +37,7 @@ func reset():
 	Actions.name = 'actions'
 	add_child(Actions)
 	Animations = load('res://script/instance/animation/animation.gd')
+	AssetCache = _singleton('asset_cache')
 	Assets = _singleton('assets')
 	Audio = _singleton('audio')
 	Chrome = _singleton('chrome')

@@ -86,6 +86,10 @@ func resolve(relative_path, internal = false):
 		if ci_pack != null:
 			_resolve_cache[relative_path] = ci_pack
 			return ci_pack
+	if OD.AssetCache != null and OD.AssetCache.has_cached_file(relative_path):
+		var cached_path = OD.AssetCache.resolve_cached_path(relative_path)
+		_resolve_cache[relative_path] = cached_path
+		return cached_path
 	_resolve_cache[relative_path] = direct_path
 	_exists_cache[relative_path] = false
 	return direct_path
