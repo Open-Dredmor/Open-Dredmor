@@ -48,20 +48,20 @@ func clear():
 	explored_cells.clear()
 	_has_computed = false
 
-func compute(origin_cell, sight_radius, is_opaque_fn):
+func compute(origin_cell, sight_radius, is_opaque_function):
 	var origin = Vector2i(int(origin_cell.x), int(origin_cell.y))
 	var radius = max(1, int(sight_radius))
 	visible_cells.clear()
 	visible_cells[origin] = true
 	explored_cells[origin] = true
 	for octant in OCTANT_TRANSFORMS:
-		_cast_light(origin, radius, 1, 1.0, 0.0, octant[0], octant[1], octant[2], octant[3], is_opaque_fn)
+		_cast_light(origin, radius, 1, 1.0, 0.0, octant[0], octant[1], octant[2], octant[3], is_opaque_function)
 	for cell in visible_cells.keys():
 		explored_cells[cell] = true
 	_has_computed = true
 	return visible_cells
 
-func _cast_light(origin, radius, row, start_slope, end_slope, xx, xy, yx, yy, is_opaque_fn):
+func _cast_light(origin, radius, row, start_slope, end_slope, xx, xy, yx, yy, is_opaque_function):
 	if start_slope < end_slope:
 		return
 	var next_start_slope = start_slope
@@ -81,7 +81,7 @@ func _cast_light(origin, radius, row, start_slope, end_slope, xx, xy, yx, yy, is
 			var cell = Vector2i(map_x, map_y)
 			if float(delta_x * delta_x + delta_y * delta_y) <= radius_sq:
 				visible_cells[cell] = true
-			var cell_opaque = is_opaque_fn.call(map_x, map_y)
+			var cell_opaque = is_opaque_function.call(map_x, map_y)
 			if blocked:
 				if cell_opaque:
 					next_start_slope = right_slope
@@ -90,7 +90,7 @@ func _cast_light(origin, radius, row, start_slope, end_slope, xx, xy, yx, yy, is
 					start_slope = next_start_slope
 			elif cell_opaque and distance < radius:
 				blocked = true
-				_cast_light(origin, radius, distance + 1, start_slope, left_slope, xx, xy, yx, yy, is_opaque_fn)
+				_cast_light(origin, radius, distance + 1, start_slope, left_slope, xx, xy, yx, yy, is_opaque_function)
 				next_start_slope = right_slope
 		if blocked:
 			break
@@ -99,8 +99,8 @@ func _get_node_cells(node):
 	if node.has_meta("door_cells"):
 		return node.get_meta("door_cells")
 	if node.has_method("get_grid_position") and node.get_grid_position() != null:
-		var pos = node.get_grid_position()
-		return [Vector2i(int(pos.x), int(pos.y))]
+		var position = node.get_grid_position()
+		return [Vector2i(int(position.x), int(position.y))]
 	if node.has_meta("grid_cell"):
 		return [node.get_meta("grid_cell")]
 	return []
@@ -135,10 +135,10 @@ func apply_visibility(entity_grid):
 	if entity_grid.layers.lookup.has("trap"):
 		var trap_layer = entity_grid.layers.lookup["trap"]
 		for trap in trap_layer.get_children():
-			var pos = trap.get_grid_position()
-			if pos == null:
+			var position = trap.get_grid_position()
+			if position == null:
 				continue
-			var cell = Vector2i(int(pos.x), int(pos.y))
+			var cell = Vector2i(int(position.x), int(position.y))
 			var discovered = bool(trap.get("is_discovered"))
 			var disarmed = bool(trap.get("is_disarmed"))
 			if disarmed or not discovered:

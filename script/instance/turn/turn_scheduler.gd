@@ -187,17 +187,17 @@ func _advance_monsters(context):
 	var dungeon = context.get("dungeon", null)
 	if entity_grid == null or player == null or not is_instance_valid(player):
 		return 0
-	var player_pos = player.get_grid_position()
-	if player_pos == null:
+	var player_position = player.get_grid_position()
+	if player_position == null:
 		return 0
 	var acted = 0
 	if entity_grid.has_method("step_monsters"):
-		acted = int(entity_grid.step_monsters(player_pos, player, dungeon))
+		acted = int(entity_grid.step_monsters(player_position, player, dungeon))
 	elif entity_grid.shop_manager != null:
-		entity_grid.shop_manager.step_hostile_actors(entity_grid, player_pos)
+		entity_grid.shop_manager.step_hostile_actors(entity_grid, player_position)
 		acted = 1
 	if entity_grid.has_method("maybe_spawn_periodic_monster"):
-		entity_grid.maybe_spawn_periodic_monster(player_pos, entity_grid.floor_level, turn_count)
+		entity_grid.maybe_spawn_periodic_monster(player_position, entity_grid.floor_level, turn_count)
 	return acted
 
 func _advance_traps(context):
@@ -233,9 +233,9 @@ func _advance_cooldowns(context):
 		ticked += int(player.tick_cooldowns())
 	return ticked
 
-func register_regen_target(target_id, target_obj, hp_interval = 10, mp_interval = 10):
+func register_regen_target(target_id, target_object, hp_interval = 10, mp_interval = 10):
 	_regen_targets[target_id] = {
-		target = target_obj,
+		target = target_object,
 		hp_interval = max(1, int(hp_interval)),
 		mp_interval = max(1, int(mp_interval)),
 		hp_counter = 0,
@@ -246,29 +246,29 @@ func _advance_regen(context):
 	var ticked = 0
 	for target_id in _regen_targets.keys():
 		var entry = _regen_targets[target_id]
-		var target_obj = entry.target
-		if target_obj == null or not is_instance_valid(target_obj):
+		var target_object = entry.target
+		if target_object == null or not is_instance_valid(target_object):
 			continue
 		ticked += 1
 		entry.hp_counter += 1
 		if entry.hp_counter >= entry.hp_interval:
 			entry.hp_counter = 0
-			if target_obj.has_method("regenerate_hp"):
-				target_obj.regenerate_hp(1)
+			if target_object.has_method("regenerate_hp"):
+				target_object.regenerate_hp(1)
 		entry.mp_counter += 1
 		if entry.mp_counter >= entry.mp_interval:
 			entry.mp_counter = 0
-			if target_obj.has_method("regenerate_mp"):
-				target_obj.regenerate_mp(1)
+			if target_object.has_method("regenerate_mp"):
+				target_object.regenerate_mp(1)
 	var player = context.get("player", null)
 	if player != null and is_instance_valid(player) and player.has_method("tick_regen"):
 		ticked += int(player.tick_regen(turn_count))
 	return ticked
 
-func add_status_effect(effect_def):
-	if effect_def == null or typeof(effect_def) != TYPE_DICTIONARY:
+func add_status_effect(effect_definition):
+	if effect_definition == null or typeof(effect_definition) != TYPE_DICTIONARY:
 		return
-	var entry = effect_def.duplicate()
+	var entry = effect_definition.duplicate()
 	if not entry.has("remaining_turns"):
 		entry["remaining_turns"] = int(entry.get("duration", 1))
 	_status_effects.append(entry)

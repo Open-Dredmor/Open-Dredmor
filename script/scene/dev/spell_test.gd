@@ -38,56 +38,56 @@ func _build_ui():
 	margin.add_theme_constant_override("margin_bottom", 16)
 	container.add_child(margin)
 
-	var root_hbox = HBoxContainer.new()
-	root_hbox.add_theme_constant_override("separation", 20)
-	margin.add_child(root_hbox)
+	var root_horizontal_box = HBoxContainer.new()
+	root_horizontal_box.add_theme_constant_override("separation", 20)
+	margin.add_child(root_horizontal_box)
 
-	var left_vbox = VBoxContainer.new()
-	left_vbox.custom_minimum_size = Vector2(400, 0)
-	left_vbox.add_theme_constant_override("separation", 8)
-	root_hbox.add_child(left_vbox)
+	var left_vertical_box = VBoxContainer.new()
+	left_vertical_box.custom_minimum_size = Vector2(400, 0)
+	left_vertical_box.add_theme_constant_override("separation", 8)
+	root_horizontal_box.add_child(left_vertical_box)
 
 	var title = Label.new()
 	title.text = "Spellcasting & spellDB.xml Engine Verification"
 	title.add_theme_font_size_override("font_size", 20)
-	left_vbox.add_child(title)
+	left_vertical_box.add_child(title)
 
 	_status_label = Label.new()
 	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	left_vbox.add_child(_status_label)
+	left_vertical_box.add_child(_status_label)
 
-	var btn_grid = GridContainer.new()
-	btn_grid.columns = 2
-	btn_grid.add_theme_constant_override("h_separation", 8)
-	btn_grid.add_theme_constant_override("v_separation", 8)
-	left_vbox.add_child(btn_grid)
+	var button_grid = GridContainer.new()
+	button_grid.columns = 2
+	button_grid.add_theme_constant_override("h_separation", 8)
+	button_grid.add_theme_constant_override("v_separation", 8)
+	left_vertical_box.add_child(button_grid)
 
 	_setup_sandbox()
 
-	_add_btn(btn_grid, "Cast Weak Firebolt (Missile)", func(): _demo_cast("Weak Firebolt", Vector2i(8, 5)))
-	_add_btn(btn_grid, "Cast Smoke Ray (Beam)", func(): _demo_cast("Smoke Ray", Vector2i(9, 5)))
-	_add_btn(btn_grid, "Cast Acidical Projector (Cone)", func(): _demo_cast("Acidical Projector", Vector2i(9, 5)))
-	_add_btn(btn_grid, "Cast Torus Blast 1 (Template)", func(): _demo_cast("Torus Blast 1", Vector2i(5, 5)))
-	_add_btn(btn_grid, "Cast Toxic Spore Cloud (Mine)", func(): _demo_cast("Toxic Spore Cloud", Vector2i(7, 5)))
-	_add_btn(btn_grid, "Cast Monstrous Rage (Buff)", func(): _demo_cast("Monstrous Rage", Vector2i(5, 5)))
-	_add_btn(btn_grid, "Cast Knitting Tissue (Heal)", func():
+	_add_btn(button_grid, "Cast Weak Firebolt (Missile)", func(): _demo_cast("Weak Firebolt", Vector2i(8, 5)))
+	_add_btn(button_grid, "Cast Smoke Ray (Beam)", func(): _demo_cast("Smoke Ray", Vector2i(9, 5)))
+	_add_btn(button_grid, "Cast Acidical Projector (Cone)", func(): _demo_cast("Acidical Projector", Vector2i(9, 5)))
+	_add_btn(button_grid, "Cast Torus Blast 1 (Template)", func(): _demo_cast("Torus Blast 1", Vector2i(5, 5)))
+	_add_btn(button_grid, "Cast Toxic Spore Cloud (Mine)", func(): _demo_cast("Toxic Spore Cloud", Vector2i(7, 5)))
+	_add_btn(button_grid, "Cast Monstrous Rage (Buff)", func(): _demo_cast("Monstrous Rage", Vector2i(5, 5)))
+	_add_btn(button_grid, "Cast Knitting Tissue (Heal)", func():
 		_player.modify_hp(-15)
 		_demo_cast("Knitting Tissue", Vector2i(5, 5))
 	)
-	_add_btn(btn_grid, "Cast Digging Ray (Dig)", func(): _demo_cast("Digging Ray", Vector2i(10, 5)))
-	_add_btn(btn_grid, "Cast Summon Slime (Summon)", func(): _demo_cast("Summon Slime", Vector2i(6, 6)))
-	_add_btn(btn_grid, "Cast Polymorph", func(): _demo_cast("Polymorphic Injunction", Vector2i(8, 5)))
-	_add_btn(btn_grid, "Advance Turn", func():
+	_add_btn(button_grid, "Cast Digging Ray (Dig)", func(): _demo_cast("Digging Ray", Vector2i(10, 5)))
+	_add_btn(button_grid, "Cast Summon Slime (Summon)", func(): _demo_cast("Summon Slime", Vector2i(6, 6)))
+	_add_btn(button_grid, "Cast Polymorph", func(): _demo_cast("Polymorphic Injunction", Vector2i(8, 5)))
+	_add_btn(button_grid, "Advance Turn", func():
 		_scheduler.advance_turn({ entity_grid = _grid, player = _player })
 		_log("Turn advanced -> " + str(_scheduler.turn_count))
 		_refresh_status()
 	)
-	_add_btn(btn_grid, "Launch Game", func(): OD.Scenes.goto(OD.Scenes.GAME))
+	_add_btn(button_grid, "Launch Game", func(): OD.Scenes.goto(OD.Scenes.GAME))
 
 	var log_panel = PanelContainer.new()
 	log_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	log_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root_hbox.add_child(log_panel)
+	root_horizontal_box.add_child(log_panel)
 
 	var scroll = ScrollContainer.new()
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -129,21 +129,21 @@ func _setup_sandbox():
 	_grid.visible = false
 
 func _add_btn(parent_node, label_text, callback):
-	var btn = Button.new()
-	btn.text = label_text
-	btn.pressed.connect(callback)
-	parent_node.add_child(btn)
+	var button = Button.new()
+	button.text = label_text
+	button.pressed.connect(callback)
+	parent_node.add_child(button)
 
 func _demo_cast(spell_name, target_cell):
-	var res = SpellEngineScript.execute_spell(spell_name, _player, target_cell, {
+	var result = SpellEngineScript.execute_spell(spell_name, _player, target_cell, {
 		entity_grid = _grid,
 		player = _player
 	})
-	_log(spell_name + " -> " + str(res))
+	_log(spell_name + " -> " + str(result))
 	_refresh_status()
 
-func _log(msg):
-	_log_lines.append(msg)
+func _log(message):
+	_log_lines.append(message)
 	if _log_lines.size() > 35:
 		_log_lines.remove_at(0)
 	if _log_label != null:
@@ -180,65 +180,65 @@ func _run_automated_verification():
 	var tmpl_cells = SpellEngineScript.resolve_target_cells(OD.Database.get_spell("Torus Blast 1"), Vector2i(5, 5), Vector2i(5, 5), _grid)
 	assert(tmpl_cells.size() >= 1)
 
-	var buff_res = SpellEngineScript.execute_spell("Monstrous Rage", _player, Vector2i(5, 5), {
+	var buff_result = SpellEngineScript.execute_spell("Monstrous Rage", _player, Vector2i(5, 5), {
 		entity_grid = _grid,
 		player = _player
 	})
-	assert(buff_res.executed and _player.has_buff("Monstrous Rage"))
+	assert(buff_result.executed and _player.has_buff("Monstrous Rage"))
 
 	_player.modify_hp(-10)
 	var hp_hurt = _player.hp
-	var heal_res = SpellEngineScript.execute_spell("Knitting Tissue", _player, Vector2i(5, 5), {
+	var heal_result = SpellEngineScript.execute_spell("Knitting Tissue", _player, Vector2i(5, 5), {
 		entity_grid = _grid,
 		player = _player
 	})
-	assert(heal_res.executed and _player.hp > hp_hurt)
+	assert(heal_result.executed and _player.hp > hp_hurt)
 
-	var cd_res = SpellEngineScript.execute_spell("Tortoise Maneuver", _player, Vector2i(5, 5), {
+	var cooldown_result = SpellEngineScript.execute_spell("Tortoise Maneuver", _player, Vector2i(5, 5), {
 		entity_grid = _grid,
 		player = _player
 	})
-	assert(cd_res.executed and _player.get_spell_cooldown("Tortoise Maneuver") > 0)
-	var blocked_cd = SpellEngineScript.execute_spell("Tortoise Maneuver", _player, Vector2i(5, 5), {
+	assert(cooldown_result.executed and _player.get_spell_cooldown("Tortoise Maneuver") > 0)
+	var blocked_cooldown = SpellEngineScript.execute_spell("Tortoise Maneuver", _player, Vector2i(5, 5), {
 		entity_grid = _grid,
 		player = _player
 	})
-	assert(not blocked_cd.executed)
+	assert(not blocked_cooldown.executed)
 
-	var mine_res = SpellEngineScript.execute_spell("Toxic Spore Cloud", _player, Vector2i(7, 5), {
+	var mine_result = SpellEngineScript.execute_spell("Toxic Spore Cloud", _player, Vector2i(7, 5), {
 		entity_grid = _grid,
 		player = _player
 	})
-	assert(mine_res.executed and mine_res.get("mine_placed", false) and _grid.get_spell_mines().size() == 1)
+	assert(mine_result.executed and mine_result.get("mine_placed", false) and _grid.get_spell_mines().size() == 1)
 
-	var dig_res = SpellEngineScript.execute_spell("Digging Ray", _player, Vector2i(10, 5), {
+	var dig_result = SpellEngineScript.execute_spell("Digging Ray", _player, Vector2i(10, 5), {
 		entity_grid = _grid,
 		player = _player
 	})
-	assert(dig_res.executed and not _grid.is_wall(10, 5))
+	assert(dig_result.executed and not _grid.is_wall(10, 5))
 
-	var summon_res = SpellEngineScript.execute_spell("Summon Slime", _player, Vector2i(6, 6), {
+	var summon_result = SpellEngineScript.execute_spell("Summon Slime", _player, Vector2i(6, 6), {
 		entity_grid = _grid,
 		player = _player
 	})
-	assert(summon_res.executed and _grid.get_actor_at(6, 6) != null)
+	assert(summon_result.executed and _grid.get_actor_at(6, 6) != null)
 
 	var poly_target = _grid.spawn_monster_at("Diggle", 8, 6, 1, true)
 	assert(poly_target != null)
-	var poly_res = SpellEngineScript.execute_spell("Polymorphic Injunction", _player, Vector2i(8, 6), {
+	var poly_result = SpellEngineScript.execute_spell("Polymorphic Injunction", _player, Vector2i(8, 6), {
 		entity_grid = _grid,
 		player = _player
 	})
-	assert(poly_res.executed and _grid.get_enemy_at(8, 6) != null)
+	assert(poly_result.executed and _grid.get_enemy_at(8, 6) != null)
 
-	var para_res = SpellEngineScript.execute_spell("Lightning Blast", _player, Vector2i(8, 5), {
+	var para_result = SpellEngineScript.execute_spell("Lightning Blast", _player, Vector2i(8, 5), {
 		entity_grid = _grid,
 		player = _player
 	})
-	assert(para_res.executed)
+	assert(para_result.executed)
 
 	_scheduler.advance_turn({ entity_grid = _grid, player = _player })
-	assert(_player.get_spell_cooldown("Tortoise Maneuver") < cd_res.cooldown)
+	assert(_player.get_spell_cooldown("Tortoise Maneuver") < cooldown_result.cooldown)
 
 	_log("ALL SPELL ENGINE CHECKS PASSED!")
 	print("SPELL_ENGINE_VERIFIED")

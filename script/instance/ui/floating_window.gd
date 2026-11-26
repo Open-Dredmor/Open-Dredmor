@@ -23,22 +23,22 @@ var _content_root = null
 var _grip_overlay = null
 var _drag_mode = ""
 var _drag_start_mouse = Vector2.ZERO
-var _drag_start_pos = Vector2.ZERO
+var _drag_start_position = Vector2.ZERO
 var _drag_start_size = Vector2.ZERO
 
-static func raise_window(win):
-	if win == null or not is_instance_valid(win):
+static func raise_window(window):
+	if window == null or not is_instance_valid(window):
 		return
-	var host = win.get_parent()
+	var host = window.get_parent()
 	if not (host is CanvasLayer):
 		return
-	var tree = win.get_tree()
+	var tree = window.get_tree()
 	if tree == null:
 		return
 	var windows = tree.get_nodes_in_group(GROUP_NAME)
 	var layers = []
 	for node in windows:
-		if node == win or not is_instance_valid(node):
+		if node == window or not is_instance_valid(node):
 			continue
 		var parent_layer = node.get_parent()
 		if parent_layer is CanvasLayer:
@@ -52,9 +52,9 @@ static func raise_window(win):
 			item.layer_node.layer = next_z
 			next_z += 1
 	host.layer = next_z
-	win.focused.emit()
+	window.focused.emit()
 
-static func is_point_over_any(tree, screen_pos):
+static func is_point_over_any(tree, screen_position):
 	if tree == null:
 		return false
 	for node in tree.get_nodes_in_group(GROUP_NAME):
@@ -62,24 +62,24 @@ static func is_point_over_any(tree, screen_pos):
 			continue
 		if node.is_interacting():
 			return true
-		if node.get_global_rect().has_point(screen_pos):
+		if node.get_global_rect().has_point(screen_position):
 			return true
 	return false
 
 static func get_topmost_window(tree):
 	if tree == null:
 		return null
-	var best_win = null
+	var best_window = null
 	var best_layer = -1
 	for node in tree.get_nodes_in_group(GROUP_NAME):
 		if not is_instance_valid(node) or not node.visible:
 			continue
 		var parent_layer = node.get_parent()
-		var z_val = parent_layer.layer if parent_layer is CanvasLayer else 0
-		if best_win == null or z_val >= best_layer:
-			best_win = node
-			best_layer = z_val
-	return best_win
+		var z_value = parent_layer.layer if parent_layer is CanvasLayer else 0
+		if best_window == null or z_value >= best_layer:
+			best_window = node
+			best_layer = z_value
+	return best_window
 
 func _ready():
 	add_to_group(GROUP_NAME)
@@ -131,15 +131,15 @@ func is_interacting():
 	return _drag_mode != ""
 
 func _get_viewport_bounds():
-	var vp = get_viewport()
-	if vp != null:
-		return vp.get_visible_rect().size
+	var viewport = get_viewport()
+	if viewport != null:
+		return viewport.get_visible_rect().size
 	return Vector2(1280, 720)
 
 func clamp_to_viewport():
-	var vp_size = _get_viewport_bounds()
-	var max_w = min(max_window_size.x, vp_size.x - 16.0)
-	var max_h = min(max_window_size.y, vp_size.y - 16.0)
+	var viewport_size = _get_viewport_bounds()
+	var max_w = min(max_window_size.x, viewport_size.x - 16.0)
+	var max_h = min(max_window_size.y, viewport_size.y - 16.0)
 	if size.x > 0.0 and size.y > 0.0:
 		var min_scale = max(min_window_size.x / size.x, min_window_size.y / size.y)
 		var max_scale = min(max_w / size.x, max_h / size.y)
@@ -148,17 +148,17 @@ func clamp_to_viewport():
 			size = size * clamped_scale
 	_sync_content_scale()
 	var min_x = -size.x + MIN_VISIBLE_X
-	var max_x = vp_size.x - MIN_VISIBLE_X
+	var max_x = viewport_size.x - MIN_VISIBLE_X
 	var min_y = -size.y + MIN_VISIBLE_Y
-	var max_y = vp_size.y - MIN_VISIBLE_Y
+	var max_y = viewport_size.y - MIN_VISIBLE_Y
 	position = Vector2(clamp(position.x, min_x, max_x), clamp(position.y, min_y, max_y))
 
-func _detect_hit_zone(local_pos):
-	if not Rect2(Vector2.ZERO, size).has_point(local_pos):
+func _detect_hit_zone(local_position):
+	if not Rect2(Vector2.ZERO, size).has_point(local_position):
 		return ""
-	var in_right = local_pos.x >= size.x - EDGE_MARGIN and local_pos.x <= size.x + 2.0
-	var in_bottom = local_pos.y >= size.y - EDGE_MARGIN and local_pos.y <= size.y + 2.0
-	var in_corner = local_pos.x >= size.x - CORNER_SIZE and local_pos.y >= size.y - CORNER_SIZE
+	var in_right = local_position.x >= size.x - EDGE_MARGIN and local_position.x <= size.x + 2.0
+	var in_bottom = local_position.y >= size.y - EDGE_MARGIN and local_position.y <= size.y + 2.0
+	var in_corner = local_position.x >= size.x - CORNER_SIZE and local_position.y >= size.y - CORNER_SIZE
 	if in_corner or (in_right and in_bottom):
 		return "resize_both"
 	if in_right:
@@ -180,41 +180,41 @@ func _update_cursor_for_zone(zone):
 		_:
 			mouse_default_cursor_shape = Control.CURSOR_ARROW
 
-func _input(ev):
+func _input(event):
 	if not visible:
 		return
-	if ev is InputEventMouseButton and ev.pressed:
-		if get_global_rect().has_point(ev.position):
-			var top_win = get_topmost_window(get_tree())
-			if top_win == self or not is_point_over_higher_window(ev.position):
+	if event is InputEventMouseButton and event.pressed:
+		if get_global_rect().has_point(event.position):
+			var top_window = get_topmost_window(get_tree())
+			if top_window == self or not is_point_over_higher_window(event.position):
 				raise_window(self)
-		if ev.button_index == MOUSE_BUTTON_LEFT:
-			if is_point_over_higher_window(ev.position):
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if is_point_over_higher_window(event.position):
 				return
-			var local_pos = ev.position - global_position
-			var zone = _detect_hit_zone(local_pos)
-			if zone != "" and (zone != "move" or not _is_point_on_interactive_child(ev.position)):
+			var local_position = event.position - global_position
+			var zone = _detect_hit_zone(local_position)
+			if zone != "" and (zone != "move" or not _is_point_on_interactive_child(event.position)):
 				_drag_mode = zone
-				_drag_start_mouse = ev.position
-				_drag_start_pos = position
+				_drag_start_mouse = event.position
+				_drag_start_position = position
 				_drag_start_size = size
 				_update_cursor_for_zone(zone)
 				get_viewport().set_input_as_handled()
-	elif ev is InputEventMouseButton and not ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+	elif event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if _drag_mode != "":
 			_drag_mode = ""
 			_update_cursor_for_zone("")
 			get_viewport().set_input_as_handled()
-	elif ev is InputEventMouseMotion:
+	elif event is InputEventMouseMotion:
 		if _drag_mode != "":
-			_apply_drag_motion(ev.position)
+			_apply_drag_motion(event.position)
 			get_viewport().set_input_as_handled()
 		else:
-			var local_pos = ev.position - global_position
-			if Rect2(Vector2.ZERO, size).has_point(local_pos) and not is_point_over_higher_window(ev.position):
-				_update_cursor_for_zone(_detect_hit_zone(local_pos))
+			var local_position = event.position - global_position
+			if Rect2(Vector2.ZERO, size).has_point(local_position) and not is_point_over_higher_window(event.position):
+				_update_cursor_for_zone(_detect_hit_zone(local_position))
 
-func is_point_over_higher_window(screen_pos):
+func is_point_over_higher_window(screen_position):
 	var my_layer = get_parent().layer if get_parent() is CanvasLayer else 0
 	var tree = get_tree()
 	if tree == null:
@@ -223,28 +223,28 @@ func is_point_over_higher_window(screen_pos):
 		if node == self or not is_instance_valid(node) or not node.visible:
 			continue
 		var other_layer = node.get_parent().layer if node.get_parent() is CanvasLayer else 0
-		if other_layer > my_layer and node.get_global_rect().has_point(screen_pos):
+		if other_layer > my_layer and node.get_global_rect().has_point(screen_position):
 			return true
 	return false
 
-func _is_point_on_interactive_child(screen_pos):
-	return _check_interactive_recursive(self, screen_pos)
+func _is_point_on_interactive_child(screen_position):
+	return _check_interactive_recursive(self, screen_position)
 
-func _check_interactive_recursive(node, screen_pos):
+func _check_interactive_recursive(node, screen_position):
 	for child in node.get_children():
 		if child is Control and child.visible:
 			var is_interactive = child is BaseButton or child is Slider or child is ScrollBar or child is LineEdit or child is TextEdit
-			if is_interactive and child.mouse_filter != Control.MOUSE_FILTER_IGNORE and child.get_global_rect().has_point(screen_pos):
+			if is_interactive and child.mouse_filter != Control.MOUSE_FILTER_IGNORE and child.get_global_rect().has_point(screen_position):
 				return true
-			if _check_interactive_recursive(child, screen_pos):
+			if _check_interactive_recursive(child, screen_position):
 				return true
 	return false
 
-func _apply_drag_motion(mouse_pos):
-	var delta = mouse_pos - _drag_start_mouse
-	var vp_size = _get_viewport_bounds()
+func _apply_drag_motion(mouse_position):
+	var delta = mouse_position - _drag_start_mouse
+	var viewport_size = _get_viewport_bounds()
 	if _drag_mode == "move":
-		position = _drag_start_pos + delta
+		position = _drag_start_position + delta
 		clamp_to_viewport()
 		return
 	if _drag_start_size.x <= 0.0 or _drag_start_size.y <= 0.0:
@@ -259,8 +259,8 @@ func _apply_drag_motion(mouse_pos):
 		var sy = (_drag_start_size.y + delta.y) / _drag_start_size.y
 		raw_scale = sx if abs(sx - 1.0) >= abs(sy - 1.0) else sy
 	var min_scale = max(min_window_size.x / _drag_start_size.x, min_window_size.y / _drag_start_size.y)
-	var max_w = min(max_window_size.x, vp_size.x - position.x - 8.0)
-	var max_h = min(max_window_size.y, vp_size.y - position.y - 8.0)
+	var max_w = min(max_window_size.x, viewport_size.x - position.x - 8.0)
+	var max_h = min(max_window_size.y, viewport_size.y - position.y - 8.0)
 	var max_scale = min(max_w / _drag_start_size.x, max_h / _drag_start_size.y)
 	var final_scale = clamp(raw_scale, min_scale, max(min_scale, max_scale))
 	size = _drag_start_size * final_scale

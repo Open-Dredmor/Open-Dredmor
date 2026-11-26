@@ -150,9 +150,9 @@ func _get_tile_texture(tile):
 		return _tile_texture_cache[region_key]
 	var tile_img = _source_image.get_region(Rect2i(tile.start_x, tile.start_y, tile.width, tile.height))
 	tile_img.generate_mipmaps()
-	var tex = ImageTexture.create_from_image(tile_img)
-	_tile_texture_cache[region_key] = tex
-	return tex
+	var texture = ImageTexture.create_from_image(tile_img)
+	_tile_texture_cache[region_key] = texture
+	return texture
 
 func get_tile(tile_name):
 	if not has_tile(tile_name):
@@ -161,9 +161,9 @@ func get_tile(tile_name):
 	var tile = options[randi() % options.size()]
 	var sprite = Sprite2D.new()
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
-	var tile_tex = _get_tile_texture(tile)
-	if tile_tex != null:
-		sprite.texture = tile_tex
+	var tile_texture = _get_tile_texture(tile)
+	if tile_texture != null:
+		sprite.texture = tile_texture
 	else:
 		sprite.region_enabled = true
 		sprite.region_rect = Rect2(tile.start_x, tile.start_y, tile.width, tile.height)

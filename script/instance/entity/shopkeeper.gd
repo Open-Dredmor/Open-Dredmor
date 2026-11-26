@@ -40,20 +40,20 @@ func init(keeper_shop_id, target_monster_name = "Brax", start_hostile = false, g
 	monster_name = target_monster_name
 	is_hostile = start_hostile
 	is_guard = guard_flag
-	var monster_def = OD.Database.get_monster(monster_name)
+	var monster_definition = OD.Database.get_monster(monster_name)
 	var palette_path = null
-	if monster_def != null and monster_def.has("palette") and typeof(monster_def.palette) == TYPE_DICTIONARY and monster_def.palette.has("name"):
-		palette_path = monster_def.palette.name
-	var idle_def = monster_def.idleSprite if monster_def != null and monster_def.has("idleSprite") else null
-	if idle_def != null:
-		for dir_key in ["down", "up", "left", "right"]:
-			if idle_def.has(dir_key):
-				var anim = OD.Load.animation(idle_def[dir_key], palette_path)
+	if monster_definition != null and monster_definition.has("palette") and typeof(monster_definition.palette) == TYPE_DICTIONARY and monster_definition.palette.has("name"):
+		palette_path = monster_definition.palette.name
+	var idle_definition = monster_definition.idleSprite if monster_definition != null and monster_definition.has("idleSprite") else null
+	if idle_definition != null:
+		for direction_key in ["down", "up", "left", "right"]:
+			if idle_definition.has(direction_key):
+				var anim = OD.Load.animation(idle_definition[direction_key], palette_path)
 				anim.visible = false
 				if anim.is_tall():
 					anim.position.y -= OD.Assets.CELL_PIXEL_HEIGHT / 2.0
 				add_child(anim)
-				_sprites[dir_key] = anim
+				_sprites[direction_key] = anim
 	if _sprites.has("down"):
 		_active_sprite = _sprites["down"]
 		_active_sprite.visible = true
@@ -72,21 +72,21 @@ func is_tall():
 	return _active_sprite != null and _active_sprite.is_tall()
 
 func set_facing(delta_x, delta_y):
-	var dir_key = "down"
+	var direction_key = "down"
 	if abs(delta_x) >= abs(delta_y):
 		if delta_x < 0:
-			dir_key = "left"
+			direction_key = "left"
 		elif delta_x > 0:
-			dir_key = "right"
+			direction_key = "right"
 	else:
 		if delta_y < 0:
-			dir_key = "up"
+			direction_key = "up"
 		else:
-			dir_key = "down"
-	if _sprites.has(dir_key) and _active_sprite != _sprites[dir_key]:
+			direction_key = "down"
+	if _sprites.has(direction_key) and _active_sprite != _sprites[direction_key]:
 		if _active_sprite != null:
 			_active_sprite.visible = false
-		_active_sprite = _sprites[dir_key]
+		_active_sprite = _sprites[direction_key]
 		_active_sprite.visible = true
 
 func teleport_to(target_cell):
@@ -99,8 +99,8 @@ func step_toward(player_cell, entity_grid):
 	if not is_hostile:
 		return { acted = false }
 	var current_cell = Vector2i(int(_grid_position.x), int(_grid_position.y))
-	var dist = abs(current_cell.x - player_cell.x) + abs(current_cell.y - player_cell.y)
-	if dist <= 1:
+	var distance = abs(current_cell.x - player_cell.x) + abs(current_cell.y - player_cell.y)
+	if distance <= 1:
 		set_facing(player_cell.x - current_cell.x, player_cell.y - current_cell.y)
 		return {
 			acted = true,
@@ -110,8 +110,8 @@ func step_toward(player_cell, entity_grid):
 		}
 	var best_step = null
 	var best_score = 999999
-	for dir_vec in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-		var candidate = current_cell + dir_vec
+	for direction_vec in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		var candidate = current_cell + direction_vec
 		if candidate == player_cell:
 			continue
 		if not entity_grid.is_walkable(candidate.x, candidate.y):
@@ -121,8 +121,8 @@ func step_toward(player_cell, entity_grid):
 			best_score = score
 			best_step = candidate
 	if best_step != null:
-		var old_dist = abs(current_cell.x - player_cell.x) + abs(current_cell.y - player_cell.y)
-		if best_score <= old_dist:
+		var old_distance = abs(current_cell.x - player_cell.x) + abs(current_cell.y - player_cell.y)
+		if best_score <= old_distance:
 			set_facing(best_step.x - current_cell.x, best_step.y - current_cell.y)
 			move_delta(best_step.x - current_cell.x, best_step.y - current_cell.y)
 			entity_grid.move_entity(self, current_cell, best_step)

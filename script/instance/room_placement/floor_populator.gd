@@ -61,8 +61,8 @@ static func _can_carve_lake_cell(entity_grid, cell, used_cells):
 		return false
 	if entity_grid.has_liquid(cell.x, cell.y):
 		return false
-	for dir in EIGHT_DIRS:
-		var neighbor = cell + dir
+	for direction in EIGHT_DIRS:
+		var neighbor = cell + direction
 		if not entity_grid.has_floor(neighbor.x, neighbor.y) and not entity_grid.has_liquid(neighbor.x, neighbor.y):
 			return false
 		if entity_grid.get_door_at(neighbor.x, neighbor.y) != null or entity_grid.get_stairs_at(neighbor.x, neighbor.y) != null:
@@ -104,16 +104,16 @@ static func _populate_lakes(entity_grid, placements, used_cells, no_grind):
 		var frontier = [seed_cell]
 		var carved_cells = []
 		while not frontier.is_empty() and carved_cells.size() < target_size:
-			var idx = randi() % frontier.size()
-			var current = frontier[idx]
-			frontier.remove_at(idx)
+			var index = randi() % frontier.size()
+			var current = frontier[index]
+			frontier.remove_at(index)
 			if not _can_carve_lake_cell(entity_grid, current, used_cells):
 				continue
 			used_cells[current] = true
 			entity_grid.carve_liquid_cell(current.x, current.y, liquid_type)
 			carved_cells.append(current)
-			for dir in CARDINAL_DIRS:
-				var next_cell = current + dir
+			for direction in CARDINAL_DIRS:
+				var next_cell = current + direction
 				if _can_carve_lake_cell(entity_grid, next_cell, used_cells):
 					frontier.append(next_cell)
 		if not carved_cells.is_empty():
@@ -183,14 +183,14 @@ static func _roll_treasure_loot(floor_level):
 	var mushroom_max = int(OD.Database.get_tweak("mushroom roll max", 649))
 	var max_level = floor_level + 2
 
-	var artifact_pct = clamp(float(OD.Database.get_tweak("item power granting chance", 4)) / 100.0, 0.0, 0.25)
+	var artifact_percent = clamp(float(OD.Database.get_tweak("item power granting chance", 4)) / 100.0, 0.0, 0.25)
 
 	if roll <= weapon_max:
-		return OD.Database.roll_floor_loot(floor_level, "weapon", artifact_pct)
+		return OD.Database.roll_floor_loot(floor_level, "weapon", artifact_percent)
 	if roll <= armour_max:
-		return OD.Database.roll_floor_loot(floor_level, "armour", artifact_pct)
+		return OD.Database.roll_floor_loot(floor_level, "armour", artifact_percent)
 	if roll <= ring_max:
-		return OD.Database.roll_floor_loot(floor_level, "ring", artifact_pct)
+		return OD.Database.roll_floor_loot(floor_level, "ring", artifact_percent)
 	if roll <= ammo_max:
 		return OD.Database.roll_floor_loot(floor_level, "bolts", 0.0)
 	if roll <= food_max:
@@ -213,9 +213,9 @@ static func _populate_floor_loot_and_traps(entity_grid, placements, floor_level,
 		var cell = _take_random_cell(trap_cells, used_cells)
 		if cell == null:
 			break
-		var trap_def = OD.Database.get_trap(null, floor_level + 1)
-		if trap_def != null:
-			entity_grid.add_trap(cell.x, cell.y, trap_def)
+		var trap_definition = OD.Database.get_trap(null, floor_level + 1)
+		if trap_definition != null:
+			entity_grid.add_trap(cell.x, cell.y, trap_definition)
 
 	var treasure_cells = _collect_flagged_cells(entity_grid, placements, "notreasure")
 	var min_treasures = max(0, int(OD.Database.get_tweak("minimum number of treasures", 37)))
@@ -300,8 +300,8 @@ static func _populate_floor_decals(entity_grid, placements, no_grind):
 		entity_grid.add_floor_decal(cell.x, cell.y, chosen_decal)
 
 static func _is_adjacent_to_door(entity_grid, cell):
-	for dir in CARDINAL_DIRS:
-		var neighbor = cell + dir
+	for direction in CARDINAL_DIRS:
+		var neighbor = cell + direction
 		if entity_grid.get_door_at(neighbor.x, neighbor.y) != null:
 			return true
 	return false
@@ -331,17 +331,17 @@ static func _is_cell_eligible(entity_grid, cell, used_cells):
 
 static func _take_random_cell(cells, used_cells):
 	while not cells.is_empty():
-		var idx = randi() % cells.size()
-		var cell = cells[idx]
-		cells.remove_at(idx)
+		var index = randi() % cells.size()
+		var cell = cells[index]
+		cells.remove_at(index)
 		if not used_cells.has(cell):
 			used_cells[cell] = true
 			return cell
 	return null
 
-static func _spawn_element(entity_grid, cell, elem_type):
-	var actual_type = elem_type
-	if elem_type == "dispenser":
+static func _spawn_element(entity_grid, cell, element_type):
+	var actual_type = element_type
+	if element_type == "dispenser":
 		actual_type = VENDING_TYPES[randi() % VENDING_TYPES.size()]
 	var asset = OD.Assets.element(actual_type)
 	if asset == null:
@@ -364,11 +364,11 @@ static func _spawn_blocker_prop(entity_grid, cell):
 		if OD.Load.exists(sprite_path):
 			var anim = OD.Load.animation(sprite_path)
 			if anim != null:
-				var pixel_pos = OD.Math.grid_to_pixel(cell.x, cell.y)
+				var pixel_position = OD.Math.grid_to_pixel(cell.x, cell.y)
 				if anim.is_tall():
-					pixel_pos.y -= OD.Assets.CELL_PIXEL_HEIGHT / 2.0
+					pixel_position.y -= OD.Assets.CELL_PIXEL_HEIGHT / 2.0
 				anim.set_meta("grid_cell", cell)
-				entity_grid.add_animation(pixel_pos.x, pixel_pos.y, "custom_blocker", anim)
+				entity_grid.add_animation(pixel_position.x, pixel_position.y, "custom_blocker", anim)
 				entity_grid.mark_blocker(cell.x, cell.y)
 				return true
 	return false
@@ -377,25 +377,25 @@ static func _create_teleporter_anim(channel):
 	var pad_configs = OD.Resources.paths.teleporters
 	if pad_configs.is_empty():
 		return null
-	var cfg = pad_configs[channel % pad_configs.size()]
-	if OD.Load.exists(cfg.prefix + "0000.png"):
-		return OD.Load.png_sprite(cfg.prefix, 0, cfg.frames, cfg.rate)
+	var config = pad_configs[channel % pad_configs.size()]
+	if OD.Load.exists(config.prefix + "0000.png"):
+		return OD.Load.png_sprite(config.prefix, 0, config.frames, config.rate)
 	return null
 
 static func _populate_teleporters(entity_grid, all_eligible_cells, used_cells):
-	var num_teleporters = max(0, int(OD.Database.get_tweak("number of teleporters", 5)))
-	for channel in range(num_teleporters):
+	var number_teleporters = max(0, int(OD.Database.get_tweak("number of teleporters", 5)))
+	for channel in range(number_teleporters):
 		if all_eligible_cells.size() < 2:
 			break
 		var cell_a = _take_random_cell(all_eligible_cells, used_cells)
 		var cell_b = _take_random_cell(all_eligible_cells, used_cells)
 		if cell_a == null or cell_b == null:
 			break
-		var anim_a = _create_teleporter_anim(channel)
-		var anim_b = _create_teleporter_anim(channel)
-		if anim_a != null and anim_b != null:
-			entity_grid.add_teleporter(cell_a.x, cell_a.y, channel, cell_b, anim_a)
-			entity_grid.add_teleporter(cell_b.x, cell_b.y, channel, cell_a, anim_b)
+		var animation_a = _create_teleporter_anim(channel)
+		var animation_b = _create_teleporter_anim(channel)
+		if animation_a != null and animation_b != null:
+			entity_grid.add_teleporter(cell_a.x, cell_a.y, channel, cell_b, animation_a)
+			entity_grid.add_teleporter(cell_b.x, cell_b.y, channel, cell_a, animation_b)
 
 static func _populate_wizard_portal(entity_grid, all_eligible_cells, used_cells):
 	var portal_cell = _take_random_cell(all_eligible_cells, used_cells)
@@ -406,11 +406,11 @@ static func _pick_floor_monster(floor_level):
 	if OD.Database == null:
 		return null
 	for _try in range(12):
-		var cand = OD.Database.get_random_monster()
-		if typeof(cand) == TYPE_DICTIONARY and cand.has("name") and OD.Database.get_monster(str(cand.name)) != null:
-			var lvl = str(cand.get("level", "0")).to_int()
+		var candidate = OD.Database.get_random_monster()
+		if typeof(candidate) == TYPE_DICTIONARY and candidate.has("name") and OD.Database.get_monster(str(candidate.name)) != null:
+			var lvl = str(candidate.get("level", "0")).to_int()
 			if lvl <= max(1, int(floor_level) + 1):
-				return cand
+				return candidate
 	return OD.Database.get_monster("Diggle")
 
 static func _populate_monsters_in_room(entity_grid, placement, floor_level, no_grind, min_per_room, max_extra):
@@ -434,9 +434,9 @@ static func _populate_monsters_in_room(entity_grid, placement, floor_level, no_g
 	for cell in room_cells:
 		if spawned >= target_count:
 			break
-		var mon_def = _pick_floor_monster(floor_level)
-		if mon_def != null and mon_def.has("name"):
-			if entity_grid.spawn_monster_at(str(mon_def.name), cell.x, cell.y, floor_level, true) != null:
+		var mon_definition = _pick_floor_monster(floor_level)
+		if mon_definition != null and mon_definition.has("name"):
+			if entity_grid.spawn_monster_at(str(mon_definition.name), cell.x, cell.y, floor_level, true) != null:
 				spawned += 1
 
 static func _populate_monsters(entity_grid, placements, floor_level, no_grind):
@@ -475,11 +475,11 @@ static func populate_async(entity_grid, placements, floor_level, no_grind = fals
 	var total_rooms = max(1, placements.size())
 	var min_per_room = max(1, int(OD.Database.get_tweak("minimum number of monsters in room", 1)))
 	var max_extra = max(1, int(OD.Database.get_tweak("maximum number of additional monsters", 3)))
-	for idx in range(placements.size()):
-		if OD.Loading != null and (idx % 6 == 0 or idx == placements.size() - 1):
-			var frac = 0.6 + 0.32 * (float(idx + 1) / float(total_rooms))
-			await OD.Loading.step("Floor " + str(floor_level) + ": spawning monsters (room " + str(idx + 1) + "/" + str(total_rooms) + ")...", lerp(progress_start, progress_end, frac))
-		_populate_monsters_in_room(entity_grid, placements[idx], floor_level, no_grind, min_per_room, max_extra)
+	for index in range(placements.size()):
+		if OD.Loading != null and (index % 6 == 0 or index == placements.size() - 1):
+			var frac = 0.6 + 0.32 * (float(index + 1) / float(total_rooms))
+			await OD.Loading.step("Floor " + str(floor_level) + ": spawning monsters (room " + str(index + 1) + "/" + str(total_rooms) + ")...", lerp(progress_start, progress_end, frac))
+		_populate_monsters_in_room(entity_grid, placements[index], floor_level, no_grind, min_per_room, max_extra)
 
 	if OD.Loading != null:
 		await OD.Loading.step("Floor " + str(floor_level) + ": adding floor decals...", lerp(progress_start, progress_end, 0.96))
@@ -522,8 +522,8 @@ static func _populate_elements_and_props(entity_grid, ctx, no_grind):
 		for rule in CHANCE_ELEMENT_RULES:
 			if room_info.cells.is_empty():
 				break
-			var chance_val = max(1, int(OD.Database.get_tweak(rule.tweak, rule.default_chance)))
-			if randi() % chance_val == 0:
+			var chance_value = max(1, int(OD.Database.get_tweak(rule.tweak, rule.default_chance)))
+			if randi() % chance_value == 0:
 				var cell = _take_random_cell(room_info.cells, used_cells)
 				if cell != null:
 					_spawn_element(entity_grid, cell, rule.type)

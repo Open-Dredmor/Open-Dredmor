@@ -47,53 +47,53 @@ func _build_ui():
 	margin.add_theme_constant_override("margin_bottom", 20)
 	container.add_child(margin)
 
-	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 12)
-	margin.add_child(vbox)
+	var vertical_box = VBoxContainer.new()
+	vertical_box.add_theme_constant_override("separation", 12)
+	margin.add_child(vertical_box)
 
 	var title = Label.new()
 	title.text = "Crafting System Verification"
 	title.add_theme_font_size_override("font_size", 26)
-	vbox.add_child(title)
+	vertical_box.add_child(title)
 
-	var btn_hbox = HBoxContainer.new()
-	btn_hbox.add_theme_constant_override("separation", 10)
-	vbox.add_child(btn_hbox)
+	var button_horizontal_box = HBoxContainer.new()
+	button_horizontal_box.add_theme_constant_override("separation", 10)
+	vertical_box.add_child(button_horizontal_box)
 
-	var open_craft_btn = Button.new()
-	open_craft_btn.text = "Open Crafting Workbench"
-	open_craft_btn.pressed.connect(func(): open_crafting("", "craft"))
-	btn_hbox.add_child(open_craft_btn)
+	var open_craft_button = Button.new()
+	open_craft_button.text = "Open Crafting Workbench"
+	open_craft_button.pressed.connect(func(): open_crafting("", "craft"))
+	button_horizontal_box.add_child(open_craft_button)
 
-	var open_encrust_btn = Button.new()
-	open_encrust_btn.text = "Open Encrusting Workbench"
-	open_encrust_btn.pressed.connect(func(): open_crafting("smithing", "encrust"))
-	btn_hbox.add_child(open_encrust_btn)
+	var open_encrust_button = Button.new()
+	open_encrust_button.text = "Open Encrusting Workbench"
+	open_encrust_button.pressed.connect(func(): open_crafting("smithing", "encrust"))
+	button_horizontal_box.add_child(open_encrust_button)
 
-	var open_inv_btn = Button.new()
-	open_inv_btn.text = "Open Inventory"
-	open_inv_btn.pressed.connect(open_inventory)
-	btn_hbox.add_child(open_inv_btn)
+	var open_inventory_button = Button.new()
+	open_inventory_button.text = "Open Inventory"
+	open_inventory_button.pressed.connect(open_inventory)
+	button_horizontal_box.add_child(open_inventory_button)
 
-	var check_btn = Button.new()
-	check_btn.text = "Run Automated Self-Check"
-	check_btn.pressed.connect(_run_self_check)
-	btn_hbox.add_child(check_btn)
+	var check_button = Button.new()
+	check_button.text = "Run Automated Self-Check"
+	check_button.pressed.connect(_run_self_check)
+	button_horizontal_box.add_child(check_button)
 
-	var game_btn = Button.new()
-	game_btn.text = "Launch Game"
-	game_btn.pressed.connect(func(): OD.Scenes.goto(OD.Scenes.GAME))
-	btn_hbox.add_child(game_btn)
+	var game_button = Button.new()
+	game_button.text = "Launch Game"
+	game_button.pressed.connect(func(): OD.Scenes.goto(OD.Scenes.GAME))
+	button_horizontal_box.add_child(game_button)
 
 	_summary_label = Label.new()
 	_summary_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	vbox.add_child(_summary_label)
+	vertical_box.add_child(_summary_label)
 
 	_log_label = Label.new()
 	_log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_log_label.text = "Ready."
-	vbox.add_child(_log_label)
+	vertical_box.add_child(_log_label)
 
 	_refresh_summary()
 	_run_self_check()
@@ -157,12 +157,12 @@ func _refresh_summary():
 	if _player == null or _summary_label == null:
 		return
 	var possessed = _player.get_possessed_toolkits()
-	var inv_lines = []
+	var inventory_lines = []
 	for entry in _player.get_inventory_items():
 		var item = entry.get("item", null)
 		if item != null:
-			inv_lines.append("%s x%d" % [str(item.get("name", "")), int(item.get("count", 1))])
-	_summary_label.text = "Possessed Tools: " + str(possessed.keys()) + "\nSkills: Smith=" + str(_player.get_crafting_skill_level("smithing")) + " Tinker=" + str(_player.get_crafting_skill_level("tinkerer")) + " Alch=" + str(_player.get_crafting_skill_level("alchemy")) + " Wand=" + str(_player.get_crafting_skill_level("lathe")) + "\nInventory:\n- " + "\n- ".join(inv_lines)
+			inventory_lines.append("%s x%d" % [str(item.get("name", "")), int(item.get("count", 1))])
+	_summary_label.text = "Possessed Tools: " + str(possessed.keys()) + "\nSkills: Smith=" + str(_player.get_crafting_skill_level("smithing")) + " Tinker=" + str(_player.get_crafting_skill_level("tinkerer")) + " Alch=" + str(_player.get_crafting_skill_level("alchemy")) + " Wand=" + str(_player.get_crafting_skill_level("lathe")) + "\nInventory:\n- " + "\n- ".join(inventory_lines)
 
 func _run_self_check():
 	var failures = []
@@ -182,9 +182,9 @@ func _run_self_check():
 		failures.append("Could not find Iron Ingot recipe")
 	else:
 		var before_iron = _player.count_item_in_inventory("Iron Ingot")
-		var craft_res = _player.craft_recipe(iron_recipe)
-		if not craft_res.ok:
-			failures.append("Failed to craft Iron Ingot: " + str(craft_res.get("reason", "")))
+		var craft_result = _player.craft_recipe(iron_recipe)
+		if not craft_result.ok:
+			failures.append("Failed to craft Iron Ingot: " + str(craft_result.get("reason", "")))
 		elif _player.count_item_in_inventory("Iron Ingot") <= before_iron:
 			failures.append("Iron Ingot count did not increase after crafting")
 
@@ -198,9 +198,9 @@ func _run_self_check():
 		failures.append("Could not find Hard Cider still recipe")
 	else:
 		var before_cider = _player.count_item_in_inventory("Hard Cider")
-		var still_res = _player.craft_recipe(cider_recipe)
-		if not still_res.ok:
-			failures.append("Failed to distill Hard Cider: " + str(still_res.get("reason", "")))
+		var still_result = _player.craft_recipe(cider_recipe)
+		if not still_result.ok:
+			failures.append("Failed to distill Hard Cider: " + str(still_result.get("reason", "")))
 		elif _player.count_item_in_inventory("Hard Cider") <= before_cider:
 			failures.append("Hard Cider count did not increase after distilling")
 
@@ -214,28 +214,28 @@ func _run_self_check():
 		failures.append("Could not find Copper Plate Boots smithing recipe")
 	else:
 		var before_boots = _player.count_item_in_inventory("Copper Plate Boots")
-		var smith_res = _player.craft_recipe(boots_recipe)
-		if not smith_res.ok:
-			failures.append("Failed to smith Copper Plate Boots: " + str(smith_res.get("reason", "")))
+		var smith_result = _player.craft_recipe(boots_recipe)
+		if not smith_result.ok:
+			failures.append("Failed to smith Copper Plate Boots: " + str(smith_result.get("reason", "")))
 		elif _player.count_item_in_inventory("Copper Plate Boots") <= before_boots:
 			failures.append("Copper Plate Boots count did not increase after smithing")
 
-	var encrust_def = OD.Database.get_encrust("Polymer Shell")
-	if encrust_def == null:
+	var encrust_definition = OD.Database.get_encrust("Polymer Shell")
+	if encrust_definition == null:
 		failures.append("Could not find Polymer Shell encrust")
 	else:
 		var test_sword = null
 		for entry in _player.get_inventory_items():
-			var inv_item = entry.get("item", null)
-			if inv_item != null and str(inv_item.get("base_name", inv_item.get("name", ""))) == "Iron Sword":
-				test_sword = inv_item
+			var inventory_item = entry.get("item", null)
+			if inventory_item != null and str(inventory_item.get("base_name", inventory_item.get("name", ""))) == "Iron Sword":
+				test_sword = inventory_item
 				break
 		if test_sword == null:
 			failures.append("Missing Iron Sword for encrust test")
 		else:
-			var enc_res = _player.encrust_item(encrust_def, test_sword)
-			if not enc_res.ok:
-				failures.append("Failed to encrust Iron Sword: " + str(enc_res.get("reason", "")))
+			var enc_result = _player.encrust_item(encrust_definition, test_sword)
+			if not enc_result.ok:
+				failures.append("Failed to encrust Iron Sword: " + str(enc_result.get("reason", "")))
 			elif not ("Polymer Shell" in test_sword.get("encrusts", [])):
 				failures.append("Iron Sword missing Polymer Shell encrust record")
 
@@ -271,17 +271,17 @@ func _run_self_check():
 		if not _player.knows_recipe(hidden_recipe):
 			failures.append("Player did not learn hidden recipe")
 
-	var dlg = CraftingDialogScript.new().init(_player, "alchemy", {})
-	if dlg == null:
+	var dialog = CraftingDialogScript.new().init(_player, "alchemy", {})
+	if dialog == null:
 		failures.append("Failed to instantiate CraftingDialog")
 	else:
-		dlg.queue_free()
+		dialog.queue_free()
 
-	var enc_dlg = CraftingDialogScript.new().init(_player, "smithing", { mode = "encrust" })
-	if enc_dlg == null:
+	var enc_dialog = CraftingDialogScript.new().init(_player, "smithing", { mode = "encrust" })
+	if enc_dialog == null:
 		failures.append("Failed to instantiate Encrusting CraftingDialog")
 	else:
-		enc_dlg.queue_free()
+		enc_dialog.queue_free()
 
 	if failures.is_empty():
 		_log_label.text = "ALL CRAFTING CHECKS PASSED!"

@@ -76,21 +76,21 @@ static func generate(_branch_name, _floor_level):
 		{ x = 6, y = 13, type = "wizardportal" }
 	]
 	for item in showcase_elements:
-		var elem_anim = OD.Assets.element(item.type)
-		if elem_anim != null:
-			entity_grid.add_element(item.x, item.y, item.type, elem_anim)
+		var element_animation = OD.Assets.element(item.type)
+		if element_animation != null:
+			entity_grid.add_element(item.x, item.y, item.type, element_animation)
 
-	var barrel_anim = OD.Load.animation("dungeon/barrelA.png")
-	if barrel_anim != null:
-		entity_grid.add_element(2, 5, "custom_breakable", barrel_anim, { name = "Barrel" })
-	var crate_anim = OD.Load.animation("dungeon/crate.png")
-	if crate_anim != null:
-		entity_grid.add_element(6, 5, "custom_breakable", crate_anim, { name = "Crate" })
+	var barrel_animation = OD.Load.animation("dungeon/barrelA.png")
+	if barrel_animation != null:
+		entity_grid.add_element(2, 5, "custom_breakable", barrel_animation, { name = "Barrel" })
+	var crate_animation = OD.Load.animation("dungeon/crate.png")
+	if crate_animation != null:
+		entity_grid.add_element(6, 5, "custom_breakable", crate_animation, { name = "Crate" })
 
-	var tp_cfg = OD.Resources.paths.teleporters[0]
-	if OD.Load.exists(tp_cfg.prefix + "0000.png"):
-		var pad_a = OD.Load.png_sprite(tp_cfg.prefix, 0, tp_cfg.frames, tp_cfg.rate)
-		var pad_b = OD.Load.png_sprite(tp_cfg.prefix, 0, tp_cfg.frames, tp_cfg.rate)
+	var tp_config = OD.Resources.paths.teleporters[0]
+	if OD.Load.exists(tp_config.prefix + "0000.png"):
+		var pad_a = OD.Load.png_sprite(tp_config.prefix, 0, tp_config.frames, tp_config.rate)
+		var pad_b = OD.Load.png_sprite(tp_config.prefix, 0, tp_config.frames, tp_config.rate)
 		entity_grid.add_teleporter(2, 13, 0, Vector2i(34, 4), pad_a)
 		entity_grid.add_teleporter(34, 4, 0, Vector2i(2, 13), pad_b)
 

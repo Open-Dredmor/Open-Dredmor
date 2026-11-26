@@ -18,8 +18,8 @@ const DEFAULT_KEYBINDS = {
 
 func load():
 	var config = ConfigFile.new()
-	var err = config.load(settings_path)
-	if err == OK or err == ERR_FILE_NOT_FOUND:
+	var error = config.load(settings_path)
+	if error == OK or error == ERR_FILE_NOT_FOUND:
 		if not config.has_section_key("open_dredmor", "dredmor_install_directory"):
 			config.set_value("open_dredmor", "dredmor_install_directory", null)
 		if not config.has_section_key("game", "audio_enabled"):
@@ -81,15 +81,15 @@ const REQUIRED_DREDMOR_FILES = [
 	"game/text.xml"
 ]
 
-func normalize_dir_path(dir_path):
-	if dir_path == null or dir_path == "":
+func normalize_dir_path(directory_path):
+	if directory_path == null or directory_path == "":
 		return ""
-	if dir_path[-1] != '/':
-		return dir_path + '/'
-	return dir_path
+	if directory_path[-1] != '/':
+		return directory_path + '/'
+	return directory_path
 
-func validate_dredmor_dir(dir_path):
-	var normalized = normalize_dir_path(dir_path)
+func validate_dredmor_dir(directory_path):
+	var normalized = normalize_dir_path(directory_path)
 	var missing = []
 	if normalized == "" or not DirAccess.dir_exists_absolute(normalized):
 		return {
@@ -106,20 +106,20 @@ func validate_dredmor_dir(dir_path):
 
 func dredmor_install_dir():
 	if cached_install_dir == null:
-		var dir = _settings.get_value("open_dredmor", "dredmor_install_directory")
-		if dir != null and dir != "":
-			cached_install_dir = normalize_dir_path(dir)
+		var directory = _settings.get_value("open_dredmor", "dredmor_install_directory")
+		if directory != null and directory != "":
+			cached_install_dir = normalize_dir_path(directory)
 	return cached_install_dir
 
 func get_available_content_packs():
 	if _cached_content_packs != null:
 		return _cached_content_packs
 	_cached_content_packs = []
-	var install_dir = dredmor_install_dir()
-	if install_dir == null or install_dir == "":
+	var install_directory = dredmor_install_dir()
+	if install_directory == null or install_directory == "":
 		return _cached_content_packs
 	for expansion_id in EXPANSION_INFO.keys():
-		if DirAccess.dir_exists_absolute(install_dir + expansion_id + "/game"):
+		if DirAccess.dir_exists_absolute(install_directory + expansion_id + "/game"):
 			_cached_content_packs.append({
 				id = expansion_id,
 				name = EXPANSION_INFO[expansion_id],
@@ -127,16 +127,16 @@ func get_available_content_packs():
 				data_subdir = "game/",
 				kind = "expansion"
 			})
-	var mods_root = install_dir + "mods/"
+	var mods_root = install_directory + "mods/"
 	if DirAccess.dir_exists_absolute(mods_root):
-		var dir_access = DirAccess.open(mods_root)
-		if dir_access != null:
-			dir_access.list_dir_begin()
-			var entry = dir_access.get_next()
+		var directory_access = DirAccess.open(mods_root)
+		if directory_access != null:
+			directory_access.list_dir_begin()
+			var entry = directory_access.get_next()
 			while entry != "":
-				if dir_access.current_is_dir() and not entry.begins_with("."):
+				if directory_access.current_is_dir() and not entry.begins_with("."):
 					var prefix = "mods/" + entry + "/"
-					var data_subdir = "mod/" if DirAccess.dir_exists_absolute(install_dir + prefix + "mod") else "game/"
+					var data_subdir = "mod/" if DirAccess.dir_exists_absolute(install_directory + prefix + "mod") else "game/"
 					_cached_content_packs.append({
 						id = "mod:" + entry,
 						name = entry,
@@ -144,8 +144,8 @@ func get_available_content_packs():
 						data_subdir = data_subdir,
 						kind = "mod"
 					})
-				entry = dir_access.get_next()
-			dir_access.list_dir_end()
+				entry = directory_access.get_next()
+			directory_access.list_dir_end()
 	return _cached_content_packs
 	
 func audio_enabled():

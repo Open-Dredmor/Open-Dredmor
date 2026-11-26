@@ -21,13 +21,13 @@ func _resolve_bus(bus_name):
 	return &"Master"
 
 func _apply_bus_volume(bus_name, percent):
-	var bus_idx = AudioServer.get_bus_index(bus_name)
-	if bus_idx == -1:
+	var bus_index = AudioServer.get_bus_index(bus_name)
+	if bus_index == -1:
 		return
 	var clamped = clamp(int(percent), 0, 100)
-	AudioServer.set_bus_mute(bus_idx, clamped <= 0)
+	AudioServer.set_bus_mute(bus_index, clamped <= 0)
 	if clamped > 0:
-		AudioServer.set_bus_volume_db(bus_idx, linear_to_db(float(clamped) / 100.0))
+		AudioServer.set_bus_volume_db(bus_index, linear_to_db(float(clamped) / 100.0))
 
 func apply_volume_settings():
 	_apply_bus_volume(&"Master", OD.Settings.master_volume_percent())
@@ -35,11 +35,11 @@ func apply_volume_settings():
 	_apply_bus_volume(&"Sound", OD.Settings.sfx_volume_percent())
 	_apply_bus_volume(&"Dialogue", OD.Settings.dialogue_volume_percent())
 
-func apply_preview_volumes(master_pct, music_pct, sfx_pct, dialogue_pct):
-	_apply_bus_volume(&"Master", master_pct)
-	_apply_bus_volume(&"Music", music_pct)
-	_apply_bus_volume(&"Sound", sfx_pct)
-	_apply_bus_volume(&"Dialogue", dialogue_pct)
+func apply_preview_volumes(master_percent, music_percent, sfx_percent, dialogue_percent):
+	_apply_bus_volume(&"Master", master_percent)
+	_apply_bus_volume(&"Music", music_percent)
+	_apply_bus_volume(&"Sound", sfx_percent)
+	_apply_bus_volume(&"Dialogue", dialogue_percent)
 
 func _clear_sfx_pool():
 	for player in _sfx_players:

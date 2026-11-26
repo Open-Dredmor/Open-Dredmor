@@ -4,8 +4,8 @@ class_name DeathManager
 
 const HIGH_SCORES_PATH = "user://high_scores.json"
 
-static func _difficulty_label(diff_val):
-	match int(diff_val):
+static func _difficulty_label(diff_value):
+	match int(diff_value):
 		0:
 			return "Easy"
 		2:
@@ -17,9 +17,9 @@ static func compute_score(player, floor_level = 1, monsters_killed = 0):
 	if player == null:
 		return 0
 	var lvl = int(player.get("level")) if player.get("level") != null else 1
-	var xp_val = int(player.get("xp")) if player.get("xp") != null else 0
+	var xp_value = int(player.get("xp")) if player.get("xp") != null else 0
 	var gold = player.get_zorkmids() if player.has_method("get_zorkmids") else 0
-	return max(0, xp_val + lvl * 100 + gold + int(monsters_killed) * 25 + max(1, int(floor_level)) * 150)
+	return max(0, xp_value + lvl * 100 + gold + int(monsters_killed) * 25 + max(1, int(floor_level)) * 150)
 
 static func _collect_skill_names(player):
 	var names = []
@@ -40,8 +40,8 @@ static func delete_permadeath_save(save_file_path, permadeath_enabled):
 	if path == "":
 		return false
 	if FileAccess.file_exists(path):
-		var err = DirAccess.remove_absolute(path)
-		return err == OK
+		var error = DirAccess.remove_absolute(path)
+		return error == OK
 	return false
 
 static func load_high_scores(scores_path = HIGH_SCORES_PATH):
@@ -63,14 +63,14 @@ static func record_high_score(player, floor_level = 1, cause_of_death = "Unknown
 	var char_name = str(player.character_name) if player != null and str(player.get("character_name")) != "" else "Unnamed Hero"
 	var lvl = int(player.level) if player != null and player.get("level") != null else 1
 	var cause = str(cause_of_death) if str(cause_of_death) != "" else "Unknown"
-	var diff_str = _difficulty_label(settings.get("difficulty", 1))
+	var diff_text = _difficulty_label(settings.get("difficulty", 1))
 	var outcome_text = "Victory! (" + cause + ")" if is_victory else "Slain by " + cause
 	var entry = {
 		name = char_name,
 		level = lvl,
 		score = compute_score(player, floor_level, monsters_killed),
 		floor = max(1, int(floor_level)),
-		difficulty = diff_str,
+		difficulty = diff_text,
 		outcome = outcome_text,
 		victory = bool(is_victory),
 		cause_of_death = cause,

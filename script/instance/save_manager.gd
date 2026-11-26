@@ -8,9 +8,9 @@ const SAVES_DIR = "user://saves/"
 const SAVE_FORMAT = "open_dredmor_save"
 const SAVE_VERSION = 1
 
-static func ensure_saves_dir(saves_dir = SAVES_DIR):
-	if not DirAccess.dir_exists_absolute(saves_dir):
-		DirAccess.make_dir_recursive_absolute(saves_dir)
+static func ensure_saves_dir(saves_directory = SAVES_DIR):
+	if not DirAccess.dir_exists_absolute(saves_directory):
+		DirAccess.make_dir_recursive_absolute(saves_directory)
 
 static func _sanitize_filename(raw_name):
 	var cleaned = ""
@@ -27,19 +27,19 @@ static func _sanitize_filename(raw_name):
 		cleaned = "hero"
 	return cleaned.to_lower()
 
-static func build_save_path(character_name, saves_dir = SAVES_DIR):
-	ensure_saves_dir(saves_dir)
+static func build_save_path(character_name, saves_directory = SAVES_DIR):
+	ensure_saves_dir(saves_directory)
 	var base = _sanitize_filename(character_name)
-	var candidate = saves_dir + base + ".json"
+	var candidate = saves_directory + base + ".json"
 	if not FileAccess.file_exists(candidate):
 		return candidate
 	var suffix = 2
-	while FileAccess.file_exists(saves_dir + base + "_" + str(suffix) + ".json"):
+	while FileAccess.file_exists(saves_directory + base + "_" + str(suffix) + ".json"):
 		suffix += 1
-	return saves_dir + base + "_" + str(suffix) + ".json"
+	return saves_directory + base + "_" + str(suffix) + ".json"
 
-static func _difficulty_label(diff_val):
-	match int(diff_val):
+static func _difficulty_label(diff_value):
+	match int(diff_value):
 		0:
 			return "Easy"
 		2:
@@ -50,7 +50,7 @@ static func _difficulty_label(diff_val):
 static func serialize_player(player):
 	if player == null:
 		return null
-	var p_pos = player.get_grid_position()
+	var p_position = player.get_grid_position()
 	var tiers_out = {}
 	for sid in player.skill_tiers_unlocked.keys():
 		tiers_out[str(sid)] = int(player.skill_tiers_unlocked[sid])
@@ -58,7 +58,7 @@ static func serialize_player(player):
 	for sid in player.chosen_skills:
 		chosen_out.append(int(sid))
 	return {
-		grid_pos = [int(p_pos.x), int(p_pos.y)] if p_pos != null else [0, 0],
+		grid_pos = [int(p_position.x), int(p_position.y)] if p_position != null else [0, 0],
 		character_name = str(player.character_name),
 		hero_kind = str(player.hero_kind),
 		hp = int(player.hp),
@@ -143,10 +143,10 @@ static func deserialize_player(player, data):
 		for slot_name in player.EQUIPMENT_SLOTS:
 			player.equipment[slot_name] = saved_equip.get(slot_name, null)
 
-	var saved_inv = data.get("inventory", [])
-	if typeof(saved_inv) == TYPE_ARRAY:
-		for ii in range(min(saved_inv.size(), player.INVENTORY_SIZE)):
-			player.inventory[ii] = saved_inv[ii]
+	var saved_inventory = data.get("inventory", [])
+	if typeof(saved_inventory) == TYPE_ARRAY:
+		for ii in range(min(saved_inventory.size(), player.INVENTORY_SIZE)):
+			player.inventory[ii] = saved_inventory[ii]
 
 	player.level = max(1, int(data.get("level", 1)))
 	player.xp = max(0, int(data.get("xp", 0)))
@@ -202,8 +202,8 @@ static func save_run(dungeon, target_path = ""):
 		if p_grid != null:
 			pocket_out[str(key)] = GridSerializerScript.serialize_grid(p_grid)
 
-	var diff_val = int(settings.get("difficulty", 1))
-	var turn_num = dungeon.get_turn_scheduler().turn_count if dungeon.get_turn_scheduler() != null else 0
+	var diff_value = int(settings.get("difficulty", 1))
+	var turn_number = dungeon.get_turn_scheduler().turn_count if dungeon.get_turn_scheduler() != null else 0
 	var rng_seed = randi()
 
 	var payload = {
@@ -215,13 +215,13 @@ static func save_run(dungeon, target_path = ""):
 		level = int(player.level),
 		floor = int(dungeon.get_floor_level()),
 		branch_name = str(dungeon.get_branch_name()),
-		difficulty = _difficulty_label(diff_val),
-		difficulty_id = diff_val,
+		difficulty = _difficulty_label(diff_value),
+		difficulty_id = diff_value,
 		permadeath = bool(settings.get("permadeath", false)),
 		no_time_to_grind = bool(settings.get("no_time_to_grind", false)),
 		active_packs = settings.get("active_packs", []).duplicate(),
 		rng_seed = rng_seed,
-		turn_count = int(turn_num),
+		turn_count = int(turn_number),
 		monsters_killed = int(dungeon._monsters_killed),
 		lutefisk = int(dungeon._lutefisk_ref.value),
 		discovered_rooms = dungeon._discovered_rooms.duplicate(true),
@@ -229,7 +229,7 @@ static func save_run(dungeon, target_path = ""):
 		saved_main_return_cell = GridSerializerScript._vec2i_to_arr(dungeon._saved_main_return_cell),
 		active_strategy = str(dungeon._active_strategy),
 		dungeon_settings = {
-			difficulty = diff_val,
+			difficulty = diff_value,
 			no_time_to_grind = bool(settings.get("no_time_to_grind", false)),
 			permadeath = bool(settings.get("permadeath", false)),
 			hero = str(player.hero_kind),
@@ -287,48 +287,48 @@ static func restore_run_settings(save_data, save_path = ""):
 	if save_data.has("rng_seed"):
 		seed(int(save_data.get("rng_seed", 0)))
 
-static func list_saves(saves_dir = SAVES_DIR):
+static func list_saves(saves_directory = SAVES_DIR):
 	var saves = []
-	if not DirAccess.dir_exists_absolute(saves_dir):
+	if not DirAccess.dir_exists_absolute(saves_directory):
 		return saves
-	var dir = DirAccess.open(saves_dir)
-	if dir == null:
+	var directory = DirAccess.open(saves_directory)
+	if directory == null:
 		return saves
-	dir.list_dir_begin()
-	var file_name = dir.get_next()
+	directory.list_dir_begin()
+	var file_name = directory.get_next()
 	while file_name != "":
-		if not dir.current_is_dir() and file_name.ends_with(".json"):
-			var full_path = saves_dir + file_name
+		if not directory.current_is_dir() and file_name.ends_with(".json"):
+			var full_path = saves_directory + file_name
 			var loaded = load_save_file(full_path)
 			if loaded.ok:
 				var parsed = loaded.data
-				var char_name = str(parsed.get("name", file_name.get_basename()))
-				var floor_num = int(parsed.get("floor", 1))
-				var char_lvl = int(parsed.get("level", 1))
-				var diff_str = str(parsed.get("difficulty", "Medium"))
+				var character_name = str(parsed.get("name", file_name.get_basename()))
+				var floor_number = int(parsed.get("floor", 1))
+				var character_level = int(parsed.get("level", 1))
+				var diff_text = str(parsed.get("difficulty", "Medium"))
 				var saved_at = str(parsed.get("saved_at", ""))
-				var perma_str = " | Permadeath" if bool(parsed.get("permadeath", false)) else ""
+				var perma_text = " | Permadeath" if bool(parsed.get("permadeath", false)) else ""
 				saves.append({
 					path = full_path,
 					file_name = file_name,
-					name = char_name,
-					level = char_lvl,
-					floor = floor_num,
-					difficulty = diff_str,
+					name = character_name,
+					level = character_level,
+					floor = floor_number,
+					difficulty = diff_text,
 					saved_at = saved_at,
-					label = "%s (Lv %d, Floor %d)" % [char_name, char_lvl, floor_num],
+					label = "%s (Lv %d, Floor %d)" % [character_name, character_level, floor_number],
 					details = "Character: %s\nLevel: %d\nFloor: %d (%s)\nDifficulty: %s%s\nSaved: %s\nFile: %s" % [
-						char_name,
-						char_lvl,
-						floor_num,
+						character_name,
+						character_level,
+						floor_number,
 						str(parsed.get("branch_name", "The Dungeon")),
-						diff_str,
-						perma_str,
+						diff_text,
+						perma_text,
 						saved_at,
 						file_name
 					]
 				})
-		file_name = dir.get_next()
-	dir.list_dir_end()
+		file_name = directory.get_next()
+	directory.list_dir_end()
 	saves.sort_custom(func(entry_a, entry_b): return str(entry_a.get("saved_at", "")) > str(entry_b.get("saved_at", "")))
 	return saves

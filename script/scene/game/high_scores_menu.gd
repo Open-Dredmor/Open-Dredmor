@@ -47,17 +47,17 @@ func _build_gui():
 	title_label.add_theme_font_size_override("font_size", 36)
 	container.add_child(title_label)
 
-	var content_vbox = VBoxContainer.new()
-	content_vbox.anchor_left = 0.1
-	content_vbox.anchor_top = 0.2
-	content_vbox.anchor_right = 0.9
-	content_vbox.anchor_bottom = 0.9
-	content_vbox.add_theme_constant_override("separation", 12)
-	container.add_child(content_vbox)
+	var content_vertical_box = VBoxContainer.new()
+	content_vertical_box.anchor_left = 0.1
+	content_vertical_box.anchor_top = 0.2
+	content_vertical_box.anchor_right = 0.9
+	content_vertical_box.anchor_bottom = 0.9
+	content_vertical_box.add_theme_constant_override("separation", 12)
+	container.add_child(content_vertical_box)
 
 	var sort_row = HBoxContainer.new()
 	sort_row.add_theme_constant_override("separation", 12)
-	content_vbox.add_child(sort_row)
+	content_vertical_box.add_child(sort_row)
 
 	for sort_option in [
 		{ key = "score", label = "Score" },
@@ -76,7 +76,7 @@ func _build_gui():
 	_empty_label.text = "No high scores recorded yet."
 	_empty_label.add_theme_font_override("font", assets.fonts.default)
 	_empty_label.add_theme_font_size_override("font_size", 26)
-	content_vbox.add_child(_empty_label)
+	content_vertical_box.add_child(_empty_label)
 
 	_score_tree = Tree.new()
 	_score_tree.columns = 5
@@ -90,7 +90,7 @@ func _build_gui():
 	_score_tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_score_tree.add_theme_font_override("font", assets.fonts.default)
 	_score_tree.add_theme_font_size_override("font_size", 22)
-	content_vbox.add_child(_score_tree)
+	content_vertical_box.add_child(_score_tree)
 
 	_load_scores()
 	_render_scores()
@@ -125,12 +125,12 @@ func _render_scores():
 	var is_numeric = _sort_key in ["score", "floor", "level"]
 	_scores.sort_custom(func(entry_a, entry_b):
 		if is_numeric:
-			var num_a = int(entry_a.get(_sort_key, 0))
-			var num_b = int(entry_b.get(_sort_key, 0))
-			return num_a > num_b if _sort_descending else num_a < num_b
-		var str_a = str(entry_a.get(_sort_key, ""))
-		var str_b = str(entry_b.get(_sort_key, ""))
-		var cmp = str_a.naturalnocasecmp_to(str_b)
+			var number_a = int(entry_a.get(_sort_key, 0))
+			var number_b = int(entry_b.get(_sort_key, 0))
+			return number_a > number_b if _sort_descending else number_a < number_b
+		var text_a = str(entry_a.get(_sort_key, ""))
+		var text_b = str(entry_b.get(_sort_key, ""))
+		var cmp = text_a.naturalnocasecmp_to(text_b)
 		return cmp > 0 if _sort_descending else cmp < 0
 	)
 	var root = _score_tree.create_item()

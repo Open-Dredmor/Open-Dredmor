@@ -13,14 +13,14 @@ func _init_global_state():
 	OD.reset()
 	OD.Settings.load()
 	randomize()	
-	var install_dir = OD.Settings.dredmor_install_dir()
-	if install_dir != null and install_dir != "":
-		var validation = OD.Settings.validate_dredmor_dir(install_dir)
+	var install_directory = OD.Settings.dredmor_install_dir()
+	if install_directory != null and install_directory != "":
+		var validation = OD.Settings.validate_dredmor_dir(install_directory)
 		if validation.valid:
-			print("Installation dir set to [" + install_dir + "], load the game.")
+			print("Installation dir set to [" + install_directory + "], load the game.")
 			await _finish_bootstrap()
 			return
-		_initial_error = "Configured installation directory is invalid: " + install_dir + "\nMissing: " + ", ".join(validation.missing)
+		_initial_error = "Configured installation directory is invalid: " + install_directory + "\nMissing: " + ", ".join(validation.missing)
 		print(_initial_error)
 	else:
 		print("Installation dir not configured, prompt selection.")

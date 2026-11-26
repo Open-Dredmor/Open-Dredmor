@@ -45,30 +45,30 @@ func sync_from_settings():
 			existing.insert(0, primary)
 			_key_bindings[action_name] = existing
 
-func translate_camera_input(ev):
-	if ev is InputEventKey and ev.is_pressed():
-		if ev.shift_pressed:
-			if ev.keycode == KEY_LEFT:
+func translate_camera_input(event):
+	if event is InputEventKey and event.is_pressed():
+		if event.shift_pressed:
+			if event.keycode == KEY_LEFT:
 				return { kind = "pan", delta = Vector2(1, 0) }
-			if ev.keycode == KEY_RIGHT:
+			if event.keycode == KEY_RIGHT:
 				return { kind = "pan", delta = Vector2(-1, 0) }
-			if ev.keycode == KEY_UP:
+			if event.keycode == KEY_UP:
 				return { kind = "pan", delta = Vector2(0, 1) }
-			if ev.keycode == KEY_DOWN:
+			if event.keycode == KEY_DOWN:
 				return { kind = "pan", delta = Vector2(0, -1) }
-		if is_action_key("center_camera", ev.keycode) and not ev.echo:
+		if is_action_key("center_camera", event.keycode) and not event.echo:
 			return { kind = "center_camera" }
-	if ev is InputEventMouseButton:
-		if ev.button_index == MOUSE_BUTTON_LEFT:
-			return { kind = "drag", pressed = ev.pressed, position = ev.position }
-		if ev.button_index == MOUSE_BUTTON_WHEEL_UP:
-			return { kind = "zoom", factor = 1.15 } if ev.pressed else { kind = "ignore" }
-		if ev.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			return { kind = "zoom", factor = 1.0 / 1.15 } if ev.pressed else { kind = "ignore" }
-		if ev.button_index == MOUSE_BUTTON_MIDDLE:
-			return { kind = "reset_zoom" } if ev.pressed else { kind = "ignore" }
-	if ev is InputEventMouseMotion:
-		return { kind = "drag_motion", position = ev.position }
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			return { kind = "drag", pressed = event.pressed, position = event.position }
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			return { kind = "zoom", factor = 1.15 } if event.pressed else { kind = "ignore" }
+		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			return { kind = "zoom", factor = 1.0 / 1.15 } if event.pressed else { kind = "ignore" }
+		if event.button_index == MOUSE_BUTTON_MIDDLE:
+			return { kind = "reset_zoom" } if event.pressed else { kind = "ignore" }
+	if event is InputEventMouseMotion:
+		return { kind = "drag_motion", position = event.position }
 	return null
 
 func _directional_delta(keycode):
@@ -83,10 +83,10 @@ func _directional_delta(keycode):
 	return Vector2i.ZERO
 
 func _bump_command_for_delta(player, entity_grid, delta):
-	var player_pos = player.get_grid_position()
-	if player_pos == null:
+	var player_position = player.get_grid_position()
+	if player_position == null:
 		return null
-	var target_cell = Vector2i(int(player_pos.x) + delta.x, int(player_pos.y) + delta.y)
+	var target_cell = Vector2i(int(player_position.x) + delta.x, int(player_position.y) + delta.y)
 	if entity_grid.has_enemy_at(target_cell.x, target_cell.y):
 		return AttackCmdScript.new().init(player, target_cell)
 	var shopkeeper = entity_grid.shop_manager.get_shopkeeper_at(target_cell.x, target_cell.y)
@@ -107,38 +107,38 @@ func _bump_command_for_delta(player, entity_grid, delta):
 		return MoveCmdScript.new().init_step(player, delta)
 	return null
 
-func translate_dungeon_input(ev, context):
+func translate_dungeon_input(event, context):
 	var dungeon = context.get("dungeon", null)
 	var entity_grid = context.get("entity_grid", null)
 	var player = context.get("player", null)
 	if dungeon == null or entity_grid == null or player == null:
 		return null
 
-	if ev is InputEventKey and ev.is_pressed():
-		var move_delta = _directional_delta(ev.keycode)
+	if event is InputEventKey and event.is_pressed():
+		var move_delta = _directional_delta(event.keycode)
 		if move_delta != Vector2i.ZERO:
 			return _bump_command_for_delta(player, entity_grid, move_delta)
-		if not ev.echo and is_action_key("wait", ev.keycode):
+		if not event.echo and is_action_key("wait", event.keycode):
 			return WaitCmdScript.new().init(player)
-		if not ev.echo and is_action_key("pickup", ev.keycode):
-			var player_pos = player.get_grid_position()
-			if player_pos != null:
-				return InteractCmdScript.new().init(player, "pickup", Vector2i(int(player_pos.x), int(player_pos.y)))
-		if not ev.echo and (ev.unicode == ord(">") or ev.unicode == ord("<")):
-			var player_pos = player.get_grid_position()
-			var stairs = entity_grid.get_stairs_at(player_pos.x, player_pos.y)
+		if not event.echo and is_action_key("pickup", event.keycode):
+			var player_position = player.get_grid_position()
+			if player_position != null:
+				return InteractCmdScript.new().init(player, "pickup", Vector2i(int(player_position.x), int(player_position.y)))
+		if not event.echo and (event.unicode == ord(">") or event.unicode == ord("<")):
+			var player_position = player.get_grid_position()
+			var stairs = entity_grid.get_stairs_at(player_position.x, player_position.y)
 			if stairs != null:
-				var wanted = "down" if ev.unicode == ord(">") else "up"
+				var wanted = "down" if event.unicode == ord(">") else "up"
 				if stairs.direction == wanted:
-					return InteractCmdScript.new().init(player, "stairs", Vector2i(int(player_pos.x), int(player_pos.y)), wanted)
+					return InteractCmdScript.new().init(player, "stairs", Vector2i(int(player_position.x), int(player_position.y)), wanted)
 
-	if ev is InputEventMouseButton:
-		var grid_coords = dungeon.global_coordinates_to_grid(ev.position.x, ev.position.y)
-		var cell = Vector2i(int(grid_coords.x), int(grid_coords.y))
+	if event is InputEventMouseButton:
+		var grid_coordinates = dungeon.global_coordinates_to_grid(event.position.x, event.position.y)
+		var cell = Vector2i(int(grid_coordinates.x), int(grid_coordinates.y))
 		var allow_debug_teleport = context.get("allow_debug_teleport", false)
-		if ev.button_index == MOUSE_BUTTON_RIGHT and ev.pressed and allow_debug_teleport:
+		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed and allow_debug_teleport:
 			return MoveCmdScript.new().init_path(player, cell, true)
-		if ev.button_index != MOUSE_BUTTON_LEFT or ev.pressed:
+		if event.button_index != MOUSE_BUTTON_LEFT or event.pressed:
 			return null
 		if not entity_grid.is_cell_explored(cell.x, cell.y):
 			return null

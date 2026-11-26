@@ -14,7 +14,7 @@ static func generate(_branch_name, floor_level):
 	var rooms_per_floor = 16
 	var rows = floor(rooms_per_floor/2)
 	var cols = floor(rooms_per_floor/2)
-	var start_coord = Vector2(floor(rows/2),floor(cols/2))
+	var start_coordinate = Vector2(floor(rows/2),floor(cols/2))
 	
 	var room_grid = []
 	
@@ -22,7 +22,7 @@ static func generate(_branch_name, floor_level):
 		room_grid.append([])
 		for jj in cols:
 			var room_name = null
-			if ii == start_coord.x and jj == start_coord.y:
+			if ii == start_coordinate.x and jj == start_coordinate.y:
 				room_name = "Starting Room"
 			else:
 				room_name = OD.Database.random_room_id(floor_level)

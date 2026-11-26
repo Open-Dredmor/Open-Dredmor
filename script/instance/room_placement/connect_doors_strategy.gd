@@ -8,8 +8,8 @@ const OPPOSITE_DOOR = {
 	"right": "left"
 }
 
-static func _bucket_range(start_coord, length):
-	return range(int(floor(float(start_coord) / BUCKET_SIZE)), int(floor(float(start_coord + length - 1) / BUCKET_SIZE)) + 1)
+static func _bucket_range(start_coordinate, length):
+	return range(int(floor(float(start_coordinate) / BUCKET_SIZE)), int(floor(float(start_coordinate + length - 1) / BUCKET_SIZE)) + 1)
 
 static func _collides(buckets, rect):
 	for bx in _bucket_range(rect.x, rect.w):
@@ -30,7 +30,7 @@ static func _insert_bucket(buckets, rect):
 				buckets[key] = []
 			buckets[key].append(rect)
 
-static func _collect_doors(layout, placement_index, x_pos, y_pos, exclude_door = null):
+static func _collect_doors(layout, placement_index, x_position, y_position, exclude_door = null):
 	var out = []
 	for kind in ["up", "down", "left", "right"]:
 		for door in layout.doors[kind]:
@@ -40,8 +40,8 @@ static func _collect_doors(layout, placement_index, x_pos, y_pos, exclude_door =
 				placement_index = placement_index,
 				local_x = door.x,
 				local_y = door.y,
-				world_x = x_pos + door.x,
-				world_y = y_pos + door.y,
+				world_x = x_position + door.x,
+				world_y = y_position + door.y,
 				kind = kind
 			})
 	return out
@@ -70,26 +70,26 @@ static func _can_place_3x3_door(entity_grid, grid_x, grid_y, orientation):
 	return true
 
 static func _compute_offset(source_door, target_door, layout):
-	var pos_x = source_door.world_x
-	var pos_y = source_door.world_y
+	var position_x = source_door.world_x
+	var position_y = source_door.world_y
 	match target_door.kind:
 		"up":
-			pos_x -= target_door.x
+			position_x -= target_door.x
 		"down":
-			pos_y -= layout.height - 1
-			pos_x -= target_door.x
+			position_y -= layout.height - 1
+			position_x -= target_door.x
 		"left":
-			pos_y -= target_door.y
+			position_y -= target_door.y
 		"right":
-			pos_x -= layout.width - 1
-			pos_y -= target_door.y
-	return Vector2i(pos_x, pos_y)
+			position_x -= layout.width - 1
+			position_y -= target_door.y
+	return Vector2i(position_x, position_y)
 
 static func _try_place_from_pool(candidates, frontier_doors, buckets, placements):
 	var shuffled_candidates = candidates.duplicate()
 	shuffled_candidates.shuffle()
-	for frontier_idx in range(frontier_doors.size() - 1, -1, -1):
-		var source_door = frontier_doors[frontier_idx]
+	for frontier_index in range(frontier_doors.size() - 1, -1, -1):
+		var source_door = frontier_doors[frontier_index]
 		var target_kind = OPPOSITE_DOOR[source_door.kind]
 		for layout in shuffled_candidates:
 			var door_list = layout.doors[target_kind]
@@ -102,7 +102,7 @@ static func _try_place_from_pool(candidates, frontier_doors, buckets, placements
 				var rect = { x = offset.x, y = offset.y, w = layout.width, h = layout.height }
 				if _collides(buckets, rect):
 					continue
-				var new_idx = placements.size()
+				var new_index = placements.size()
 				placements.append({
 					layout = layout,
 					x = offset.x,
@@ -116,8 +116,8 @@ static func _try_place_from_pool(candidates, frontier_doors, buckets, placements
 					spawn_door = true
 				})
 				_insert_bucket(buckets, rect)
-				frontier_doors.remove_at(frontier_idx)
-				var new_doors = _collect_doors(layout, new_idx, offset.x, offset.y, target_door)
+				frontier_doors.remove_at(frontier_index)
+				var new_doors = _collect_doors(layout, new_index, offset.x, offset.y, target_door)
 				new_doors.shuffle()
 				for new_door in new_doors:
 					frontier_doors.append(new_door)
@@ -198,9 +198,9 @@ static func generate(_branch_name, floor_level):
 
 	var pending_doors = []
 	var farthest_index = 0
-	var farthest_dist = -1
-	for idx in range(placements.size()):
-		var placement = placements[idx]
+	var farthest_distance = -1
+	for index in range(placements.size()):
+		var placement = placements[index]
 		var room = Room.new()
 		room.init(placement.layout.name)
 		room.position = Vector2(placement.x, placement.y)
@@ -219,10 +219,10 @@ static func generate(_branch_name, floor_level):
 					locked = is_locked
 				})
 		room.free()
-		var dist = abs(placement.x) + abs(placement.y)
-		if idx > 0 and not placement.layout.floor_cells.is_empty() and dist > farthest_dist:
-			farthest_dist = dist
-			farthest_index = idx
+		var distance = abs(placement.x) + abs(placement.y)
+		if index > 0 and not placement.layout.floor_cells.is_empty() and distance > farthest_distance:
+			farthest_distance = distance
+			farthest_index = index
 
 	for door_info in pending_doors:
 		var style = "3x3" if _can_place_3x3_door(entity_grid, door_info.x, door_info.y, door_info.orientation) else "1x1"

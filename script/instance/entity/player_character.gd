@@ -115,7 +115,7 @@ var current_animation = null
 var last_delta_x = 0
 var last_delta_y = 0
 var sight_radius = 8
-var _action_anim_token = 0
+var _action_animation_token = 0
 
 var character_name = ""
 var hero_kind = "hero"
@@ -197,8 +197,8 @@ func _init_stat_tables():
 		inventory.append(null)
 
 func recalculate_stats():
-	var prev_max_hp = max_hp
-	var prev_max_mp = max_mp
+	var previous_max_hp = max_hp
+	var previous_max_mp = max_mp
 
 	for stat_key in PRIMARY_STAT_KEYS:
 		primary_stats[stat_key] = int(base_primary_stats.get(stat_key, 10)) + int(bonus_primary_stats.get(stat_key, 0)) + _get_buff_primary_bonus(stat_key) + _get_equipment_primary_bonus(stat_key)
@@ -239,23 +239,23 @@ func recalculate_stats():
 
 	for stat_id in SECONDARY_STAT_BY_ID:
 		var stat_key = SECONDARY_STAT_BY_ID[stat_id]
-		var base_val = int(derived.get(stat_key, 0))
-		var bonus_val = int(bonus_secondary_stats.get(stat_key, 0))
-		var buff_val = _get_buff_secondary_bonus(stat_key)
-		var equip_val = _get_equipment_secondary_bonus(stat_key)
-		secondary_stats[stat_key] = base_val + bonus_val + buff_val + equip_val
+		var base_value = int(derived.get(stat_key, 0))
+		var bonus_value = int(bonus_secondary_stats.get(stat_key, 0))
+		var buff_value = _get_buff_secondary_bonus(stat_key)
+		var equip_value = _get_equipment_secondary_bonus(stat_key)
+		secondary_stats[stat_key] = base_value + bonus_value + buff_value + equip_value
 
 	max_hp = max(1, int(secondary_stats["hp_max"]))
 	max_mp = max(0, int(secondary_stats["mp_max"]))
 	sight_radius = max(1, int(secondary_stats["visual_sight_radius"]))
 
-	if prev_max_hp > 0 and max_hp != prev_max_hp:
-		hp = clamp(hp + max(0, max_hp - prev_max_hp), 0, max_hp)
+	if previous_max_hp > 0 and max_hp != previous_max_hp:
+		hp = clamp(hp + max(0, max_hp - previous_max_hp), 0, max_hp)
 	else:
 		hp = clamp(hp, 0, max_hp)
 
-	if prev_max_mp > 0 and max_mp != prev_max_mp:
-		mp = clamp(mp + max(0, max_mp - prev_max_mp), 0, max_mp)
+	if previous_max_mp > 0 and max_mp != previous_max_mp:
+		mp = clamp(mp + max(0, max_mp - previous_max_mp), 0, max_mp)
 	else:
 		mp = clamp(mp, 0, max_mp)
 
@@ -265,10 +265,10 @@ func get_primary_stat(stat_key):
 	return int(primary_stats.get(stat_key, 0))
 
 func get_primary_stat_by_id(stat_id):
-	var idx = int(stat_id)
-	if idx < 0 or idx >= PRIMARY_STAT_KEYS.size():
+	var index = int(stat_id)
+	if index < 0 or index >= PRIMARY_STAT_KEYS.size():
 		return 0
-	return get_primary_stat(PRIMARY_STAT_KEYS[idx])
+	return get_primary_stat(PRIMARY_STAT_KEYS[index])
 
 func add_primary_bonus(stat_key, amount):
 	if not bonus_primary_stats.has(stat_key):
@@ -280,10 +280,10 @@ func get_secondary_stat(stat_key):
 	return int(secondary_stats.get(stat_key, 0))
 
 func get_secondary_stat_by_id(stat_id):
-	var idx = int(stat_id)
-	if not SECONDARY_STAT_BY_ID.has(idx):
+	var index = int(stat_id)
+	if not SECONDARY_STAT_BY_ID.has(index):
 		return 0
-	return get_secondary_stat(SECONDARY_STAT_BY_ID[idx])
+	return get_secondary_stat(SECONDARY_STAT_BY_ID[index])
 
 func add_secondary_bonus(stat_key, amount):
 	if not bonus_secondary_stats.has(stat_key):
@@ -394,9 +394,9 @@ func _apply_ability_bonuses(level_entry):
 	for buff in level_entry.primary_buffs:
 		if typeof(buff) != TYPE_DICTIONARY or not buff.has("id"):
 			continue
-		var stat_idx = int(buff.id)
-		if stat_idx >= 0 and stat_idx < PRIMARY_STAT_KEYS.size():
-			var stat_key = PRIMARY_STAT_KEYS[stat_idx]
+		var stat_index = int(buff.id)
+		if stat_index >= 0 and stat_index < PRIMARY_STAT_KEYS.size():
+			var stat_key = PRIMARY_STAT_KEYS[stat_index]
 			bonus_primary_stats[stat_key] += int(buff.get("amount", 0))
 	for buff in level_entry.secondary_buffs:
 		if typeof(buff) != TYPE_DICTIONARY or not buff.has("id"):
@@ -408,15 +408,15 @@ func _apply_ability_bonuses(level_entry):
 	for buff in level_entry.resist_buffs:
 		if typeof(buff) != TYPE_DICTIONARY:
 			continue
-		for dmg_type in DAMAGE_TYPES:
-			if buff.has(dmg_type):
-				resistances[dmg_type] += int(buff[dmg_type])
+		for damage_type in DAMAGE_TYPES:
+			if buff.has(damage_type):
+				resistances[damage_type] += int(buff[damage_type])
 	for buff in level_entry.damage_buffs:
 		if typeof(buff) != TYPE_DICTIONARY:
 			continue
-		for dmg_type in DAMAGE_TYPES:
-			if buff.has(dmg_type):
-				damage_bonuses[dmg_type] += int(buff[dmg_type])
+		for damage_type in DAMAGE_TYPES:
+			if buff.has(damage_type):
+				damage_bonuses[damage_type] += int(buff[damage_type])
 	for spell_ref in level_entry.spells:
 		if typeof(spell_ref) == TYPE_DICTIONARY and spell_ref.has("name"):
 			var spell_name = str(spell_ref.name)
@@ -502,28 +502,28 @@ func _get_facing_dir_key():
 	return "down"
 
 func face_towards(target_cell):
-	var current_pos = get_grid_position()
-	if current_pos == null or target_cell == null:
+	var current_position = get_grid_position()
+	if current_position == null or target_cell == null:
 		return
-	var delta_x = int(target_cell.x) - int(current_pos.x)
-	var delta_y = int(target_cell.y) - int(current_pos.y)
+	var delta_x = int(target_cell.x) - int(current_position.x)
+	var delta_y = int(target_cell.y) - int(current_position.y)
 	if delta_x == 0 and delta_y == 0:
 		return
 	last_delta_x = delta_x
 	last_delta_y = delta_y
 	idle()
 
-func _get_or_load_action_anim(group_key, dir_key):
+func _get_or_load_action_anim(group_key, direction_key):
 	if not animations.has(group_key):
 		animations[group_key] = {}
 	var group = animations[group_key]
-	if group.has(dir_key):
-		return group[dir_key]
+	if group.has(direction_key):
+		return group[direction_key]
 	var sprite_paths = OD.Resources.paths.player.heroine if hero_kind == "heroine" else OD.Resources.paths.player.hero
 	if not sprite_paths.has(group_key):
 		return null
 	var group_paths = sprite_paths[group_key]
-	var resolved_key = dir_key
+	var resolved_key = direction_key
 	if not group_paths.has(resolved_key):
 		if group_paths.has("right"):
 			resolved_key = "right"
@@ -546,15 +546,15 @@ func _get_or_load_action_anim(group_key, dir_key):
 func _play_action_animation(group_key, duration_sec = 0.28, return_to_idle = true):
 	if animations.is_empty():
 		return
-	var dir_key = _get_facing_dir_key()
-	var anim = _get_or_load_action_anim(group_key, dir_key)
-	if anim == null:
+	var direction_key = _get_facing_dir_key()
+	var animation = _get_or_load_action_anim(group_key, direction_key)
+	if animation == null:
 		return
-	_action_anim_token += 1
-	var active_token = _action_anim_token
+	_action_animation_token += 1
+	var active_token = _action_animation_token
 	if current_animation != null:
 		current_animation.visible = false
-	current_animation = anim
+	current_animation = animation
 	current_animation.visible = true
 	if current_animation.has_method("stop"):
 		current_animation.stop()
@@ -564,7 +564,7 @@ func _play_action_animation(group_key, duration_sec = 0.28, return_to_idle = tru
 		return
 	var timer = get_tree().create_timer(duration_sec)
 	timer.timeout.connect(func():
-		if is_instance_valid(self) and not is_dead and _action_anim_token == active_token and not is_moving():
+		if is_instance_valid(self) and not is_dead and _action_animation_token == active_token and not is_moving():
 			idle()
 	)
 
@@ -626,15 +626,15 @@ func play_die_animation():
 func update_animation(delta_x, delta_y):
 	if animations.is_empty():
 		return
-	var next_anim = current_animation
+	var next_animation = current_animation
 	if delta_x != 0:
-		next_anim = animations.move.left if delta_x < 0 else animations.move.right
+		next_animation = animations.move.left if delta_x < 0 else animations.move.right
 	elif delta_y != 0:
-		next_anim = animations.move.up if delta_y < 0 else animations.move.down
-	if next_anim != current_animation:
+		next_animation = animations.move.up if delta_y < 0 else animations.move.down
+	if next_animation != current_animation:
 		if current_animation != null:
 			current_animation.visible = false
-		current_animation = next_anim
+		current_animation = next_animation
 		if current_animation != null:
 			current_animation.visible = true
 	last_delta_x = delta_x
@@ -794,10 +794,10 @@ func sync_belt_with_inventory():
 			continue
 		if belt_items.has(item_name):
 			continue
-		var empty_idx = belt_items.find("")
-		if empty_idx == -1:
+		var empty_index = belt_items.find("")
+		if empty_index == -1:
 			break
-		belt_items[empty_idx] = item_name
+		belt_items[empty_index] = item_name
 		changed = true
 	if changed:
 		belt_changed.emit()
@@ -886,61 +886,61 @@ func dismiss_buff(buff_name):
 			return false
 	return false
 
-func _extract_buff_array(buff_def, lower_key, camel_key):
+func _extract_buff_array(buff_definition, lower_key, camel_key):
 	var items = []
-	if buff_def.has(lower_key):
-		items.append_array(OD.DataStructure.arrayify(buff_def.get(lower_key)))
-	if buff_def.has(camel_key):
-		items.append_array(OD.DataStructure.arrayify(buff_def.get(camel_key)))
+	if buff_definition.has(lower_key):
+		items.append_array(OD.DataStructure.arrayify(buff_definition.get(lower_key)))
+	if buff_definition.has(camel_key):
+		items.append_array(OD.DataStructure.arrayify(buff_definition.get(camel_key)))
 	return items
 
-func apply_buff(buff_def, source_spell = ""):
-	if buff_def == null or typeof(buff_def) != TYPE_DICTIONARY:
+func apply_buff(buff_definition, source_spell = ""):
+	if buff_definition == null or typeof(buff_definition) != TYPE_DICTIONARY:
 		return false
-	var buff_name = str(buff_def.get("name", source_spell))
-	var duration = int(buff_def.get("time", buff_def.get("duration", 0)))
-	var use_timer = int(buff_def.get("useTimer", buff_def.get("usetimer", 1 if duration > 0 else 0))) == 1
-	var allow_stack = int(buff_def.get("allowstacking", buff_def.get("allowStacking", buff_def.get("stackable", 0)))) == 1
-	var max_stacks = max(1, int(buff_def.get("stacksize", 1)))
-	var brittle_count = int(buff_def.get("brittle", 0))
-	var attacks_count = int(buff_def.get("attacks", 0))
+	var buff_name = str(buff_definition.get("name", source_spell))
+	var duration = int(buff_definition.get("time", buff_definition.get("duration", 0)))
+	var use_timer = int(buff_definition.get("useTimer", buff_definition.get("usetimer", 1 if duration > 0 else 0))) == 1
+	var allow_stack = int(buff_definition.get("allowstacking", buff_definition.get("allowStacking", buff_definition.get("stackable", 0)))) == 1
+	var max_stacks = max(1, int(buff_definition.get("stacksize", 1)))
+	var brittle_count = int(buff_definition.get("brittle", 0))
+	var attacks_count = int(buff_definition.get("attacks", 0))
 
 	var primary_b = {}
-	for p_item in _extract_buff_array(buff_def, "primarybuff", "primaryBuff"):
+	for p_item in _extract_buff_array(buff_definition, "primarybuff", "primaryBuff"):
 		if typeof(p_item) == TYPE_DICTIONARY and p_item.has("id"):
-			var idx = int(p_item.id)
-			if idx >= 0 and idx < PRIMARY_STAT_KEYS.size():
-				var key = PRIMARY_STAT_KEYS[idx]
+			var index = int(p_item.id)
+			if index >= 0 and index < PRIMARY_STAT_KEYS.size():
+				var key = PRIMARY_STAT_KEYS[index]
 				primary_b[key] = int(primary_b.get(key, 0)) + int(p_item.get("amount", 0))
 
 	var secondary_b = {}
-	for s_item in _extract_buff_array(buff_def, "secondarybuff", "secondaryBuff"):
+	for s_item in _extract_buff_array(buff_definition, "secondarybuff", "secondaryBuff"):
 		if typeof(s_item) == TYPE_DICTIONARY and s_item.has("id"):
 			var sec_id = int(s_item.id)
 			if SECONDARY_STAT_BY_ID.has(sec_id):
 				var key = SECONDARY_STAT_BY_ID[sec_id]
 				secondary_b[key] = int(secondary_b.get(key, 0)) + int(s_item.get("amount", 0))
 
-	for sight_item in OD.DataStructure.arrayify(buff_def.get("sightbuff", [])):
+	for sight_item in OD.DataStructure.arrayify(buff_definition.get("sightbuff", [])):
 		if typeof(sight_item) == TYPE_DICTIONARY and sight_item.has("amount"):
 			secondary_b["visual_sight_radius"] = int(secondary_b.get("visual_sight_radius", 0)) + int(sight_item.amount)
 
 	var resist_b = {}
-	for r_item in _extract_buff_array(buff_def, "resistbuff", "resistBuff"):
+	for r_item in _extract_buff_array(buff_definition, "resistbuff", "resistBuff"):
 		if typeof(r_item) == TYPE_DICTIONARY:
-			for dmg_type in DAMAGE_TYPES:
-				if r_item.has(dmg_type):
-					resist_b[dmg_type] = int(resist_b.get(dmg_type, 0)) + int(r_item[dmg_type])
+			for damage_type in DAMAGE_TYPES:
+				if r_item.has(damage_type):
+					resist_b[damage_type] = int(resist_b.get(damage_type, 0)) + int(r_item[damage_type])
 
 	var damage_b = {}
-	for d_item in _extract_buff_array(buff_def, "damagebuff", "damageBuff"):
+	for d_item in _extract_buff_array(buff_definition, "damagebuff", "damageBuff"):
 		if typeof(d_item) == TYPE_DICTIONARY:
-			for dmg_type in DAMAGE_TYPES:
-				if d_item.has(dmg_type):
-					damage_b[dmg_type] = int(damage_b.get(dmg_type, 0)) + int(d_item[dmg_type])
+			for damage_type in DAMAGE_TYPES:
+				if d_item.has(damage_type):
+					damage_b[damage_type] = int(damage_b.get(damage_type, 0)) + int(d_item[damage_type])
 
 	var target_hit_procs = []
-	for th_item in OD.DataStructure.arrayify(buff_def.get("targetHitEffectBuff", [])):
+	for th_item in OD.DataStructure.arrayify(buff_definition.get("targetHitEffectBuff", [])):
 		if typeof(th_item) == TYPE_DICTIONARY and th_item.has("name"):
 			target_hit_procs.append({
 				name = str(th_item.name),
@@ -948,16 +948,16 @@ func apply_buff(buff_def, source_spell = ""):
 			})
 
 	var player_hit_procs = []
-	for ph_item in OD.DataStructure.arrayify(buff_def.get("playerHitEffectBuff", [])):
+	for ph_item in OD.DataStructure.arrayify(buff_definition.get("playerHitEffectBuff", [])):
 		if typeof(ph_item) == TYPE_DICTIONARY and ph_item.has("name"):
 			player_hit_procs.append({
 				name = str(ph_item.name),
 				percentage = int(ph_item.get("percentage", 100))
 			})
 
-	var desc_text = ""
-	if buff_def.has("description") and typeof(buff_def.description) == TYPE_DICTIONARY and buff_def.description.has("text"):
-		desc_text = str(buff_def.description.text)
+	var description_text = ""
+	if buff_definition.has("description") and typeof(buff_definition.description) == TYPE_DICTIONARY and buff_definition.description.has("text"):
+		description_text = str(buff_definition.description.text)
 
 	for existing in active_buffs:
 		if str(existing.get("name", "")) == buff_name:
@@ -969,38 +969,38 @@ func apply_buff(buff_def, source_spell = ""):
 				existing["brittle_remaining"] = brittle_count
 			if attacks_count > 0:
 				existing["attacks_remaining"] = attacks_count
-			if int(buff_def.get("hp_per_turn", 0)) != 0:
-				existing["hp_per_turn"] = int(buff_def.get("hp_per_turn", 0))
-			if int(buff_def.get("mp_per_turn", 0)) != 0:
-				existing["mp_per_turn"] = int(buff_def.get("mp_per_turn", 0))
+			if int(buff_definition.get("hp_per_turn", 0)) != 0:
+				existing["hp_per_turn"] = int(buff_definition.get("hp_per_turn", 0))
+			if int(buff_definition.get("mp_per_turn", 0)) != 0:
+				existing["mp_per_turn"] = int(buff_definition.get("mp_per_turn", 0))
 			recalculate_stats()
 			buffs_changed.emit()
 			return true
 
 	active_buffs.append({
 		name = buff_name,
-		description = desc_text,
-		icon = str(buff_def.get("smallicon", buff_def.get("icon", ""))),
-		large_icon = str(buff_def.get("icon", "")),
-		bad = int(buff_def.get("bad", 0)) == 1,
-		removable = int(buff_def.get("removable", 0)) == 1,
-		destroy_on_move = int(buff_def.get("destroyonmove", 0)) == 1,
+		description = description_text,
+		icon = str(buff_definition.get("smallicon", buff_definition.get("icon", ""))),
+		large_icon = str(buff_definition.get("icon", "")),
+		bad = int(buff_definition.get("bad", 0)) == 1,
+		removable = int(buff_definition.get("removable", 0)) == 1,
+		destroy_on_move = int(buff_definition.get("destroyonmove", 0)) == 1,
 		use_timer = use_timer,
 		remaining_turns = max(1, duration) if use_timer else -1,
 		brittle_remaining = brittle_count,
 		attacks_remaining = attacks_count,
 		stacks = 1,
-		mana_upkeep = int(buff_def.get("manaUpkeep", buff_def.get("manaupkeep", 0))),
-		zorkmid_upkeep = int(buff_def.get("zorkmidUpkeep", 0)),
-		hp_per_turn = int(buff_def.get("hp_per_turn", 0)),
-		mp_per_turn = int(buff_def.get("mp_per_turn", 0)),
+		mana_upkeep = int(buff_definition.get("manaUpkeep", buff_definition.get("manaupkeep", 0))),
+		zorkmid_upkeep = int(buff_definition.get("zorkmidUpkeep", 0)),
+		hp_per_turn = int(buff_definition.get("hp_per_turn", 0)),
+		mp_per_turn = int(buff_definition.get("mp_per_turn", 0)),
 		primary_bonuses = primary_b,
 		secondary_bonuses = secondary_b,
 		resist_bonuses = resist_b,
 		damage_bonuses = damage_b,
 		target_hit_procs = target_hit_procs,
 		player_hit_procs = player_hit_procs,
-		raw = buff_def
+		raw = buff_definition
 	})
 	recalculate_stats()
 	buffs_changed.emit()
@@ -1013,15 +1013,15 @@ func on_attack_performed():
 	while ii < active_buffs.size():
 		var buff = active_buffs[ii]
 		for proc in buff.get("target_hit_procs", []):
-			var pct = clamp(int(proc.get("percentage", 100)), 0, 100)
-			if pct >= 100 or (randi() % 100) < pct:
+			var percent = clamp(int(proc.get("percentage", 100)), 0, 100)
+			if percent >= 100 or (randi() % 100) < percent:
 				procs.append(str(proc.name))
-		var atk_rem = int(buff.get("attacks_remaining", 0))
-		if atk_rem > 0:
-			atk_rem -= 1
-			buff["attacks_remaining"] = atk_rem
+		var attack_remaining = int(buff.get("attacks_remaining", 0))
+		if attack_remaining > 0:
+			attack_remaining -= 1
+			buff["attacks_remaining"] = attack_remaining
 			changed = true
-			if atk_rem <= 0:
+			if attack_remaining <= 0:
 				active_buffs.remove_at(ii)
 				continue
 		ii += 1
@@ -1030,8 +1030,8 @@ func on_attack_performed():
 		if item == null or typeof(item) != TYPE_DICTIONARY:
 			continue
 		for proc in item.get("target_hit_effects", []):
-			var pct = clamp(int(proc.get("percentage", 100)), 0, 100)
-			if pct >= 100 or (randi() % 100) < pct:
+			var percent = clamp(int(proc.get("percentage", 100)), 0, 100)
+			if percent >= 100 or (randi() % 100) < percent:
 				procs.append(str(proc.name))
 	if changed:
 		recalculate_stats()
@@ -1045,8 +1045,8 @@ func on_hit_received():
 	while ii < active_buffs.size():
 		var buff = active_buffs[ii]
 		for proc in buff.get("player_hit_procs", []):
-			var pct = clamp(int(proc.get("percentage", 100)), 0, 100)
-			if pct >= 100 or (randi() % 100) < pct:
+			var percent = clamp(int(proc.get("percentage", 100)), 0, 100)
+			if percent >= 100 or (randi() % 100) < percent:
 				procs.append(str(proc.name))
 		var brit_rem = int(buff.get("brittle_remaining", 0))
 		if brit_rem > 0:
@@ -1062,8 +1062,8 @@ func on_hit_received():
 		if item == null or typeof(item) != TYPE_DICTIONARY:
 			continue
 		for proc in item.get("player_hit_effects", []):
-			var pct = clamp(int(proc.get("percentage", 100)), 0, 100)
-			if pct >= 100 or (randi() % 100) < pct:
+			var percent = clamp(int(proc.get("percentage", 100)), 0, 100)
+			if percent >= 100 or (randi() % 100) < percent:
 				procs.append(str(proc.name))
 	if changed:
 		recalculate_stats()
@@ -1101,10 +1101,10 @@ func get_status_flags():
 func get_active_dots():
 	return active_dots.duplicate(true)
 
-func apply_dot(dot_def):
-	if dot_def == null or typeof(dot_def) != TYPE_DICTIONARY:
+func apply_dot(dot_definition):
+	if dot_definition == null or typeof(dot_definition) != TYPE_DICTIONARY:
 		return
-	active_dots.append(dot_def.duplicate(true))
+	active_dots.append(dot_definition.duplicate(true))
 	buffs_changed.emit()
 
 func tick_status_effects():
@@ -1147,11 +1147,11 @@ func tick_status_effects():
 		recalculate_stats()
 	for flag_key in status_flags.keys():
 		ticked += 1
-		var rem = int(status_flags[flag_key]) - 1
-		if rem <= 0:
+		var remaining = int(status_flags[flag_key]) - 1
+		if remaining <= 0:
 			status_flags.erase(flag_key)
 		else:
-			status_flags[flag_key] = rem
+			status_flags[flag_key] = remaining
 	var jj = 0
 	while jj < active_dots.size():
 		var dot = active_dots[jj]
@@ -1169,15 +1169,15 @@ func tick_status_effects():
 
 func _get_equipment_primary_bonus(stat_key):
 	var total = 0
-	var stat_idx = PRIMARY_STAT_KEYS.find(stat_key)
-	if stat_idx < 0:
+	var stat_index = PRIMARY_STAT_KEYS.find(stat_key)
+	if stat_index < 0:
 		return 0
 	for slot_name in PASSIVE_EQUIPMENT_SLOTS:
 		var item = equipment.get(slot_name, null)
 		if item == null or typeof(item) != TYPE_DICTIONARY:
 			continue
 		for buff in item.get("primary_buffs", []):
-			if int(buff.get("id", -1)) == stat_idx:
+			if int(buff.get("id", -1)) == stat_index:
 				total += int(buff.get("amount", 0))
 	return total
 
@@ -1199,9 +1199,9 @@ func _get_equipment_resistance_bonus(damage_type):
 		var item = equipment.get(slot_name, null)
 		if item == null or typeof(item) != TYPE_DICTIONARY:
 			continue
-		var res_map = item.get("resist_buffs", {})
-		if typeof(res_map) == TYPE_DICTIONARY and res_map.has(damage_type):
-			total += int(res_map[damage_type])
+		var result_map = item.get("resist_buffs", {})
+		if typeof(result_map) == TYPE_DICTIONARY and result_map.has(damage_type):
+			total += int(result_map[damage_type])
 	return total
 
 func _get_equipment_damage_bonus(damage_type):
@@ -1210,9 +1210,9 @@ func _get_equipment_damage_bonus(damage_type):
 		var item = equipment.get(slot_name, null)
 		if item == null or typeof(item) != TYPE_DICTIONARY:
 			continue
-		var dmg_map = item.get("damage_buffs", {})
-		if typeof(dmg_map) == TYPE_DICTIONARY and dmg_map.has(damage_type):
-			total += int(dmg_map[damage_type])
+		var damage_map = item.get("damage_buffs", {})
+		if typeof(damage_map) == TYPE_DICTIONARY and damage_map.has(damage_type):
+			total += int(damage_map[damage_type])
 	return total
 
 func get_equipped_item(slot_name):
@@ -1269,11 +1269,11 @@ func add_item(item_data):
 		for ii in range(inventory.size()):
 			var existing = inventory[ii]
 			if _can_stack_items(existing, item_data):
-				var cur_count = int(existing.get("count", 1))
-				var space = max_stack - cur_count
+				var current_count = int(existing.get("count", 1))
+				var space = max_stack - current_count
 				if space > 0:
 					var to_add = min(space, remaining)
-					existing["count"] = cur_count + to_add
+					existing["count"] = current_count + to_add
 					remaining -= to_add
 					if first_slot == -1:
 						first_slot = ii
@@ -1302,26 +1302,26 @@ func remove_item_at(slot_index, count = 1):
 	var item = inventory[slot_index]
 	if item == null:
 		return null
-	var cur_count = max(1, int(item.get("count", 1)))
-	var to_remove = cur_count if count < 0 else min(cur_count, max(1, int(count)))
+	var current_count = max(1, int(item.get("count", 1)))
+	var to_remove = current_count if count < 0 else min(current_count, max(1, int(count)))
 	var removed = item.duplicate(true)
 	removed["count"] = to_remove
-	if cur_count - to_remove <= 0:
+	if current_count - to_remove <= 0:
 		inventory[slot_index] = null
 	else:
-		item["count"] = cur_count - to_remove
+		item["count"] = current_count - to_remove
 	inventory_changed.emit()
 	return removed
 
-func move_or_swap_inventory_slot(from_idx, to_idx):
-	if from_idx < 0 or from_idx >= inventory.size() or to_idx < 0 or to_idx >= inventory.size():
+func move_or_swap_inventory_slot(from_index, to_index):
+	if from_index < 0 or from_index >= inventory.size() or to_index < 0 or to_index >= inventory.size():
 		return false
-	if from_idx == to_idx:
+	if from_index == to_index:
 		return false
-	var from_item = inventory[from_idx]
+	var from_item = inventory[from_index]
 	if from_item == null:
 		return false
-	var to_item = inventory[to_idx]
+	var to_item = inventory[to_index]
 	if _can_stack_items(from_item, to_item):
 		var max_stack = max(1, int(to_item.get("max_stack", 1)))
 		var space = max_stack - int(to_item.get("count", 1))
@@ -1330,20 +1330,20 @@ func move_or_swap_inventory_slot(from_idx, to_idx):
 			var transfer = min(space, from_count)
 			to_item["count"] = int(to_item.get("count", 1)) + transfer
 			if from_count - transfer <= 0:
-				inventory[from_idx] = null
+				inventory[from_index] = null
 			else:
 				from_item["count"] = from_count - transfer
 			inventory_changed.emit()
 			return true
-	inventory[from_idx] = to_item
-	inventory[to_idx] = from_item
+	inventory[from_index] = to_item
+	inventory[to_index] = from_item
 	inventory_changed.emit()
 	return true
 
-func equip_from_inventory(inv_idx, target_slot = ""):
-	if inv_idx < 0 or inv_idx >= inventory.size():
+func equip_from_inventory(inventory_index, target_slot = ""):
+	if inventory_index < 0 or inventory_index >= inventory.size():
 		return false
-	var item = inventory[inv_idx]
+	var item = inventory[inventory_index]
 	if item == null:
 		return false
 	var valid_slots = get_valid_slots_for_item(item)
@@ -1356,16 +1356,16 @@ func equip_from_inventory(inv_idx, target_slot = ""):
 			if equipment.get(candidate, null) == null:
 				chosen_slot = candidate
 				break
-	var prev_equipped = equipment.get(chosen_slot, null)
-	if _can_stack_items(prev_equipped, item):
-		var max_stack = max(1, int(prev_equipped.get("max_stack", 1)))
-		var cur_count = int(prev_equipped.get("count", 1))
+	var previous_equipped = equipment.get(chosen_slot, null)
+	if _can_stack_items(previous_equipped, item):
+		var max_stack = max(1, int(previous_equipped.get("max_stack", 1)))
+		var current_count = int(previous_equipped.get("count", 1))
 		var add_count = int(item.get("count", 1))
-		var transfer = min(max_stack - cur_count, add_count)
+		var transfer = min(max_stack - current_count, add_count)
 		if transfer > 0:
-			prev_equipped["count"] = cur_count + transfer
+			previous_equipped["count"] = current_count + transfer
 			if add_count - transfer <= 0:
-				inventory[inv_idx] = null
+				inventory[inventory_index] = null
 			else:
 				item["count"] = add_count - transfer
 			recalculate_stats()
@@ -1375,7 +1375,7 @@ func equip_from_inventory(inv_idx, target_slot = ""):
 				OD.Audio.play_sfx("metal_get")
 			return true
 	equipment[chosen_slot] = item
-	inventory[inv_idx] = prev_equipped
+	inventory[inventory_index] = previous_equipped
 	recalculate_stats()
 	equipment_changed.emit()
 	inventory_changed.emit()
@@ -1383,16 +1383,16 @@ func equip_from_inventory(inv_idx, target_slot = ""):
 		OD.Audio.play_sfx("metal_get")
 	return true
 
-func unequip_slot(slot_name, target_inv_idx = -1):
+func unequip_slot(slot_name, target_inventory_index = -1):
 	if not equipment.has(slot_name):
 		return false
 	var equipped = equipment[slot_name]
 	if equipped == null:
 		return false
-	if target_inv_idx >= 0 and target_inv_idx < inventory.size():
-		var target_item = inventory[target_inv_idx]
+	if target_inventory_index >= 0 and target_inventory_index < inventory.size():
+		var target_item = inventory[target_inventory_index]
 		if target_item == null:
-			inventory[target_inv_idx] = equipped
+			inventory[target_inventory_index] = equipped
 			equipment[slot_name] = null
 			recalculate_stats()
 			equipment_changed.emit()
@@ -1402,20 +1402,20 @@ func unequip_slot(slot_name, target_inv_idx = -1):
 			return true
 		if can_equip_in_slot(target_item, slot_name):
 			equipment[slot_name] = target_item
-			inventory[target_inv_idx] = equipped
+			inventory[target_inventory_index] = equipped
 			recalculate_stats()
 			equipment_changed.emit()
 			inventory_changed.emit()
 			if OD.Audio != null:
 				OD.Audio.play_sfx("metal_get")
 			return true
-	var res = add_item(equipped)
-	if not res.added:
+	var result = add_item(equipped)
+	if not result.added:
 		if OD.Audio != null:
 			OD.Audio.play_sfx("fullinventory")
 		return false
-	if res.remaining > 0:
-		equipped["count"] = res.remaining
+	if result.remaining > 0:
+		equipped["count"] = result.remaining
 	else:
 		equipment[slot_name] = null
 	recalculate_stats()
@@ -1431,14 +1431,14 @@ func consume_equipped_ammo(slot_name, amount = 1):
 	var ammo = equipment[slot_name]
 	if ammo == null:
 		return null
-	var cur_count = max(1, int(ammo.get("count", 1)))
-	var used = min(cur_count, max(1, int(amount)))
+	var current_count = max(1, int(ammo.get("count", 1)))
+	var used = min(current_count, max(1, int(amount)))
 	var single = ammo.duplicate(true)
 	single["count"] = used
-	if cur_count - used <= 0:
+	if current_count - used <= 0:
 		equipment[slot_name] = null
 	else:
-		ammo["count"] = cur_count - used
+		ammo["count"] = current_count - used
 	equipment_changed.emit()
 	return single
 
@@ -1454,19 +1454,19 @@ func sort_inventory():
 					var max_s = int(existing.get("max_stack", 1))
 					var space = max_s - int(existing.get("count", 1))
 					if space > 0:
-						var move_amt = min(space, int(slot_item.get("count", 1)))
-						existing["count"] = int(existing.get("count", 1)) + move_amt
-						slot_item["count"] = int(slot_item.get("count", 1)) - move_amt
+						var move_amount = min(space, int(slot_item.get("count", 1)))
+						existing["count"] = int(existing.get("count", 1)) + move_amount
+						slot_item["count"] = int(slot_item.get("count", 1)) - move_amount
 						if int(slot_item.get("count", 1)) <= 0:
 							stacked = true
 							break
 		if not stacked:
 			merged.append(slot_item)
 	merged.sort_custom(func(item_a, item_b):
-		var cat_a = str(item_a.get("category", ""))
-		var cat_b = str(item_b.get("category", ""))
-		if cat_a != cat_b:
-			return cat_a < cat_b
+		var category_a = str(item_a.get("category", ""))
+		var category_b = str(item_b.get("category", ""))
+		if category_a != category_b:
+			return category_a < category_b
 		return str(item_a.get("name", "")) < str(item_b.get("name", ""))
 	)
 	for ii in range(INVENTORY_SIZE):
@@ -1499,7 +1499,7 @@ func get_item_spell_name(item_data):
 	return ""
 
 func apply_tipsy_buff(mp_per_turn = 1, duration = 6, icon_path = ""):
-	var buff_def = {
+	var buff_definition = {
 		name = "Tipsy",
 		description = { text = "Alcohol warms the blood: +" + str(mp_per_turn) + " MP/turn, +2 Magic Power, +1 Melee Power, -1 Dodge per stack." },
 		icon = icon_path if icon_path != "" else "items/booze_pilsner.png",
@@ -1515,20 +1515,20 @@ func apply_tipsy_buff(mp_per_turn = 1, duration = 6, icon_path = ""):
 			{ id = 6, amount = -1 }
 		]
 	}
-	return apply_buff(buff_def, "Tipsy")
+	return apply_buff(buff_definition, "Tipsy")
 
-func use_consumable_at(inv_idx, target_cell = Vector2i.ZERO, context = {}):
-	if inv_idx < 0 or inv_idx >= inventory.size():
+func use_consumable_at(inventory_index, target_cell = Vector2i.ZERO, context = {}):
+	if inventory_index < 0 or inventory_index >= inventory.size():
 		return { executed = false, reason = "Invalid inventory slot" }
-	var item = inventory[inv_idx]
+	var item = inventory[inventory_index]
 	if item == null:
 		return { executed = false, reason = "Empty slot" }
 	var cat = str(item.get("category", ""))
 	if not is_item_usable(item):
 		return { executed = false, reason = "Item is not usable" }
 
-	var p_pos = get_grid_position()
-	var self_cell = Vector2i(int(p_pos.x), int(p_pos.y)) if p_pos != null else target_cell
+	var p_position = get_grid_position()
+	var self_cell = Vector2i(int(p_position.x), int(p_position.y)) if p_position != null else target_cell
 	var spell_ctx = context.duplicate()
 	spell_ctx["free_cast"] = true
 	var spell_engine = load("res://script/instance/combat/spell_engine.gd")
@@ -1544,7 +1544,7 @@ func use_consumable_at(inv_idx, target_cell = Vector2i.ZERO, context = {}):
 			apply_tipsy_buff(mp_per_turn, turns, item_icon)
 			if extra_spell != "" and spell_engine != null:
 				spell_engine.execute_spell(extra_spell, self, self_cell, spell_ctx)
-			remove_item_at(inv_idx, 1)
+			remove_item_at(inventory_index, 1)
 			return {
 				executed = true,
 				kind = "booze",
@@ -1566,7 +1566,7 @@ func use_consumable_at(inv_idx, target_cell = Vector2i.ZERO, context = {}):
 		}, str(item.get("name", "Food")))
 		if extra_spell != "" and spell_engine != null:
 			spell_engine.execute_spell(extra_spell, self, self_cell, spell_ctx)
-		remove_item_at(inv_idx, 1)
+		remove_item_at(inventory_index, 1)
 		return {
 			executed = true,
 			kind = "food",
@@ -1579,30 +1579,30 @@ func use_consumable_at(inv_idx, target_cell = Vector2i.ZERO, context = {}):
 		var spell_name = get_item_spell_name(item)
 		if spell_name == "":
 			return { executed = false, reason = "No spell bound to item" }
-		var res = spell_engine.execute_spell(spell_name, self, self_cell, spell_ctx)
-		if not res.get("executed", false):
-			return res
-		remove_item_at(inv_idx, 1)
+		var result = spell_engine.execute_spell(spell_name, self, self_cell, spell_ctx)
+		if not result.get("executed", false):
+			return result
+		remove_item_at(inventory_index, 1)
 		return {
 			executed = true,
 			kind = cat,
 			item_name = str(item.get("name", cat.capitalize())),
 			spell_name = spell_name,
-			spell_result = res
+			spell_result = result
 		}
 
 	if cat == "wand":
 		var charges = int(item.get("charges", 0))
 		if charges <= 0:
-			remove_item_at(inv_idx, 1)
+			remove_item_at(inventory_index, 1)
 			return { executed = false, burned_out = true, reason = "Wand has no charges left" }
 		var wand_spell = str(item.get("wand_spell", ""))
 		if wand_spell == "":
 			return { executed = false, reason = "Wand has no spell" }
 		var cast_target = target_cell if target_cell != Vector2i.ZERO else self_cell
-		var res = spell_engine.execute_spell(wand_spell, self, cast_target, spell_ctx)
-		if not res.get("executed", false):
-			return res
+		var result = spell_engine.execute_spell(wand_spell, self, cast_target, spell_ctx)
+		if not result.get("executed", false):
+			return result
 		var preserve_chance = clamp(get_secondary_stat("wandcrafting_level") * 8, 0, 50)
 		var preserved = preserve_chance > 0 and (randi() % 100) < preserve_chance
 		if not preserved:
@@ -1610,7 +1610,7 @@ func use_consumable_at(inv_idx, target_cell = Vector2i.ZERO, context = {}):
 			item["charges"] = charges
 		var burned_out = charges <= 0
 		if burned_out:
-			remove_item_at(inv_idx, 1)
+			remove_item_at(inventory_index, 1)
 		else:
 			inventory_changed.emit()
 		return {
@@ -1621,7 +1621,7 @@ func use_consumable_at(inv_idx, target_cell = Vector2i.ZERO, context = {}):
 			remaining_charges = charges,
 			preserved_charge = preserved,
 			burned_out = burned_out,
-			spell_result = res
+			spell_result = result
 		}
 
 	if cat == "toolkit":
@@ -1702,31 +1702,31 @@ func can_craft_recipe(recipe, ignore_toolkit_check = false):
 	var tool_tag = str(recipe.get("tool", ""))
 	if not ignore_toolkit_check and tool_tag != "" and not has_toolkit(tool_tag):
 		return { ok = false, reason = "Missing required tool (" + tool_tag + ")" }
-	var skill_lvl = get_crafting_skill_level(tool_tag)
+	var skill_level = get_crafting_skill_level(tool_tag)
 	var min_skill = int(recipe.get("min_skill", 0))
-	if skill_lvl < min_skill:
-		return { ok = false, reason = "Requires skill level " + str(min_skill) + " (have " + str(skill_lvl) + ")" }
+	if skill_level < min_skill:
+		return { ok = false, reason = "Requires skill level " + str(min_skill) + " (have " + str(skill_level) + ")" }
 	var req_counts = _required_input_counts(recipe)
 	for req_name in req_counts:
-		var have_amt = count_item_in_inventory(req_name)
-		var need_amt = int(req_counts[req_name])
-		if have_amt < need_amt:
-			return { ok = false, reason = "Missing " + req_name + " (" + str(have_amt) + "/" + str(need_amt) + ")" }
+		var have_amount = count_item_in_inventory(req_name)
+		var need_amount = int(req_counts[req_name])
+		if have_amount < need_amount:
+			return { ok = false, reason = "Missing " + req_name + " (" + str(have_amount) + "/" + str(need_amount) + ")" }
 	return { ok = true, reason = "" }
 
 func _consume_inventory_item_by_name(item_name, amount):
 	var remaining = amount
-	for idx in range(inventory.size()):
+	for index in range(inventory.size()):
 		if remaining <= 0:
 			break
-		var item = inventory[idx]
+		var item = inventory[index]
 		if item == null or str(item.get("name", "")) != str(item_name):
 			continue
 		var cnt = max(1, int(item.get("count", 1)))
 		var take = min(cnt, remaining)
 		remaining -= take
 		if cnt - take <= 0:
-			inventory[idx] = null
+			inventory[index] = null
 		else:
 			item["count"] = cnt - take
 	return remaining == 0
@@ -1736,12 +1736,12 @@ func craft_recipe(recipe, ignore_toolkit_check = false):
 	if not check.ok:
 		return check
 	var tool_tag = str(recipe.get("tool", ""))
-	var skill_lvl = get_crafting_skill_level(tool_tag)
-	var out_def = OD.Database.get_craft_output_for_skill(recipe, skill_lvl)
-	if out_def == null:
+	var skill_level = get_crafting_skill_level(tool_tag)
+	var out_definition = OD.Database.get_craft_output_for_skill(recipe, skill_level)
+	if out_definition == null:
 		return { ok = false, reason = "No valid output for current skill level" }
-	var out_name = str(out_def.get("name", ""))
-	var out_amount = max(1, int(out_def.get("amount", 1)))
+	var out_name = str(out_definition.get("name", ""))
+	var out_amount = max(1, int(out_definition.get("amount", 1)))
 
 	var req_counts = _required_input_counts(recipe)
 	for req_name in req_counts:
@@ -1753,11 +1753,11 @@ func craft_recipe(recipe, ignore_toolkit_check = false):
 	if sample != null:
 		if int(sample.get("max_stack", 1)) > 1:
 			var stacked = OD.Database.create_item_instance(out_name, out_amount)
-			var add_res = add_item(stacked)
+			var add_result = add_item(stacked)
 			created_items.append(stacked)
-			if not add_res.added or add_res.remaining > 0:
-				var rem_cnt = add_res.remaining if add_res.added else out_amount
-				var drop_inst = OD.Database.create_item_instance(out_name, rem_cnt)
+			if not add_result.added or add_result.remaining > 0:
+				var remaining_count = add_result.remaining if add_result.added else out_amount
+				var drop_inst = OD.Database.create_item_instance(out_name, remaining_count)
 				if drop_inst != null:
 					leftover_items.append(drop_inst)
 		else:
@@ -1765,8 +1765,8 @@ func craft_recipe(recipe, ignore_toolkit_check = false):
 				var inst = OD.Database.create_item_instance(out_name, 1)
 				if inst != null:
 					created_items.append(inst)
-					var add_res = add_item(inst)
-					if not add_res.added:
+					var add_result = add_item(inst)
+					if not add_result.added:
 						leftover_items.append(inst)
 
 	var toolkit_info = OD.Database.get_toolkit_info(tool_tag)
@@ -1820,29 +1820,29 @@ func get_item_encrust_slot(item):
 		return item_slot
 	return ""
 
-func is_item_eligible_for_encrust(item, encrust_def):
-	if item == null or encrust_def == null:
+func is_item_eligible_for_encrust(item, encrust_definition):
+	if item == null or encrust_definition == null:
 		return false
 	var encrust_slot = get_item_encrust_slot(item)
 	if encrust_slot == "":
 		return false
-	return encrust_slot in encrust_def.get("slots", [])
+	return encrust_slot in encrust_definition.get("slots", [])
 
-func get_eligible_items_for_encrust(encrust_def):
+func get_eligible_items_for_encrust(encrust_definition):
 	var eligible = []
 	var seen = {}
-	if encrust_def == null:
+	if encrust_definition == null:
 		return eligible
 	for equip_slot in EQUIPMENT_SLOTS:
 		var eq_item = equipment.get(equip_slot, null)
-		if eq_item != null and not seen.has(eq_item) and is_item_eligible_for_encrust(eq_item, encrust_def):
+		if eq_item != null and not seen.has(eq_item) and is_item_eligible_for_encrust(eq_item, encrust_definition):
 			seen[eq_item] = true
 			eligible.append({ item = eq_item, location = "equipped", slot = equip_slot })
 	for idx in range(inventory.size()):
-		var inv_item = inventory[idx]
-		if inv_item != null and not seen.has(inv_item) and is_item_eligible_for_encrust(inv_item, encrust_def):
-			seen[inv_item] = true
-			eligible.append({ item = inv_item, location = "inventory", index = idx })
+		var inventory_item = inventory[idx]
+		if inventory_item != null and not seen.has(inventory_item) and is_item_eligible_for_encrust(inventory_item, encrust_definition):
+			seen[inventory_item] = true
+			eligible.append({ item = inventory_item, location = "inventory", index = idx })
 	return eligible
 
 func count_item_in_inventory_excluding(item_name, excluded_item = null):
@@ -1856,10 +1856,10 @@ func count_item_in_inventory_excluding(item_name, excluded_item = null):
 
 func _consume_inventory_item_excluding(item_name, amount, excluded_item = null):
 	var remaining = amount
-	for idx in range(inventory.size()):
+	for index in range(inventory.size()):
 		if remaining <= 0:
 			break
-		var item = inventory[idx]
+		var item = inventory[index]
 		if item == null or item == excluded_item:
 			continue
 		if str(item.get("name", "")) != str(item_name) and str(item.get("base_name", "")) != str(item_name):
@@ -1868,86 +1868,86 @@ func _consume_inventory_item_excluding(item_name, amount, excluded_item = null):
 		var take = min(cnt, remaining)
 		remaining -= take
 		if cnt - take <= 0:
-			inventory[idx] = null
+			inventory[index] = null
 		else:
 			item["count"] = cnt - take
 	return remaining == 0
 
-func can_encrust_item(encrust_def, target_item, ignore_toolkit_check = false):
-	if encrust_def == null or OD.Database == null:
+func can_encrust_item(encrust_definition, target_item, ignore_toolkit_check = false):
+	if encrust_definition == null or OD.Database == null:
 		return { ok = false, reason = "Invalid encrusting recipe" }
-	var tool_tag = str(encrust_def.get("tool", ""))
+	var tool_tag = str(encrust_definition.get("tool", ""))
 	if not ignore_toolkit_check and tool_tag != "" and not has_toolkit(tool_tag):
 		return { ok = false, reason = "Missing required tool (" + tool_tag + ")" }
-	var skill_lvl = get_crafting_skill_level(tool_tag)
-	var min_skill = int(encrust_def.get("min_skill", 0))
-	if skill_lvl < min_skill:
-		return { ok = false, reason = "Requires skill level " + str(min_skill) + " (have " + str(skill_lvl) + ")" }
+	var skill_level = get_crafting_skill_level(tool_tag)
+	var min_skill = int(encrust_definition.get("min_skill", 0))
+	if skill_level < min_skill:
+		return { ok = false, reason = "Requires skill level " + str(min_skill) + " (have " + str(skill_level) + ")" }
 	if target_item == null:
 		return { ok = false, reason = "Select an eligible item to encrust" }
-	if not is_item_eligible_for_encrust(target_item, encrust_def):
+	if not is_item_eligible_for_encrust(target_item, encrust_definition):
 		return { ok = false, reason = "Item cannot receive this encrust" }
-	var req_counts = _required_input_counts(encrust_def)
+	var req_counts = _required_input_counts(encrust_definition)
 	for req_name in req_counts:
-		var have_amt = count_item_in_inventory_excluding(req_name, target_item)
-		var need_amt = int(req_counts[req_name])
-		if have_amt < need_amt:
-			return { ok = false, reason = "Missing " + req_name + " (" + str(have_amt) + "/" + str(need_amt) + ")" }
+		var have_amount = count_item_in_inventory_excluding(req_name, target_item)
+		var need_amount = int(req_counts[req_name])
+		if have_amount < need_amount:
+			return { ok = false, reason = "Missing " + req_name + " (" + str(have_amount) + "/" + str(need_amount) + ")" }
 	return { ok = true, reason = "" }
 
 func _merge_buff_list(target_list, source_list):
-	for src in source_list:
-		var src_id = int(src.get("id", -1))
-		var src_amt = int(src.get("amount", 0))
+	for source in source_list:
+		var source_id = int(source.get("id", -1))
+		var source_amount = int(source.get("amount", 0))
 		var merged = false
-		for dst in target_list:
-			if int(dst.get("id", -1)) == src_id:
-				dst["amount"] = int(dst.get("amount", 0)) + src_amt
+		for destination in target_list:
+			if int(destination.get("id", -1)) == source_id:
+				destination["amount"] = int(destination.get("amount", 0)) + source_amount
 				merged = true
 				break
 		if not merged:
-			target_list.append({ id = src_id, amount = src_amt })
+			target_list.append({ id = source_id, amount = source_amount })
 
 func _merge_buff_map(target_map, source_map):
 	for key in source_map:
 		target_map[key] = int(target_map.get(key, 0)) + int(source_map[key])
 
-func encrust_item(encrust_def, target_item, ignore_toolkit_check = false):
-	var check = can_encrust_item(encrust_def, target_item, ignore_toolkit_check)
+func encrust_item(encrust_definition, target_item, ignore_toolkit_check = false):
+	var check = can_encrust_item(encrust_definition, target_item, ignore_toolkit_check)
 	if not check.ok:
 		return check
-	var req_counts = _required_input_counts(encrust_def)
+	var req_counts = _required_input_counts(encrust_definition)
 	for req_name in req_counts:
 		_consume_inventory_item_excluding(req_name, int(req_counts[req_name]), target_item)
 
 	var applied = target_item.get("encrusts", [])
-	applied.append(str(encrust_def.get("name", "Encrust")))
+	applied.append(str(encrust_definition.get("name", "Encrust")))
 	target_item["encrusts"] = applied
 
 	var tags = target_item.get("encrust_tags", [])
-	for tag_str in encrust_def.get("encrust_with", []):
-		if not (tag_str in tags):
-			tags.append(tag_str)
+	for tag_text in encrust_definition.get("encrust_with", []):
+		if not (tag_text in tags):
+			tags.append(tag_text)
 	target_item["encrust_tags"] = tags
 
-	var total_instability = int(target_item.get("instability", 0)) + int(encrust_def.get("instability", 0))
+	var total_instability = int(target_item.get("instability", 0)) + int(encrust_definition.get("instability", 0))
 	target_item["instability"] = total_instability
 
 	if not target_item.has("primary_buffs"):
 		target_item["primary_buffs"] = []
-	_merge_buff_list(target_item["primary_buffs"], encrust_def.get("primary_buffs", []))
+	_merge_buff_list(target_item["primary_buffs"], encrust_definition.get("primary_buffs", []))
 
 	if not target_item.has("secondary_buffs"):
 		target_item["secondary_buffs"] = []
-	_merge_buff_list(target_item["secondary_buffs"], encrust_def.get("secondary_buffs", []))
+	_merge_buff_list(target_item["secondary_buffs"], encrust_definition.get("secondary_buffs", []))
 
 	if not target_item.has("resist_buffs"):
 		target_item["resist_buffs"] = {}
-	_merge_buff_map(target_item["resist_buffs"], encrust_def.get("resist_buffs", {}))
+	_merge_buff_map(target_item["resist_buffs"], encrust_definition.get("resist_buffs", {}))
 
 	if not target_item.has("damage_buffs"):
 		target_item["damage_buffs"] = {}
-	_merge_buff_map(target_item["damage_buffs"], encrust_def.get("damage_buffs", {}))
+	_merge_buff_map(target_item["damage_buffs"], encrust_definition.get("damage_buffs", {}))
 
 	var base_nm = str(target_item.get("base_name", target_item.get("name", "Item")))
 	target_item["base_name"] = base_nm
@@ -1965,7 +1965,7 @@ func encrust_item(encrust_def, target_item, ignore_toolkit_check = false):
 			target_item["unstable_effects"] = unstable_list
 			unstable_added = str(picked.get("name", ""))
 
-	var tool_tag = str(encrust_def.get("tool", ""))
+	var tool_tag = str(encrust_definition.get("tool", ""))
 	var toolkit_info = OD.Database.get_toolkit_info(tool_tag)
 	if toolkit_info != null and toolkit_info.sound != "":
 		OD.Audio.play_sfx(toolkit_info.sound)
@@ -1973,7 +1973,7 @@ func encrust_item(encrust_def, target_item, ignore_toolkit_check = false):
 	inventory_changed.emit()
 	return {
 		ok = true,
-		encrust_name = str(encrust_def.get("name", "")),
+		encrust_name = str(encrust_definition.get("name", "")),
 		item_name = str(target_item.get("name", "")),
 		instability = total_instability,
 		unstable_added = unstable_added
@@ -2013,8 +2013,8 @@ func add_quest(quest_data):
 func advance_kill_quests(floor_level):
 	var completed_now = []
 	var changed = false
-	for idx in range(active_quests.size() - 1, -1, -1):
-		var quest = active_quests[idx]
+	for index in range(active_quests.size() - 1, -1, -1):
+		var quest = active_quests[index]
 		if str(quest.get("kind", "")) != "kill":
 			continue
 		if int(quest.get("floor_level", floor_level)) != int(floor_level):
@@ -2024,7 +2024,7 @@ func advance_kill_quests(floor_level):
 		if int(quest["progress"]) >= int(quest.get("target", 1)):
 			var done_quest = quest.duplicate(true)
 			done_quest["completed"] = true
-			active_quests.remove_at(idx)
+			active_quests.remove_at(index)
 			completed_quests.append(done_quest)
 			completed_now.append(done_quest)
 			if int(done_quest.get("reward_xp", 0)) > 0:

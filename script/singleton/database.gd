@@ -177,28 +177,28 @@ func ingest():
 					initial_packs.append(pack_info.id)
 		set_active_packs(initial_packs)
 
-func ingest_async(start_pct = 10.0, end_pct = 70.0):
+func ingest_async(start_percent = 10.0, end_percent = 70.0):
 	if packs != null:
 		return
 	packs = {}
 	var available = OD.Settings.get_available_content_packs()
 	var total_steps = 2 + available.size()
-	var step_idx = 0
-	var pct_span = end_pct - start_pct
+	var step_index = 0
+	var percent_span = end_percent - start_percent
 	if OD.Loading != null:
-		await OD.Loading.step("Ingesting base game XML data...", start_pct)
+		await OD.Loading.step("Ingesting base game XML data...", start_percent)
 	print("Ingesting vanilla game data")
 	packs["vanilla"] = _load_pack_data("game/")
-	step_idx += 1
+	step_index += 1
 	for pack_info in available:
-		var pct = start_pct + pct_span * (float(step_idx) / float(total_steps))
+		var percent = start_percent + percent_span * (float(step_index) / float(total_steps))
 		if OD.Loading != null:
-			await OD.Loading.step("Ingesting " + str(pack_info.get("name", pack_info.id)) + "...", pct)
+			await OD.Loading.step("Ingesting " + str(pack_info.get("name", pack_info.id)) + "...", percent)
 		print("Ingesting content pack [" + str(pack_info.get("name", pack_info.id)) + "] from " + pack_info.prefix)
 		packs[pack_info.id] = _load_pack_data(pack_info.prefix + pack_info.data_subdir)
-		step_idx += 1
+		step_index += 1
 	if OD.Loading != null:
-		await OD.Loading.step("Building database indexes...", end_pct)
+		await OD.Loading.step("Building database indexes...", end_percent)
 	var initial_packs = OD.DungeonSettings.get_active_packs()
 	if not OD.DungeonSettings.has_initialized_packs():
 		initial_packs = []
@@ -317,15 +317,15 @@ func get_branch(branch_id):
 func get_all_rooms():
 	return cache.rooms
 
-func _merge_monster_variant(parent_def, child_def):
-	var merged = parent_def.duplicate(true)
+func _merge_monster_variant(parent_definition, child_definition):
+	var merged = parent_definition.duplicate(true)
 	merged.erase("monster")
-	for key in child_def.keys():
-		var val = child_def[key]
-		if typeof(val) == TYPE_DICTIONARY or typeof(val) == TYPE_ARRAY:
-			merged[key] = val.duplicate(true)
+	for key in child_definition.keys():
+		var value = child_definition[key]
+		if typeof(value) == TYPE_DICTIONARY or typeof(value) == TYPE_ARRAY:
+			merged[key] = value.duplicate(true)
 		else:
-			merged[key] = val
+			merged[key] = value
 	return merged
 
 func _build_monster_info():
@@ -454,10 +454,10 @@ func _pick_level_filtered_entry(pool, loot_kind, floor_level):
 func get_loot(loot_kind, loot_sub_kind = null, floor_level = -1):
 	var lookup = result_cache['loot_info']
 	if loot_sub_kind != null:
-		var sub_str = str(loot_sub_kind)
-		if lookup._find_by_name.has(sub_str):
-			return lookup._find_by_name[sub_str]
-		var sub_lower = sub_str.to_lower()
+		var sub_text = str(loot_sub_kind)
+		if lookup._find_by_name.has(sub_text):
+			return lookup._find_by_name[sub_text]
+		var sub_lower = sub_text.to_lower()
 		if lookup._find_by_name_lower.has(sub_lower):
 			return lookup._find_by_name_lower[sub_lower]
 		return null
@@ -563,26 +563,26 @@ func get_craft_output_for_skill(recipe, skill_level):
 
 func get_toolkit_info(tool_tag):
 	for item_entry in get_items_by_category("toolkit"):
-		var raw_tk = item_entry.get("raw", {}).get("toolkit", null)
-		if typeof(raw_tk) == TYPE_DICTIONARY and str(raw_tk.get("tag", "")) == str(tool_tag):
+		var raw_toolkit = item_entry.get("raw", {}).get("toolkit", null)
+		if typeof(raw_toolkit) == TYPE_DICTIONARY and str(raw_toolkit.get("tag", "")) == str(tool_tag):
 			return {
-				tag = str(raw_tk.get("tag", "")),
+				tag = str(raw_toolkit.get("tag", "")),
 				name = str(item_entry.get("name", tool_tag)),
 				icon = str(item_entry.get("icon", "")),
-				numslots = int(raw_tk.get("numslots", 4)),
-				sound = str(raw_tk.get("sound", "")),
-				bg = str(raw_tk.get("bg", "ui/crafting/generic_bg.png")),
-				craftbutton = str(raw_tk.get("craftbutton", "ui/crafting/generic_but_craft"))
+				numslots = int(raw_toolkit.get("numslots", 4)),
+				sound = str(raw_toolkit.get("sound", "")),
+				bg = str(raw_toolkit.get("bg", "ui/crafting/generic_bg.png")),
+				craftbutton = str(raw_toolkit.get("craftbutton", "ui/crafting/generic_but_craft"))
 			}
 	return null
 
-func get_toolkit_tag_for_item(item_name_or_def):
-	var item_def = get_item(str(item_name_or_def.get("name", item_name_or_def))) if typeof(item_name_or_def) == TYPE_DICTIONARY else get_item(str(item_name_or_def))
-	if item_def == null:
+func get_toolkit_tag_for_item(item_name_or_definition):
+	var item_definition = get_item(str(item_name_or_definition.get("name", item_name_or_definition))) if typeof(item_name_or_definition) == TYPE_DICTIONARY else get_item(str(item_name_or_definition))
+	if item_definition == null:
 		return ""
-	var raw_tk = item_def.get("raw", {}).get("toolkit", null)
-	if typeof(raw_tk) == TYPE_DICTIONARY:
-		return str(raw_tk.get("tag", ""))
+	var raw_toolkit = item_definition.get("raw", {}).get("toolkit", null)
+	if typeof(raw_toolkit) == TYPE_DICTIONARY:
+		return str(raw_toolkit.get("tag", ""))
 	return ""
 
 func get_all_crafts():
@@ -658,15 +658,15 @@ func _build_encrust_info():
 		var resist_buffs = {}
 		for entry in _extract_item_tag_array(raw_encrust, "resistbuff", "resistBuff"):
 			if typeof(entry) == TYPE_DICTIONARY:
-				for dmg_type in ITEM_DAMAGE_TYPES:
-					if entry.has(dmg_type):
-						resist_buffs[dmg_type] = int(resist_buffs.get(dmg_type, 0)) + int(entry[dmg_type])
+				for damage_type in ITEM_DAMAGE_TYPES:
+					if entry.has(damage_type):
+						resist_buffs[damage_type] = int(resist_buffs.get(damage_type, 0)) + int(entry[damage_type])
 		var damage_buffs = {}
 		for entry in _extract_item_tag_array(raw_encrust, "damagebuff", "damageBuff"):
 			if typeof(entry) == TYPE_DICTIONARY:
-				for dmg_type in ITEM_DAMAGE_TYPES:
-					if entry.has(dmg_type):
-						damage_buffs[dmg_type] = int(damage_buffs.get(dmg_type, 0)) + int(entry[dmg_type])
+				for damage_type in ITEM_DAMAGE_TYPES:
+					if entry.has(damage_type):
+						damage_buffs[damage_type] = int(damage_buffs.get(damage_type, 0)) + int(entry[damage_type])
 		var powers = []
 		for entry in OD.DataStructure.arrayify(raw_encrust.get("power", [])):
 			if typeof(entry) == TYPE_DICTIONARY and entry.has("name"):
@@ -771,12 +771,12 @@ func _build_skill_info():
 		if ability.has("startSkill") and int(ability.startSkill) == 1:
 			skill_entry.start_ability = ability
 		elif ability.has("level"):
-			var level_num = int(ability.level)
+			var level_number = int(ability.level)
 			var desc = ""
 			if ability.has("description") and typeof(ability.description) == TYPE_DICTIONARY and ability.description.has("text"):
 				desc = ability.description.text
 			var level_entry = {
-				level = level_num,
+				level = level_number,
 				name = ability.name if ability.has("name") else "",
 				icon = ability.icon if ability.has("icon") else "",
 				description = desc,
@@ -790,12 +790,12 @@ func _build_skill_info():
 				trigger_on_cast = OD.DataStructure.arrayify(ability.triggeroncast) if ability.has("triggeroncast") else [],
 				raw = ability
 			}
-			skill_entry.levels[level_num] = level_entry
+			skill_entry.levels[level_number] = level_entry
 	for skill_entry in all_skills:
 		var level_keys = skill_entry.levels.keys()
 		level_keys.sort()
-		for level_num in level_keys:
-			skill_entry.level_progression.append(skill_entry.levels[level_num])
+		for level_number in level_keys:
+			skill_entry.level_progression.append(skill_entry.levels[level_number])
 	cache_result("skill_info", {
 		by_id = by_id,
 		by_name = by_name,
@@ -815,8 +815,8 @@ func get_skill_level(skill_id_or_name, level):
 	var skill_entry = get_skill(skill_id_or_name)
 	if skill_entry == null:
 		return null
-	var level_num = int(level)
-	return skill_entry.levels[level_num] if skill_entry.levels.has(level_num) else null
+	var level_number = int(level)
+	return skill_entry.levels[level_number] if skill_entry.levels.has(level_number) else null
 
 func get_all_skills(include_deprecated = false):
 	if result_cache == null or not result_cache.has("skill_info"):
@@ -889,22 +889,22 @@ func _build_template_info():
 					var anchor = Vector2i.ZERO
 					var found_anchor = false
 					var raw_cells = []
-					for row_idx in range(rows_raw.size()):
-						var row_entry = rows_raw[row_idx]
+					for row_index in range(rows_raw.size()):
+						var row_entry = rows_raw[row_index]
 						var row_text = str(row_entry.get("text", "")) if typeof(row_entry) == TYPE_DICTIONARY else ""
 						rows.append(row_text)
-						for col_idx in range(row_text.length()):
-							var ch = row_text.substr(col_idx, 1)
+						for col_index in range(row_text.length()):
+							var ch = row_text.substr(col_index, 1)
 							if ch == "#":
-								anchor = Vector2i(col_idx, row_idx)
+								anchor = Vector2i(col_index, row_index)
 								found_anchor = true
 							elif ch == "@":
-								raw_cells.append(Vector2i(col_idx, row_idx))
+								raw_cells.append(Vector2i(col_index, row_index))
 					if not found_anchor:
 						anchor = Vector2i(int(tmpl.get("width", 1)) / 2, int(tmpl.get("height", 1)) / 2)
 					var affected_offsets = []
-					for cell_pos in raw_cells:
-						affected_offsets.append(cell_pos - anchor)
+					for cell_position in raw_cells:
+						affected_offsets.append(cell_position - anchor)
 					var entry = {
 						name = str(tmpl.name),
 						width = int(tmpl.get("width", 1)),
@@ -1078,19 +1078,19 @@ func _extract_item_tag_array(raw_item, lower_key, camel_key):
 		collected.append_array(OD.DataStructure.arrayify(raw_item.get(camel_key)))
 	return collected
 
-func create_item_instance(item_name_or_def, count = 1):
-	var item_def = null
-	if typeof(item_name_or_def) == TYPE_STRING:
-		item_def = get_item(item_name_or_def)
-	elif typeof(item_name_or_def) == TYPE_DICTIONARY:
-		if item_name_or_def.has("raw"):
-			item_def = item_name_or_def
-		elif item_name_or_def.has("name"):
-			item_def = get_item(str(item_name_or_def.name))
-	if item_def == null:
+func create_item_instance(item_name_or_definition, count = 1):
+	var item_definition = null
+	if typeof(item_name_or_definition) == TYPE_STRING:
+		item_definition = get_item(item_name_or_definition)
+	elif typeof(item_name_or_definition) == TYPE_DICTIONARY:
+		if item_name_or_definition.has("raw"):
+			item_definition = item_name_or_definition
+		elif item_name_or_definition.has("name"):
+			item_definition = get_item(str(item_name_or_definition.name))
+	if item_definition == null:
 		return null
-	var raw_item = item_def.get("raw", {})
-	var category = str(item_def.get("category", "misc"))
+	var raw_item = item_definition.get("raw", {})
+	var category = str(item_definition.get("category", "misc"))
 	var max_stack = 1
 	if category in STACKABLE_ITEM_CATEGORIES:
 		max_stack = max(2, int(raw_item.get("maxstack", 99)))
@@ -1099,11 +1099,11 @@ func create_item_instance(item_name_or_def, count = 1):
 	var weapon_damage = {}
 	var raw_weapon = raw_item.get("weapon", null)
 	if typeof(raw_weapon) == TYPE_DICTIONARY:
-		for dmg_type in ITEM_DAMAGE_TYPES:
-			if raw_weapon.has(dmg_type):
-				var dmg_val = int(raw_weapon[dmg_type])
-				if dmg_val != 0:
-					weapon_damage[dmg_type] = dmg_val
+		for damage_type in ITEM_DAMAGE_TYPES:
+			if raw_weapon.has(damage_type):
+				var damage_value = int(raw_weapon[damage_type])
+				if damage_value != 0:
+					weapon_damage[damage_type] = damage_value
 
 	var primary_buffs = []
 	for entry in _extract_item_tag_array(raw_item, "primarybuff", "primaryBuff"):
@@ -1118,16 +1118,16 @@ func create_item_instance(item_name_or_def, count = 1):
 	var resist_buffs = {}
 	for entry in _extract_item_tag_array(raw_item, "resistbuff", "resistBuff"):
 		if typeof(entry) == TYPE_DICTIONARY:
-			for dmg_type in ITEM_DAMAGE_TYPES:
-				if entry.has(dmg_type):
-					resist_buffs[dmg_type] = int(resist_buffs.get(dmg_type, 0)) + int(entry[dmg_type])
+			for damage_type in ITEM_DAMAGE_TYPES:
+				if entry.has(damage_type):
+					resist_buffs[damage_type] = int(resist_buffs.get(damage_type, 0)) + int(entry[damage_type])
 
 	var damage_buffs = {}
 	for entry in _extract_item_tag_array(raw_item, "damagebuff", "damageBuff"):
 		if typeof(entry) == TYPE_DICTIONARY:
-			for dmg_type in ITEM_DAMAGE_TYPES:
-				if entry.has(dmg_type):
-					damage_buffs[dmg_type] = int(damage_buffs.get(dmg_type, 0)) + int(entry[dmg_type])
+			for damage_type in ITEM_DAMAGE_TYPES:
+				if entry.has(damage_type):
+					damage_buffs[damage_type] = int(damage_buffs.get(damage_type, 0)) + int(entry[damage_type])
 
 	var target_hit_effects = []
 	for entry in _extract_item_tag_array(raw_item, "targethiteffectbuff", "targetHitEffectBuff"):
@@ -1145,25 +1145,25 @@ func create_item_instance(item_name_or_def, count = 1):
 				percentage = int(entry.get("percentage", 100))
 			})
 
-	var base_price = int(item_def.get("price", 0))
+	var base_price = int(item_definition.get("price", 0))
 	var sell_scaler = float(get_tweak("store sell price scaler", 0.63))
 	var sell_price = max(1, int(round(float(base_price) * sell_scaler))) if base_price > 0 else 0
 
 	var instance = {
-		name = str(item_def.get("name", "Unknown Item")),
-		base_name = str(item_def.get("name", "Unknown Item")),
+		name = str(item_definition.get("name", "Unknown Item")),
+		base_name = str(item_definition.get("name", "Unknown Item")),
 		category = category,
-		slot = str(item_def.get("slot", "")),
-		type = int(item_def.get("type", -1)),
-		level = int(item_def.get("level", 1)),
-		icon = str(item_def.get("icon", "")),
+		slot = str(item_definition.get("slot", "")),
+		type = int(item_definition.get("type", -1)),
+		level = int(item_definition.get("level", 1)),
+		icon = str(item_definition.get("icon", "")),
 		price = base_price,
 		sell_price = sell_price,
-		description = str(item_def.get("description", "")),
+		description = str(item_definition.get("description", "")),
 		count = clamped_count,
 		max_stack = max_stack,
-		is_artifact = bool(item_def.get("is_artifact", false)),
-		artifact_quality = int(item_def.get("artifact_quality", 0)),
+		is_artifact = bool(item_definition.get("is_artifact", false)),
+		artifact_quality = int(item_definition.get("artifact_quality", 0)),
 		weapon_damage = weapon_damage,
 		primary_buffs = primary_buffs,
 		secondary_buffs = secondary_buffs,
@@ -1196,8 +1196,8 @@ func create_item_instance(item_name_or_def, count = 1):
 		instance["wand_spell"] = str(raw_wand.get("spell", ""))
 		instance["charges"] = rolled_charges
 		instance["max_charges"] = rolled_charges
-	for dmg_type in weapon_damage:
-		instance[dmg_type] = weapon_damage[dmg_type]
+	for damage_type in weapon_damage:
+		instance[damage_type] = weapon_damage[damage_type]
 	return instance
 
 func _pick_text_entry(tag_key, fallback_text):
@@ -1219,16 +1219,16 @@ func generate_artifact_name(base_name):
 	var quality_word = _pick_text_entry("quality", "illustrious").capitalize()
 	var material_word = _pick_text_entry("material", "orichalcum").capitalize()
 	var decor_word = _pick_text_entry("decor", "runes")
-	var adj_word = _pick_text_entry("adjective", "Ancient")
+	var adjacent_word = _pick_text_entry("adjective", "Ancient")
 	var noun_word = _pick_text_entry("noun", "Power")
 	var pattern = randi() % 4
 	match pattern:
 		0:
-			return "%s, the %s %s of %s" % [proper_name, adj_word, base_name, noun_word]
+			return "%s, the %s %s of %s" % [proper_name, adjacent_word, base_name, noun_word]
 		1:
 			return "The %s %s of %s" % [quality_word, base_name, decor_word.capitalize()]
 		2:
-			return "%s of the %s %s" % [base_name, adj_word, noun_word]
+			return "%s of the %s %s" % [base_name, adjacent_word, noun_word]
 		_:
 			return "%s's %s %s %s" % [proper_name, quality_word, material_word, base_name]
 
@@ -1242,7 +1242,7 @@ func _add_buff_entry(buff_list, stat_id, delta):
 func _apply_artifact_bonuses(instance, quality):
 	var clamped_quality = clamp(int(quality), 1, 15)
 	var sec_ids = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
-	var elem_types = ["conflagratory", "hyperborean", "voltaic", "acidic", "toxic", "aethereal", "necromantic", "righteous"]
+	var element_types = ["conflagratory", "hyperborean", "voltaic", "acidic", "toxic", "aethereal", "necromantic", "righteous"]
 	var is_weapon = str(instance.get("category", "")) == "weapon"
 	for _ii in range(clamped_quality):
 		var roll = randi() % 4
@@ -1251,19 +1251,19 @@ func _apply_artifact_bonuses(instance, quality):
 			_add_buff_entry(instance.primary_buffs, primary_id, randi_range(1, 2))
 		elif roll == 1:
 			var sec_id = sec_ids[randi() % sec_ids.size()]
-			var amt = randi_range(2, 5) if sec_id <= 1 else randi_range(1, 3)
-			_add_buff_entry(instance.secondary_buffs, sec_id, amt)
+			var amount = randi_range(2, 5) if sec_id <= 1 else randi_range(1, 3)
+			_add_buff_entry(instance.secondary_buffs, sec_id, amount)
 		elif roll == 2:
-			var res_type = elem_types[randi() % elem_types.size()]
-			instance.resist_buffs[res_type] = int(instance.resist_buffs.get(res_type, 0)) + randi_range(1, 3)
+			var result_type = element_types[randi() % element_types.size()]
+			instance.resist_buffs[result_type] = int(instance.resist_buffs.get(result_type, 0)) + randi_range(1, 3)
 		else:
-			var dmg_type = elem_types[randi() % elem_types.size()]
-			var dmg_amt = randi_range(1, 3)
+			var damage_type = element_types[randi() % element_types.size()]
+			var damage_amount = randi_range(1, 3)
 			if is_weapon:
-				instance.weapon_damage[dmg_type] = int(instance.weapon_damage.get(dmg_type, 0)) + dmg_amt
-				instance[dmg_type] = int(instance.get(dmg_type, 0)) + dmg_amt
+				instance.weapon_damage[damage_type] = int(instance.weapon_damage.get(damage_type, 0)) + damage_amount
+				instance[damage_type] = int(instance.get(damage_type, 0)) + damage_amount
 			else:
-				instance.damage_buffs[dmg_type] = int(instance.damage_buffs.get(dmg_type, 0)) + dmg_amt
+				instance.damage_buffs[damage_type] = int(instance.damage_buffs.get(damage_type, 0)) + damage_amount
 	instance["is_artifact"] = true
 	instance["artifact_quality"] = clamped_quality
 	var base_price = max(100, int(instance.get("price", 100)))
@@ -1272,25 +1272,25 @@ func _apply_artifact_bonuses(instance, quality):
 	var sell_scaler = float(get_tweak("store sell price scaler", 0.63))
 	instance["sell_price"] = max(1, int(round(float(scaled_price) * sell_scaler)))
 
-func create_artifact_instance(base_item_or_def = null, floor_level = 1, forced_quality = -1):
+func create_artifact_instance(base_item_or_definition = null, floor_level = 1, forced_quality = -1):
 	var quality = forced_quality if forced_quality > 0 else clamp(randi_range(1, 3) + int(floor_level / 2), 1, 10)
-	var chosen_def = null
+	var chosen_definition = null
 	var is_predefined = false
-	if base_item_or_def != null:
-		chosen_def = base_item_or_def
+	if base_item_or_definition != null:
+		chosen_definition = base_item_or_definition
 	else:
 		var use_predefined = (randi() % 100) < 25
 		if use_predefined:
 			var pre_raw = get_loot("artifact", null, floor_level)
 			if pre_raw != null:
-				chosen_def = pre_raw
+				chosen_definition = pre_raw
 				is_predefined = true
-		if chosen_def == null:
+		if chosen_definition == null:
 			var gear_kind = "weapon" if randi() % 2 == 0 else "armour"
-			chosen_def = get_loot(gear_kind, null, floor_level)
-	if chosen_def == null:
+			chosen_definition = get_loot(gear_kind, null, floor_level)
+	if chosen_definition == null:
 		return null
-	var instance = create_item_instance(chosen_def, 1)
+	var instance = create_item_instance(chosen_definition, 1)
 	if instance == null:
 		return null
 	if bool(instance.get("is_artifact", false)) or is_predefined:
@@ -1310,15 +1310,15 @@ func roll_floor_loot(floor_level = 1, loot_kind = "", artifact_chance = 0.04):
 	if chosen_kind == "artifact":
 		var art_inst = create_artifact_instance(null, floor_level)
 		return { kind = "item", item = art_inst } if art_inst != null else null
-	var raw_or_def = get_loot(chosen_kind, null, floor_level)
-	if raw_or_def == null:
+	var raw_or_definition = get_loot(chosen_kind, null, floor_level)
+	if raw_or_definition == null:
 		return null
 	var gear_kinds = ["weapon", "armour", "ring", "amulet"]
 	if chosen_kind in gear_kinds and artifact_chance > 0.0 and randf() < artifact_chance:
-		var art_inst = create_artifact_instance(raw_or_def, floor_level)
+		var art_inst = create_artifact_instance(raw_or_definition, floor_level)
 		if art_inst != null:
 			return { kind = "item", item = art_inst }
-	var inst = create_item_instance(raw_or_def, 1)
+	var inst = create_item_instance(raw_or_definition, 1)
 	return { kind = "item", item = inst } if inst != null else null
 
 func get_trap(trap_name = null, max_level = 99):
@@ -1418,22 +1418,22 @@ func _parse_room_layout(room):
 	var grid_height = rows.size()
 	var doors = { up = [], down = [], left = [], right = [] }
 	var floor_cells = []
-	for row_idx in range(grid_height):
-		var row_text = rows[row_idx].text
-		for col_idx in range(min(grid_width, row_text.length())):
-			var tile_char = row_text[col_idx]
-			if tile_char == ".":
-				floor_cells.append(Vector2i(col_idx, row_idx))
-			elif tile_char == "d":
-				if col_idx < grid_width / 2:
-					doors.left.append({ x = col_idx, y = row_idx, kind = "left" })
+	for row_index in range(grid_height):
+		var row_text = rows[row_index].text
+		for col_index in range(min(grid_width, row_text.length())):
+			var tile_character = row_text[col_index]
+			if tile_character == ".":
+				floor_cells.append(Vector2i(col_index, row_index))
+			elif tile_character == "d":
+				if col_index < grid_width / 2:
+					doors.left.append({ x = col_index, y = row_index, kind = "left" })
 				else:
-					doors.right.append({ x = col_idx, y = row_idx, kind = "right" })
-			elif tile_char == "D":
-				if row_idx < grid_height / 2:
-					doors.up.append({ x = col_idx, y = row_idx, kind = "up" })
+					doors.right.append({ x = col_index, y = row_index, kind = "right" })
+			elif tile_character == "D":
+				if row_index < grid_height / 2:
+					doors.up.append({ x = col_index, y = row_index, kind = "up" })
 				else:
-					doors.down.append({ x = col_idx, y = row_idx, kind = "down" })
+					doors.down.append({ x = col_index, y = row_index, kind = "down" })
 	var flags = room.flags if room.has("flags") and typeof(room.flags) == TYPE_DICTIONARY else {}
 	return {
 		id = -1,

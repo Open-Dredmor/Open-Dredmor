@@ -14,7 +14,7 @@ const OPPOSITE_DOOR = {
 
 static func _create_empty_grid():
 	var grid = []
-	for row_idx in range(GRID_SIZE):
+	for row_index in range(GRID_SIZE):
 		var row = []
 		row.resize(GRID_SIZE)
 		row.fill(" ")
@@ -24,39 +24,39 @@ static func _create_empty_grid():
 static func _build_tile_cache(layouts):
 	var cache = {}
 	for layout in layouts:
-		var room_def = OD.Database.get_room(layout.name)
-		if room_def == null or not room_def.has("row"):
+		var room_definition = OD.Database.get_room(layout.name)
+		if room_definition == null or not room_definition.has("row"):
 			continue
-		var rows = OD.DataStructure.arrayify(room_def.row)
+		var rows = OD.DataStructure.arrayify(room_definition.row)
 		var grid_rows = []
-		for row_idx in range(layout.height):
-			var row_text = rows[row_idx].text if row_idx < rows.size() else ""
+		for row_index in range(layout.height):
+			var row_text = rows[row_index].text if row_index < rows.size() else ""
 			var row_chars = []
-			for col_idx in range(layout.width):
-				row_chars.append(row_text[col_idx] if col_idx < row_text.length() else " ")
+			for col_index in range(layout.width):
+				row_chars.append(row_text[col_index] if col_index < row_text.length() else " ")
 			grid_rows.append(row_chars)
 		cache[layout.name] = { rows = grid_rows }
 	return cache
 
-static func _can_place_room(tile_grid, layout, tile_data, pos_x, pos_y):
+static func _can_place_room(tile_grid, layout, tile_data, position_x, position_y):
 	var max_bound = GRID_SIZE - GRID_BORDER
-	if pos_x < GRID_BORDER or pos_y < GRID_BORDER:
+	if position_x < GRID_BORDER or position_y < GRID_BORDER:
 		return false
-	if pos_x + layout.width > max_bound or pos_y + layout.height > max_bound:
+	if position_x + layout.width > max_bound or position_y + layout.height > max_bound:
 		return false
 	var rows = tile_data.rows
 	for local_y in range(layout.height):
-		var grid_row = tile_grid[pos_y + local_y]
+		var grid_row = tile_grid[position_y + local_y]
 		var room_row = rows[local_y]
 		for local_x in range(layout.width):
-			var room_char = room_row[local_x]
-			if room_char == " ":
+			var room_character = room_row[local_x]
+			if room_character == " ":
 				continue
-			var existing = grid_row[pos_x + local_x]
-			if room_char == "#":
+			var existing = grid_row[position_x + local_x]
+			if room_character == "#":
 				if existing != " " and existing != "#":
 					return false
-			elif room_char == "D" or room_char == "d":
+			elif room_character == "D" or room_character == "d":
 				if existing != " " and existing != "D" and existing != "d":
 					return false
 			else:
@@ -64,21 +64,21 @@ static func _can_place_room(tile_grid, layout, tile_data, pos_x, pos_y):
 					return false
 	return true
 
-static func _place_room(tile_grid, layout, tile_data, pos_x, pos_y, open_doors, placements, room_index):
+static func _place_room(tile_grid, layout, tile_data, position_x, position_y, open_doors, placements, room_index):
 	var claimed_doors = []
 	var rows = tile_data.rows
 	for local_y in range(layout.height):
-		var grid_row = tile_grid[pos_y + local_y]
+		var grid_row = tile_grid[position_y + local_y]
 		var room_row = rows[local_y]
 		for local_x in range(layout.width):
-			var room_char = room_row[local_x]
-			if room_char == " ":
+			var room_character = room_row[local_x]
+			if room_character == " ":
 				continue
-			var world_x = pos_x + local_x
-			var world_y = pos_y + local_y
+			var world_x = position_x + local_x
+			var world_y = position_y + local_y
 			var existing = grid_row[world_x]
-			if room_char == "D" or room_char == "d":
-				var door_kind = "up" if (room_char == "D" and local_y < layout.height / 2) else ("down" if room_char == "D" else ("left" if local_x < layout.width / 2 else "right"))
+			if room_character == "D" or room_character == "d":
+				var door_kind = "up" if (room_character == "D" and local_y < layout.height / 2) else ("down" if room_character == "D" else ("left" if local_x < layout.width / 2 else "right"))
 				if existing == "D" or existing == "d":
 					claimed_doors.append({ x = local_x, y = local_y, kind = door_kind, spawn_door = true })
 				else:
@@ -90,11 +90,11 @@ static func _place_room(tile_grid, layout, tile_data, pos_x, pos_y, open_doors, 
 						kind = door_kind,
 						placement_index = room_index
 					})
-			grid_row[world_x] = room_char
+			grid_row[world_x] = room_character
 	placements.append({
 		layout = layout,
-		x = pos_x,
-		y = pos_y,
+		x = position_x,
+		y = position_y,
 		claimed_doors = claimed_doors
 	})
 
@@ -129,25 +129,25 @@ static func generate(floor_level):
 		var source_door = open_doors.pop_front()
 		var target_kind = OPPOSITE_DOOR[source_door.kind]
 		for _attempt in range(MAX_DOOR_ATTEMPTS):
-			var cand_layout = mid_rooms[randi() % mid_rooms.size()]
-			if not tile_cache.has(cand_layout.name):
+			var candidate_layout = mid_rooms[randi() % mid_rooms.size()]
+			if not tile_cache.has(candidate_layout.name):
 				continue
-			var matching_doors = cand_layout.doors[target_kind]
+			var matching_doors = candidate_layout.doors[target_kind]
 			if matching_doors.is_empty():
 				continue
-			var cand_door = matching_doors[randi() % matching_doors.size()]
-			var cand_x = source_door.world_x - cand_door.x
-			var cand_y = source_door.world_y - cand_door.y
-			if not _can_place_room(tile_grid, cand_layout, tile_cache[cand_layout.name], cand_x, cand_y):
+			var candidate_door = matching_doors[randi() % matching_doors.size()]
+			var candidate_x = source_door.world_x - candidate_door.x
+			var candidate_y = source_door.world_y - candidate_door.y
+			if not _can_place_room(tile_grid, candidate_layout, tile_cache[candidate_layout.name], candidate_x, candidate_y):
 				continue
-			var new_idx = placements.size()
+			var new_index = placements.size()
 			placements[source_door.placement_index].claimed_doors.append({
 				x = source_door.local_x,
 				y = source_door.local_y,
 				kind = source_door.kind,
 				spawn_door = false
 			})
-			_place_room(tile_grid, cand_layout, tile_cache[cand_layout.name], cand_x, cand_y, open_doors, placements, new_idx)
+			_place_room(tile_grid, candidate_layout, tile_cache[candidate_layout.name], candidate_x, candidate_y, open_doors, placements, new_index)
 			break
 
 	var branch_id = max(0, floor_level - 1)
@@ -178,9 +178,9 @@ static func generate(floor_level):
 	if not first_layout.floor_cells.is_empty():
 		spawn_cell = Vector2i(start_x + first_layout.floor_cells[0].x, start_y + first_layout.floor_cells[0].y)
 	for local_cell in first_layout.floor_cells:
-		var cand = Vector2i(start_x + local_cell.x, start_y + local_cell.y)
-		if entity_grid.is_walkable(cand.x, cand.y):
-			spawn_cell = cand
+		var candidate = Vector2i(start_x + local_cell.x, start_y + local_cell.y)
+		if entity_grid.is_walkable(candidate.x, candidate.y):
+			spawn_cell = candidate
 			break
 
 	var has_return_portal = false
@@ -192,15 +192,15 @@ static func generate(floor_level):
 	if not has_return_portal:
 		var portal_cell = null
 		for local_cell in first_layout.floor_cells:
-			var cand = Vector2i(start_x + local_cell.x, start_y + local_cell.y)
-			if cand != spawn_cell and entity_grid.is_walkable(cand.x, cand.y):
-				portal_cell = cand
+			var candidate = Vector2i(start_x + local_cell.x, start_y + local_cell.y)
+			if candidate != spawn_cell and entity_grid.is_walkable(candidate.x, candidate.y):
+				portal_cell = candidate
 				break
 		if portal_cell == null:
 			portal_cell = spawn_cell
-		var portal_anim = OD.Assets.element("wizardportal")
-		if portal_anim != null:
-			entity_grid.add_element(portal_cell.x, portal_cell.y, "wizardportal", portal_anim)
+		var portal_animation = OD.Assets.element("wizardportal")
+		if portal_animation != null:
+			entity_grid.add_element(portal_cell.x, portal_cell.y, "wizardportal", portal_animation)
 
 	entity_grid.player_spawn_cell = spawn_cell
 	entity_grid.auto_tile_walls()

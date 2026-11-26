@@ -2,27 +2,26 @@ extends CanvasLayer
 
 class_name QuestDialog
 
-const FloatingWindowScript = preload("res://script/instance/ui/floating_window.gd")
-const QUEST_BG_TEX = "ui/gameplay/panel_quest_bg.png"
-const INPROGRESS_TEXS = {
+const UiHelpers = preload("res://script/instance/ui/ui_helpers.gd")
+
+const QUEST_BACKGROUND_TEXTURE = "ui/gameplay/panel_quest_bg.png"
+const INPROGRESS_TEXTURES = {
 	normal = "ui/gameplay/panel_quest_inprogress0.png",
 	hover = "ui/gameplay/panel_quest_inprogress1.png",
 	pressed = "ui/gameplay/panel_quest_inprogress1.png"
 }
-const COMPLETED_TEXS = {
+const COMPLETED_TEXTURES = {
 	normal = "ui/gameplay/panel_quest_completed0.png",
 	hover = "ui/gameplay/panel_quest_completed1.png",
 	pressed = "ui/gameplay/panel_quest_completed1.png"
 }
-const CLOSE_BTN_TEXS = {
+const CLOSE_BUTTON_TEXTURES = {
 	normal = "ui/gameplay/xclose_copper0.png",
 	hover = "ui/gameplay/xclose_copper1.png",
 	pressed = "ui/gameplay/xclose_copper2.png"
 }
-const CHECK_BLANK_TEX = "ui/panel_quest_checkbox_blank.png"
-const CHECK_DONE_TEX = "ui/panel_quest_checkbox_checked.png"
-
-const DEFAULT_VIEWPORT_SIZE = Vector2(1280, 720)
+const CHECK_BLANK_TEXTURE = "ui/panel_quest_checkbox_blank.png"
+const CHECK_DONE_TEXTURE = "ui/panel_quest_checkbox_checked.png"
 
 var _player = null
 var _callbacks = {}
@@ -30,9 +29,9 @@ var _active_tab = "active"
 
 var _window = null
 var _panel = null
-var _list_vbox = null
-var _inprogress_btn = null
-var _completed_btn = null
+var _list_box = null
+var _inprogress_button = null
+var _completed_button = null
 
 func init(player, callbacks = {}):
 	_player = player
@@ -46,125 +45,65 @@ func init(player, callbacks = {}):
 func _connect_signals():
 	if _player != null and _player.has_signal("quests_changed") and not _player.quests_changed.is_connected(refresh):
 		_player.quests_changed.connect(refresh)
-	var vp = get_viewport()
-	if vp != null and not vp.size_changed.is_connected(_update_panel_bounds):
-		vp.size_changed.connect(_update_panel_bounds)
-
-func _font():
-	var dialog_assets = OD.Assets.dialog() if OD.Assets != null else null
-	return dialog_assets.font if dialog_assets != null else null
-
-func _load_tex(path):
-	if path == "" or OD.Load == null:
-		return null
-	if OD.Load.exists(path):
-		return OD.Load.image(path)
-	return null
-
-func _get_viewport_size():
-	var vp = get_viewport()
-	if vp != null:
-		return vp.get_visible_rect().size
-	return DEFAULT_VIEWPORT_SIZE
-
-func _style_label(lbl, font_size, font_color):
-	var font_res = _font()
-	if font_res != null:
-		lbl.add_theme_font_override("font", font_res)
-	lbl.add_theme_font_size_override("font_size", font_size)
-	lbl.add_theme_color_override("font_color", font_color)
-	return lbl
-
-func _make_texture_button(paths_dict, min_size):
-	var btn = TextureButton.new()
-	btn.custom_minimum_size = min_size
-	btn.ignore_texture_size = true
-	btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	if paths_dict.has("normal"):
-		btn.texture_normal = _load_tex(paths_dict.normal)
-	if paths_dict.has("hover"):
-		btn.texture_hover = _load_tex(paths_dict.hover)
-	if paths_dict.has("pressed"):
-		btn.texture_pressed = _load_tex(paths_dict.pressed)
-	return btn
+	var viewport = get_viewport()
+	if viewport != null and not viewport.size_changed.is_connected(_update_panel_bounds):
+		viewport.size_changed.connect(_update_panel_bounds)
 
 func _create_panel_style():
-	var bg_tex = _load_tex(QUEST_BG_TEX)
-	if bg_tex != null:
-		var style_box = StyleBoxTexture.new()
-		style_box.texture = bg_tex
-		style_box.texture_margin_left = 44
-		style_box.texture_margin_right = 44
-		style_box.texture_margin_top = 44
-		style_box.texture_margin_bottom = 44
-		style_box.content_margin_left = 36
-		style_box.content_margin_right = 36
-		style_box.content_margin_top = 34
-		style_box.content_margin_bottom = 34
-		return style_box
-	var fallback = StyleBoxFlat.new()
-	fallback.bg_color = Color(0.16, 0.13, 0.10, 0.96)
-	fallback.border_color = Color(0.62, 0.50, 0.32, 0.95)
-	fallback.set_border_width_all(3)
-	fallback.set_content_margin_all(28)
-	return fallback
+	var background_texture = UiHelpers.load_texture(QUEST_BACKGROUND_TEXTURE)
+	return UiHelpers.create_panel_style(
+		background_texture,
+		44,
+		{ left = 36, right = 36, top = 34, bottom = 34 }
+	)
 
 func _build_ui():
-	var vp_size = _get_viewport_size()
 	var base_size = Vector2(504.0, 496.0)
-	var initial_scale = clamp(min((vp_size.x - 80.0) / base_size.x, (vp_size.y - 80.0) / base_size.y), 0.72, 1.15)
-
-	_window = FloatingWindowScript.new()
-	_window.min_window_size = base_size * 0.65
-	_window.set_base_size(base_size, initial_scale)
-	_window.position = Vector2((vp_size.x - _window.size.x) * 0.5, max(24.0, (vp_size.y - _window.size.y) * 0.45))
-	add_child(_window)
+	_window = UiHelpers.create_floating_window(self, base_size)
 
 	_panel = PanelContainer.new()
 	_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_panel.add_theme_stylebox_override("panel", _create_panel_style())
 	_window.get_content_root().add_child(_panel)
 
-	var root_vbox = VBoxContainer.new()
-	root_vbox.add_theme_constant_override("separation", 10)
-	_panel.add_child(root_vbox)
+	var root_box = VBoxContainer.new()
+	root_box.add_theme_constant_override("separation", 10)
+	_panel.add_child(root_box)
 
 	var header = HBoxContainer.new()
 	header.add_theme_constant_override("separation", 10)
-	root_vbox.add_child(header)
+	root_box.add_child(header)
 
-	var title_lbl = Label.new()
-	title_lbl.text = "Quest Log"
-	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_style_label(title_lbl, 24, Color(0.22, 0.14, 0.08))
-	header.add_child(title_lbl)
+	var title_label = Label.new()
+	title_label.text = "Quest Log"
+	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UiHelpers.style_label(title_label, 24, Color(0.22, 0.14, 0.08))
+	header.add_child(title_label)
 
-	_inprogress_btn = _make_texture_button(INPROGRESS_TEXS, Vector2(78, 28))
-	_inprogress_btn.tooltip_text = "In Progress Quests"
-	_inprogress_btn.pressed.connect(func(): _switch_tab("active"))
-	header.add_child(_inprogress_btn)
+	_inprogress_button = UiHelpers.make_texture_button(INPROGRESS_TEXTURES, Vector2(78, 28))
+	_inprogress_button.tooltip_text = "In Progress Quests"
+	_inprogress_button.pressed.connect(func(): _switch_tab("active"))
+	header.add_child(_inprogress_button)
 
-	_completed_btn = _make_texture_button(COMPLETED_TEXS, Vector2(78, 28))
-	_completed_btn.tooltip_text = "Completed Quests"
-	_completed_btn.pressed.connect(func(): _switch_tab("completed"))
-	header.add_child(_completed_btn)
+	_completed_button = UiHelpers.make_texture_button(COMPLETED_TEXTURES, Vector2(78, 28))
+	_completed_button.tooltip_text = "Completed Quests"
+	_completed_button.pressed.connect(func(): _switch_tab("completed"))
+	header.add_child(_completed_button)
 
-	var close_btn = _make_texture_button(CLOSE_BTN_TEXS, Vector2(22, 22))
-	close_btn.pressed.connect(dismiss)
-	header.add_child(close_btn)
+	var close_button = UiHelpers.make_texture_button(CLOSE_BUTTON_TEXTURES, Vector2(22, 22))
+	close_button.pressed.connect(dismiss)
+	header.add_child(close_button)
 
 	var scroll = ScrollContainer.new()
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	root_vbox.add_child(scroll)
+	root_box.add_child(scroll)
 
-	_list_vbox = VBoxContainer.new()
-	_list_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_list_vbox.add_theme_constant_override("separation", 10)
-	scroll.add_child(_list_vbox)
+	_list_box = VBoxContainer.new()
+	_list_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_list_box.add_theme_constant_override("separation", 10)
+	scroll.add_child(_list_box)
 
 func _update_panel_bounds():
 	if _window != null and is_instance_valid(_window):
@@ -174,9 +113,9 @@ func _switch_tab(tab_name):
 	_active_tab = tab_name
 	refresh()
 
-func _unhandled_input(ev):
-	if ev is InputEventKey and ev.is_pressed() and not ev.echo:
-		if ev.keycode == KEY_Q:
+func _unhandled_input(event):
+	if event is InputEventKey and event.is_pressed() and not event.echo:
+		if event.keycode == KEY_Q:
 			dismiss()
 			get_viewport().set_input_as_handled()
 
@@ -184,21 +123,18 @@ func get_floating_window():
 	return _window
 
 func dismiss():
-	if _callbacks.has("on_close") and _callbacks.on_close.is_valid():
-		_callbacks.on_close.call()
+	UiHelpers.invoke_callback(_callbacks, "on_close")
 	queue_free()
 
 func refresh():
-	if _list_vbox == null or not is_instance_valid(_list_vbox):
+	if _list_box == null or not is_instance_valid(_list_box):
 		return
-	if _inprogress_btn != null:
-		_inprogress_btn.modulate = Color(1, 1, 1, 1) if _active_tab == "active" else Color(0.65, 0.65, 0.65, 0.85)
-	if _completed_btn != null:
-		_completed_btn.modulate = Color(1, 1, 1, 1) if _active_tab == "completed" else Color(0.65, 0.65, 0.65, 0.85)
+	if _inprogress_button != null:
+		_inprogress_button.modulate = Color(1, 1, 1, 1) if _active_tab == "active" else Color(0.65, 0.65, 0.65, 0.85)
+	if _completed_button != null:
+		_completed_button.modulate = Color(1, 1, 1, 1) if _active_tab == "completed" else Color(0.65, 0.65, 0.65, 0.85)
 
-	for child in _list_vbox.get_children():
-		_list_vbox.remove_child(child)
-		child.queue_free()
+	UiHelpers.clear_children(_list_box)
 
 	var quests = []
 	if _player != null:
@@ -208,21 +144,21 @@ func refresh():
 			quests = _player.get_completed_quests()
 
 	if quests.is_empty():
-		var empty_lbl = Label.new()
-		empty_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		var empty_label = Label.new()
+		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		if _active_tab == "active":
-			empty_lbl.text = "No active quests.\nSeek out a Statue of Inconsequentia in the dungeon to receive a task!"
+			empty_label.text = "No active quests.\nSeek out a Statue of Inconsequentia in the dungeon to receive a task!"
 		else:
-			empty_lbl.text = "No completed quests yet."
-		_style_label(empty_lbl, 16, Color(0.28, 0.18, 0.10))
-		_list_vbox.add_child(empty_lbl)
+			empty_label.text = "No completed quests yet."
+		UiHelpers.style_label(empty_label, 16, Color(0.28, 0.18, 0.10))
+		_list_box.add_child(empty_label)
 		return
 
-	var check_tex = _load_tex(CHECK_DONE_TEX if _active_tab == "completed" else CHECK_BLANK_TEX)
+	var check_texture = UiHelpers.load_texture(CHECK_DONE_TEXTURE if _active_tab == "completed" else CHECK_BLANK_TEXTURE)
 	for quest in quests:
-		_add_quest_card(quest, check_tex)
+		_add_quest_card(quest, check_texture)
 
-func _add_quest_card(quest, check_tex):
+func _add_quest_card(quest, check_texture):
 	var card = PanelContainer.new()
 	var card_style = StyleBoxFlat.new()
 	card_style.bg_color = Color(0.92, 0.86, 0.74, 0.55)
@@ -231,45 +167,45 @@ func _add_quest_card(quest, check_tex):
 	card_style.set_corner_radius_all(4)
 	card_style.set_content_margin_all(10)
 	card.add_theme_stylebox_override("panel", card_style)
-	_list_vbox.add_child(card)
+	_list_box.add_child(card)
 
-	var hbox = HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", 10)
-	card.add_child(hbox)
+	var row_box = HBoxContainer.new()
+	row_box.add_theme_constant_override("separation", 10)
+	card.add_child(row_box)
 
-	if check_tex != null:
+	if check_texture != null:
 		var icon_rect = TextureRect.new()
 		icon_rect.custom_minimum_size = Vector2(28, 28)
 		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		icon_rect.texture = check_tex
-		hbox.add_child(icon_rect)
+		icon_rect.texture = check_texture
+		row_box.add_child(icon_rect)
 
-	var info_vbox = VBoxContainer.new()
-	info_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info_vbox.add_theme_constant_override("separation", 3)
-	hbox.add_child(info_vbox)
+	var info_box = VBoxContainer.new()
+	info_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_box.add_theme_constant_override("separation", 3)
+	row_box.add_child(info_box)
 
-	var title_lbl = Label.new()
-	title_lbl.text = str(quest.get("title", "Quest"))
-	_style_label(title_lbl, 17, Color(0.20, 0.12, 0.06))
-	info_vbox.add_child(title_lbl)
+	var title_label = Label.new()
+	title_label.text = str(quest.get("title", "Quest"))
+	UiHelpers.style_label(title_label, 17, Color(0.20, 0.12, 0.06))
+	info_box.add_child(title_label)
 
 	var progress = int(quest.get("progress", 0))
 	var target = int(quest.get("target", 1))
-	var meta_lbl = Label.new()
-	meta_lbl.text = "From: " + str(quest.get("giver", "Inconsequentia")) + "  |  Progress: " + str(progress) + "/" + str(target)
-	_style_label(meta_lbl, 13, Color(0.42, 0.24, 0.08))
-	info_vbox.add_child(meta_lbl)
+	var meta_label = Label.new()
+	meta_label.text = "From: " + str(quest.get("giver", "Inconsequentia")) + "  |  Progress: " + str(progress) + "/" + str(target)
+	UiHelpers.style_label(meta_label, 13, Color(0.42, 0.24, 0.08))
+	info_box.add_child(meta_label)
 
-	var desc_text = str(quest.get("description", ""))
-	if desc_text != "":
-		var desc_lbl = Label.new()
-		desc_lbl.text = desc_text
-		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_style_label(desc_lbl, 14, Color(0.28, 0.18, 0.10))
-		info_vbox.add_child(desc_lbl)
+	var description_text = str(quest.get("description", ""))
+	if description_text != "":
+		var description_label = Label.new()
+		description_label.text = description_text
+		description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		UiHelpers.style_label(description_label, 14, Color(0.28, 0.18, 0.10))
+		info_box.add_child(description_label)
 
 	var reward_parts = []
 	if int(quest.get("reward_xp", 0)) > 0:
@@ -277,7 +213,7 @@ func _add_quest_card(quest, check_tex):
 	if int(quest.get("reward_zorkmids", 0)) > 0:
 		reward_parts.append(str(quest.get("reward_zorkmids")) + " Zorkmids")
 	if not reward_parts.is_empty():
-		var reward_lbl = Label.new()
-		reward_lbl.text = "Reward: " + ", ".join(reward_parts)
-		_style_label(reward_lbl, 13, Color(0.18, 0.36, 0.12))
-		info_vbox.add_child(reward_lbl)
+		var reward_label = Label.new()
+		reward_label.text = "Reward: " + ", ".join(reward_parts)
+		UiHelpers.style_label(reward_label, 13, Color(0.18, 0.36, 0.12))
+		info_box.add_child(reward_label)

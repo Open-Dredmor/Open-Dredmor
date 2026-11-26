@@ -14,15 +14,15 @@ var cooldown_turns = 0
 
 var _animation = null
 
-func init(trap_def):
-	if trap_def != null:
-		trap_name = trap_def.get("name", "Trap")
-		var raw_trap = trap_def.raw.get("trap", {}) if trap_def.has("raw") and typeof(trap_def.raw) == TYPE_DICTIONARY else {}
+func init(trap_definition):
+	if trap_definition != null:
+		trap_name = trap_definition.get("name", "Trap")
+		var raw_trap = trap_definition.raw.get("trap", {}) if trap_definition.has("raw") and typeof(trap_definition.raw) == TYPE_DICTIONARY else {}
 		if typeof(raw_trap) == TYPE_DICTIONARY:
-			trap_level = int(raw_trap.get("level", trap_def.get("level", 1)))
+			trap_level = int(raw_trap.get("level", trap_definition.get("level", 1)))
 			casts_spell = raw_trap.get("casts", "")
 			trigger_mode = raw_trap.get("trigger", "once")
-		var icon_path = trap_def.get("icon", "")
+		var icon_path = trap_definition.get("icon", "")
 		if icon_path != "" and OD.Load.exists(icon_path):
 			_animation = OD.Load.animation(icon_path)
 	if _animation == null:
@@ -30,18 +30,18 @@ func init(trap_def):
 	add_child(_animation)
 	visible = false
 
-func update_visibility(player_pos, trap_sight_radius = 2, trap_sense_level = 1):
+func update_visibility(player_position, trap_sight_radius = 2, trap_sense_level = 1):
 	if is_disarmed:
 		visible = false
 		return
 	if is_discovered:
 		visible = true
 		return
-	var pos = get_grid_position()
-	if pos == null:
+	var position = get_grid_position()
+	if position == null:
 		return
-	var dist = max(abs(int(pos.x) - int(player_pos.x)), abs(int(pos.y) - int(player_pos.y)))
-	if dist <= trap_sight_radius and trap_sense_level + 1 >= trap_level:
+	var distance = max(abs(int(position.x) - int(player_position.x)), abs(int(position.y) - int(player_position.y)))
+	if distance <= trap_sight_radius and trap_sense_level + 1 >= trap_level:
 		is_discovered = true
 		visible = true
 
@@ -85,9 +85,9 @@ func attempt_disarm(trap_affinity = 1):
 			trap_name = trap_name,
 			message = "Disarmed and recovered: " + trap_name
 		}
-	var trigger_res = step_on()
+	var trigger_result = step_on()
 	return {
 		success = false,
-		triggered = trigger_res,
+		triggered = trigger_result,
 		message = "Failed to disarm " + trap_name + "! Triggered " + casts_spell + "!"
 	}

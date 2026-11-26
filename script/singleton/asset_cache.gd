@@ -38,23 +38,23 @@ func _load_manifest():
 		return null
 	return parsed
 
-func _save_manifest(install_dir, generated_files):
+func _save_manifest(install_direction, generated_files):
 	var payload = {
 		version = CACHE_VERSION,
-		install_dir = install_dir,
+		install_direction = install_direction,
 		generated_files = generated_files
 	}
 	var file = FileAccess.open(MANIFEST_PATH, FileAccess.WRITE)
 	if file != null:
 		file.store_string(JSON.stringify(payload, "\t"))
 
-func is_cache_valid(install_dir):
+func is_cache_valid(install_direction):
 	var manifest = _load_manifest()
 	if manifest == null:
 		return false
 	if int(manifest.get("version", -1)) != CACHE_VERSION:
 		return false
-	if str(manifest.get("install_dir", "")) != str(install_dir):
+	if str(manifest.get("install_direction", "")) != str(install_direction):
 		return false
 	for relative_path in _expected_dialog_button_paths():
 		if not has_cached_file(relative_path):
@@ -67,22 +67,22 @@ func _report_progress(status_text, percent, progress_callback):
 	elif OD.Loading != null:
 		await OD.Loading.step(status_text, percent)
 
-func _discover_dialog_button_sources(install_dir, state_index):
-	var ui_dir_path = install_dir + "ui/"
-	var dir = DirAccess.open(ui_dir_path)
-	if dir == null:
+func _discover_dialog_button_sources(install_direction, state_index):
+	var ui_direction_path = install_direction + "ui/"
+	var direction = DirAccess.open(ui_direction_path)
+	if direction == null:
 		return []
 	var suffix = str(state_index) + ".png"
 	var matches = []
-	dir.list_dir_begin()
-	var entry = dir.get_next()
+	direction.list_dir_begin()
+	var entry = direction.get_next()
 	while entry != "":
-		if not dir.current_is_dir():
+		if not direction.current_is_dir():
 			var lower_name = entry.to_lower()
 			if lower_name.begins_with("dialog_but_") and lower_name.ends_with(suffix) and not lower_name.begins_with("dialog_but_blank"):
-				matches.append(ui_dir_path + entry)
-		entry = dir.get_next()
-	dir.list_dir_end()
+				matches.append(ui_direction_path + entry)
+		entry = direction.get_next()
+	direction.list_dir_end()
 	matches.sort()
 	return matches
 
@@ -115,23 +115,23 @@ func _build_blank_dialog_button(source_paths, output_relative_path):
 	var alpha_samples = []
 	alpha_samples.resize(buffer_count)
 
-	for pixel_idx in range(pixel_count):
-		var byte_offset = pixel_idx * 4
+	for pixel_index in range(pixel_count):
+		var byte_offset = pixel_index * 4
 		var max_red = 0
 		var max_green = 0
 		var max_blue = 0
-		for buf_idx in range(buffer_count):
-			var buf = loaded_buffers[buf_idx]
-			var red = buf[byte_offset]
-			var green = buf[byte_offset + 1]
-			var blue = buf[byte_offset + 2]
+		for buffer_index in range(buffer_count):
+			var buffer = loaded_buffers[buffer_index]
+			var red = buffer[byte_offset]
+			var green = buffer[byte_offset + 1]
+			var blue = buffer[byte_offset + 2]
 			if red > max_red:
 				max_red = red
 			if green > max_green:
 				max_green = green
 			if blue > max_blue:
 				max_blue = blue
-			alpha_samples[buf_idx] = buf[byte_offset + 3]
+			alpha_samples[buffer_index] = buffer[byte_offset + 3]
 		alpha_samples.sort()
 		out_bytes[byte_offset] = max_red
 		out_bytes[byte_offset + 1] = max_green
@@ -144,10 +144,10 @@ func _build_blank_dialog_button(source_paths, output_relative_path):
 	return out_image.save_png(out_abs_path) == OK
 
 func ensure_cache(force_rebuild = false, progress_callback = null):
-	var install_dir = OD.Settings.dredmor_install_dir()
-	if install_dir == null or install_dir == "":
+	var install_direction = OD.Settings.dredmor_install_dir()
+	if install_direction == null or install_direction == "":
 		return false
-	if not force_rebuild and is_cache_valid(install_dir):
+	if not force_rebuild and is_cache_valid(install_direction):
 		return true
 
 	await _report_progress("Scanning retail UI assets...", 15.0, progress_callback)
@@ -158,7 +158,7 @@ func ensure_cache(force_rebuild = false, progress_callback = null):
 		var state_info = DIALOG_BUTTON_STATES[ii]
 		var percent = 25.0 + (float(ii) / float(total_states)) * 60.0
 		await _report_progress("Generating dialog button (" + state_info.label + ")...", percent, progress_callback)
-		var source_paths = _discover_dialog_button_sources(install_dir, state_info.index)
+		var source_paths = _discover_dialog_button_sources(install_direction, state_info.index)
 		var out_relative = DIALOG_BUTTON_OUTPUT_DIR + "dialog_but_blank" + str(state_info.index) + ".png"
 		if _build_blank_dialog_button(source_paths, out_relative):
 			generated_files.append(out_relative)
@@ -166,6 +166,6 @@ func ensure_cache(force_rebuild = false, progress_callback = null):
 			push_warning("Failed to generate cached asset: " + out_relative)
 
 	await _report_progress("Finalizing asset cache...", 95.0, progress_callback)
-	_save_manifest(install_dir, generated_files)
+	_save_manifest(install_direction, generated_files)
 	await _report_progress("Asset cache ready.", 100.0, progress_callback)
 	return generated_files.size() == total_states

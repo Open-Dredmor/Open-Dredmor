@@ -26,26 +26,26 @@ const OPPOSITE_DOOR = {
 static func _build_tile_cache(eligible_layouts):
 	var cache = {}
 	for layout in eligible_layouts:
-		var room_def = layout.get("raw", null)
-		if room_def == null:
-			room_def = OD.Database.get_room(layout.name)
-		if room_def == null or not room_def.has("row"):
+		var room_definition = layout.get("raw", null)
+		if room_definition == null:
+			room_definition = OD.Database.get_room(layout.name)
+		if room_definition == null or not room_definition.has("row"):
 			continue
-		var rows = OD.DataStructure.arrayify(room_def.row)
+		var rows = OD.DataStructure.arrayify(room_definition.row)
 		var grid_rows = []
 		var door_list = []
-		for row_idx in range(layout.height):
-			var row_text = rows[row_idx].text if row_idx < rows.size() else ""
+		for row_index in range(layout.height):
+			var row_text = rows[row_index].text if row_index < rows.size() else ""
 			var row_chars = []
-			for col_idx in range(layout.width):
-				var tile_char = row_text[col_idx] if col_idx < row_text.length() else " "
-				row_chars.append(tile_char)
-				if tile_char == "D":
-					var kind = "up" if row_idx < layout.height / 2 else "down"
-					door_list.append({ x = col_idx, y = row_idx, kind = kind })
-				elif tile_char == "d":
-					var kind = "left" if col_idx < layout.width / 2 else "right"
-					door_list.append({ x = col_idx, y = row_idx, kind = kind })
+			for col_index in range(layout.width):
+				var tile_character = row_text[col_index] if col_index < row_text.length() else " "
+				row_chars.append(tile_character)
+				if tile_character == "D":
+					var kind = "up" if row_index < layout.height / 2 else "down"
+					door_list.append({ x = col_index, y = row_index, kind = kind })
+				elif tile_character == "d":
+					var kind = "left" if col_index < layout.width / 2 else "right"
+					door_list.append({ x = col_index, y = row_index, kind = kind })
 			grid_rows.append(row_chars)
 		cache[layout.id] = {
 			rows = grid_rows,
@@ -55,34 +55,34 @@ static func _build_tile_cache(eligible_layouts):
 
 static func _create_empty_grid(grid_size):
 	var grid = []
-	for row_idx in range(grid_size):
+	for row_index in range(grid_size):
 		var row = []
 		row.resize(grid_size)
 		row.fill(" ")
 		grid.append(row)
 	return grid
 
-static func _can_place_room(tile_grid, grid_size, layout, tile_data, pos_x, pos_y):
+static func _can_place_room(tile_grid, grid_size, layout, tile_data, position_x, position_y):
 	var max_bound = grid_size - GRID_BORDER
-	if pos_x < GRID_BORDER or pos_y < GRID_BORDER:
+	if position_x < GRID_BORDER or position_y < GRID_BORDER:
 		return false
-	if pos_x + layout.width > max_bound or pos_y + layout.height > max_bound:
+	if position_x + layout.width > max_bound or position_y + layout.height > max_bound:
 		return false
 	var rows = tile_data.rows
 	for local_y in range(layout.height):
-		var world_y = pos_y + local_y
+		var world_y = position_y + local_y
 		var grid_row = tile_grid[world_y]
 		var room_row = rows[local_y]
 		for local_x in range(layout.width):
-			var room_char = room_row[local_x]
-			if room_char == " ":
+			var room_character = room_row[local_x]
+			if room_character == " ":
 				continue
-			var world_x = pos_x + local_x
+			var world_x = position_x + local_x
 			var existing = grid_row[world_x]
-			if room_char == "#":
+			if room_character == "#":
 				if existing != " " and existing != "#":
 					return false
-			elif room_char == "D" or room_char == "d":
+			elif room_character == "D" or room_character == "d":
 				if existing != " " and existing != "D" and existing != "d":
 					return false
 			else:
@@ -90,22 +90,22 @@ static func _can_place_room(tile_grid, grid_size, layout, tile_data, pos_x, pos_
 					return false
 	return true
 
-static func _place_room(tile_grid, layout, tile_data, pos_x, pos_y, open_doors, placements, room_index):
+static func _place_room(tile_grid, layout, tile_data, position_x, position_y, open_doors, placements, room_index):
 	var floor_added = 0
 	var claimed_doors = []
 	var rows = tile_data.rows
 	for local_y in range(layout.height):
-		var world_y = pos_y + local_y
+		var world_y = position_y + local_y
 		var grid_row = tile_grid[world_y]
 		var room_row = rows[local_y]
 		for local_x in range(layout.width):
-			var room_char = room_row[local_x]
-			if room_char == " ":
+			var room_character = room_row[local_x]
+			if room_character == " ":
 				continue
-			var world_x = pos_x + local_x
+			var world_x = position_x + local_x
 			var existing = grid_row[world_x]
-			if room_char == "D" or room_char == "d":
-				var door_kind = "up" if (room_char == "D" and local_y < layout.height / 2) else ("down" if room_char == "D" else ("left" if local_x < layout.width / 2 else "right"))
+			if room_character == "D" or room_character == "d":
+				var door_kind = "up" if (room_character == "D" and local_y < layout.height / 2) else ("down" if room_character == "D" else ("left" if local_x < layout.width / 2 else "right"))
 				if existing == "D" or existing == "d":
 					claimed_doors.append({ x = local_x, y = local_y, kind = door_kind, spawn_door = true })
 				else:
@@ -117,13 +117,13 @@ static func _place_room(tile_grid, layout, tile_data, pos_x, pos_y, open_doors, 
 						kind = door_kind,
 						placement_index = room_index
 					})
-			grid_row[world_x] = room_char
-			if room_char == ".":
+			grid_row[world_x] = room_character
+			if room_character == ".":
 				floor_added += 1
 	placements.append({
 		layout = layout,
-		x = pos_x,
-		y = pos_y,
+		x = position_x,
+		y = position_y,
 		claimed_doors = claimed_doors
 	})
 	return floor_added
@@ -156,42 +156,42 @@ static func _is_wall_or_blank(tile_grid, grid_x, grid_y):
 	return cell == "#" or cell == " "
 
 static func _place_retail_stairs(entity_grid, tile_grid, grid_size, floor_level, branch_length):
-	var num_stairs = DEFAULT_NUM_STAIRS
-	var start_idx = 0 if floor_level > 1 else num_stairs
-	var end_idx = num_stairs if floor_level >= branch_length else num_stairs * 2
-	var placed_coords = []
-	for stair_idx in range(start_idx, end_idx):
-		var direction = "up" if stair_idx < num_stairs else "down"
+	var number_stairs = DEFAULT_NUM_STAIRS
+	var start_index = 0 if floor_level > 1 else number_stairs
+	var end_index = number_stairs if floor_level >= branch_length else number_stairs * 2
+	var placed_coordinates = []
+	for stair_index in range(start_index, end_index):
+		var direction = "up" if stair_index < number_stairs else "down"
 		var placed = false
 		var attempts = 0
 		while attempts < STAIR_MAX_ATTEMPTS:
 			attempts += 1
-			var cand_x = randi_range(2, grid_size - 3)
-			var cand_y = randi_range(2, grid_size - 3)
-			if tile_grid[cand_y][cand_x] != "#":
+			var candidate_x = randi_range(2, grid_size - 3)
+			var candidate_y = randi_range(2, grid_size - 3)
+			if tile_grid[candidate_y][candidate_x] != "#":
 				continue
-			if tile_grid[cand_y][cand_x - 1] != "#" or tile_grid[cand_y][cand_x + 1] != "#":
+			if tile_grid[candidate_y][candidate_x - 1] != "#" or tile_grid[candidate_y][candidate_x + 1] != "#":
 				continue
-			if not _is_wall_or_blank(tile_grid, cand_x, cand_y - 1):
+			if not _is_wall_or_blank(tile_grid, candidate_x, candidate_y - 1):
 				continue
-			if not _is_wall_or_blank(tile_grid, cand_x - 1, cand_y - 1) or not _is_wall_or_blank(tile_grid, cand_x + 1, cand_y - 1):
+			if not _is_wall_or_blank(tile_grid, candidate_x - 1, candidate_y - 1) or not _is_wall_or_blank(tile_grid, candidate_x + 1, candidate_y - 1):
 				continue
-			if tile_grid[cand_y + 1][cand_x] != ".":
+			if tile_grid[candidate_y + 1][candidate_x] != ".":
 				continue
-			var stair_cell = Vector2i(cand_x, cand_y + 1)
+			var stair_cell = Vector2i(candidate_x, candidate_y + 1)
 			if entity_grid.get_stairs_at(stair_cell.x, stair_cell.y) != null or entity_grid.is_blocked(stair_cell.x, stair_cell.y):
 				continue
 			var too_close = false
-			for prev in placed_coords:
-				var dx = cand_x - prev.x
-				var dy = cand_y - prev.y
+			for previous in placed_coordinates:
+				var dx = candidate_x - previous.x
+				var dy = candidate_y - previous.y
 				if dx * dx + dy * dy < STAIR_MIN_DIST_SQ:
 					too_close = true
 					break
 			if too_close:
 				continue
 			entity_grid.add_stairs(stair_cell.x, stair_cell.y, direction)
-			placed_coords.append(Vector2i(cand_x, cand_y))
+			placed_coordinates.append(Vector2i(candidate_x, candidate_y))
 			placed = true
 			break
 		if not placed:
@@ -201,7 +201,7 @@ static func _place_retail_stairs(entity_grid, tile_grid, grid_size, floor_level,
 						var fb_cell = Vector2i(fallback_x, fallback_y + 1)
 						if entity_grid.get_stairs_at(fb_cell.x, fb_cell.y) == null and not entity_grid.is_blocked(fb_cell.x, fb_cell.y):
 							entity_grid.add_stairs(fb_cell.x, fb_cell.y, direction)
-							placed_coords.append(Vector2i(fallback_x, fallback_y))
+							placed_coordinates.append(Vector2i(fallback_x, fallback_y))
 							placed = true
 							break
 				if placed:
@@ -228,12 +228,12 @@ static func generate_async(_branch_name, floor_level, progress_start = 82.0, pro
 	entity_grid.resize(prep.grid_size, prep.grid_size)
 
 	var pending_doors = []
-	for idx in range(placements.size()):
-		var placement = placements[idx]
-		if OD.Loading != null and (idx % 4 == 0 or idx == placements.size() - 1):
-			var room_frac = float(idx + 1) / float(total)
-			var pct = lerp(progress_start, progress_end, 0.25 + room_frac * 0.45)
-			await OD.Loading.step("Floor " + str(floor_level) + ": building room " + str(idx + 1) + "/" + str(total) + " (" + str(placement.layout.name) + ")", pct)
+	for index in range(placements.size()):
+		var placement = placements[index]
+		if OD.Loading != null and (index % 4 == 0 or index == placements.size() - 1):
+			var room_frac = float(index + 1) / float(total)
+			var percent = lerp(progress_start, progress_end, 0.25 + room_frac * 0.45)
+			await OD.Loading.step("Floor " + str(floor_level) + ": building room " + str(index + 1) + "/" + str(total) + " (" + str(placement.layout.name) + ")", percent)
 		var room = Room.new()
 		room.init(placement.layout.raw if placement.layout.has("raw") and placement.layout.raw != null else placement.layout.name)
 		room.position = Vector2(placement.x, placement.y)
@@ -346,41 +346,41 @@ static func _prepare_layout_plan(_branch_name, floor_level):
 			for _attempt in range(MAX_DOOR_ATTEMPTS):
 				if all_floor_layouts.is_empty():
 					break
-				var cand_layout = all_floor_layouts[randi() % all_floor_layouts.size()]
-				if cand_layout.shop:
+				var candidate_layout = all_floor_layouts[randi() % all_floor_layouts.size()]
+				if candidate_layout.shop:
 					if shops_placed >= max_shops:
 						continue
 					if shops_placed >= 1 and randi() % 6 != 0:
 						continue
-				if cand_layout.zoo and (not gen_zoo or zoos_placed >= 1):
+				if candidate_layout.zoo and (not gen_zoo or zoos_placed >= 1):
 					continue
-				if (cand_layout.shop or cand_layout.zoo or cand_layout.special) and placed_unique.has(cand_layout.name):
+				if (candidate_layout.shop or candidate_layout.zoo or candidate_layout.special) and placed_unique.has(candidate_layout.name):
 					continue
-				var cand_data = tile_cache[cand_layout.id]
-				var matching_doors = cand_layout.doors[target_kind]
+				var candidate_data = tile_cache[candidate_layout.id]
+				var matching_doors = candidate_layout.doors[target_kind]
 				if matching_doors.is_empty():
 					continue
-				var cand_door = matching_doors[randi() % matching_doors.size()]
-				var cand_x = source_door.world_x - cand_door.x
-				var cand_y = source_door.world_y - cand_door.y
-				if not _can_place_room(tile_grid, grid_size, cand_layout, cand_data, cand_x, cand_y):
+				var candidate_door = matching_doors[randi() % matching_doors.size()]
+				var candidate_x = source_door.world_x - candidate_door.x
+				var candidate_y = source_door.world_y - candidate_door.y
+				if not _can_place_room(tile_grid, grid_size, candidate_layout, candidate_data, candidate_x, candidate_y):
 					continue
-				var new_idx = placements.size()
+				var new_index = placements.size()
 				placements[source_door.placement_index].claimed_doors.append({
 					x = source_door.local_x,
 					y = source_door.local_y,
 					kind = source_door.kind,
 					spawn_door = false
 				})
-				floor_count += _place_room(tile_grid, cand_layout, cand_data, cand_x, cand_y, open_doors, placements, new_idx)
-				if cand_layout.shop:
+				floor_count += _place_room(tile_grid, candidate_layout, candidate_data, candidate_x, candidate_y, open_doors, placements, new_index)
+				if candidate_layout.shop:
 					shops_placed += 1
-					placed_unique[cand_layout.name] = true
-				elif cand_layout.zoo:
+					placed_unique[candidate_layout.name] = true
+				elif candidate_layout.zoo:
 					zoos_placed += 1
-					placed_unique[cand_layout.name] = true
-				elif cand_layout.special:
-					placed_unique[cand_layout.name] = true
+					placed_unique[candidate_layout.name] = true
+				elif candidate_layout.special:
+					placed_unique[candidate_layout.name] = true
 				break
 
 		if placements.size() > best_placements.size() or (placements.size() == best_placements.size() and floor_count > best_floor_count):
@@ -418,8 +418,8 @@ static func _finalize_grid(prep, floor_level):
 	entity_grid.resize(grid_size, grid_size)
 
 	var pending_doors = []
-	for idx in range(best_placements.size()):
-		var placement = best_placements[idx]
+	for index in range(best_placements.size()):
+		var placement = best_placements[index]
 		var room = Room.new()
 		room.init(placement.layout.raw if placement.layout.has("raw") and placement.layout.raw != null else placement.layout.name)
 		room.position = Vector2(placement.x, placement.y)

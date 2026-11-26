@@ -2,6 +2,8 @@ extends Control
 
 class_name MinimapOverlay
 
+const UiHelpers = preload("res://script/instance/ui/ui_helpers.gd")
+
 const MIN_ZOOM = 1
 const MAX_ZOOM = 4
 const MAP_GRID_SIZE = 100
@@ -39,8 +41,8 @@ var _zoom_level = 1
 var _frame_rect = null
 var _map_canvas = null
 var _floor_label = null
-var _zoom_in_btn = null
-var _zoom_out_btn = null
+var _zoom_in_button = null
+var _zoom_out_button = null
 var _icon_cache = {}
 var _terrain_image = null
 var _terrain_texture = null
@@ -62,17 +64,7 @@ func init(dungeon, initial_zoom = 1):
 	return self
 
 func _load_tex(path):
-	if path == "" or OD.Load == null:
-		return null
-	if _icon_cache.has(path):
-		return _icon_cache[path]
-	var tex = OD.Load.image(path) if OD.Load.exists(path) else null
-	_icon_cache[path] = tex
-	return tex
-
-func _font():
-	var dialog_assets = OD.Assets.dialog() if OD.Assets != null else null
-	return dialog_assets.font if dialog_assets != null else null
+	return UiHelpers.load_texture(path, _icon_cache)
 
 func _build_controls():
 	_frame_rect = TextureRect.new()
@@ -88,41 +80,29 @@ func _build_controls():
 	add_child(_map_canvas)
 
 	_floor_label = Label.new()
-	var font_res = _font()
-	if font_res != null:
-		_floor_label.add_theme_font_override("font", font_res)
-	_floor_label.add_theme_font_size_override("font_size", 11)
-	_floor_label.add_theme_color_override("font_color", Color(0.92, 0.92, 0.94))
-	_floor_label.add_theme_constant_override("outline_size", 2)
-	_floor_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	UiHelpers.style_label(_floor_label, 11, Color(0.92, 0.92, 0.94), null, 2)
 	_floor_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_floor_label)
 
-	_zoom_in_btn = TextureButton.new()
-	_zoom_in_btn.size = Vector2(14, 14)
-	_zoom_in_btn.ignore_texture_size = true
-	_zoom_in_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	_zoom_in_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_zoom_in_btn.texture_normal = _load_tex("ui/gameplay/minimap_but_maximize0.png")
-	_zoom_in_btn.texture_hover = _load_tex("ui/gameplay/minimap_but_maximize1.png")
-	_zoom_in_btn.texture_pressed = _load_tex("ui/gameplay/minimap_but_maximize1.png")
-	_zoom_in_btn.tooltip_text = "Zoom In (+ / Tab)"
-	_zoom_in_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_zoom_in_btn.pressed.connect(zoom_in)
-	add_child(_zoom_in_btn)
+	_zoom_in_button = UiHelpers.make_texture_button({
+		normal = "ui/gameplay/minimap_but_maximize0.png",
+		hover = "ui/gameplay/minimap_but_maximize1.png",
+		pressed = "ui/gameplay/minimap_but_maximize1.png"
+	}, Vector2(14, 14), _icon_cache)
+	_zoom_in_button.size = Vector2(14, 14)
+	_zoom_in_button.tooltip_text = "Zoom In (+ / Tab)"
+	_zoom_in_button.pressed.connect(zoom_in)
+	add_child(_zoom_in_button)
 
-	_zoom_out_btn = TextureButton.new()
-	_zoom_out_btn.size = Vector2(14, 14)
-	_zoom_out_btn.ignore_texture_size = true
-	_zoom_out_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	_zoom_out_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_zoom_out_btn.texture_normal = _load_tex("ui/gameplay/minimap_but_minimize0.png")
-	_zoom_out_btn.texture_hover = _load_tex("ui/gameplay/minimap_but_minimize1.png")
-	_zoom_out_btn.texture_pressed = _load_tex("ui/gameplay/minimap_but_minimize1.png")
-	_zoom_out_btn.tooltip_text = "Zoom Out (-)"
-	_zoom_out_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_zoom_out_btn.pressed.connect(zoom_out)
-	add_child(_zoom_out_btn)
+	_zoom_out_button = UiHelpers.make_texture_button({
+		normal = "ui/gameplay/minimap_but_minimize0.png",
+		hover = "ui/gameplay/minimap_but_minimize1.png",
+		pressed = "ui/gameplay/minimap_but_minimize1.png"
+	}, Vector2(14, 14), _icon_cache)
+	_zoom_out_button.size = Vector2(14, 14)
+	_zoom_out_button.tooltip_text = "Zoom Out (-)"
+	_zoom_out_button.pressed.connect(zoom_out)
+	add_child(_zoom_out_button)
 
 	_terrain_image = Image.create(MAP_GRID_SIZE, MAP_GRID_SIZE, false, Image.FORMAT_RGBA8)
 	_terrain_texture = ImageTexture.create_from_image(_terrain_image)
@@ -178,15 +158,15 @@ func _apply_zoom_layout():
 		_floor_label.position = Vector2(FRAME_BORDER_PX + 4.0, FRAME_BORDER_PX + 1.0)
 		_floor_label.size = Vector2(max(60.0, inner_size.x - 36.0), 16.0)
 
-	if _zoom_in_btn != null:
-		_zoom_in_btn.position = Vector2(frame_size.x - 31.0, 2.0)
-		_zoom_in_btn.disabled = _zoom_level >= MAX_ZOOM
-		_zoom_in_btn.modulate = Color(0.55, 0.55, 0.55, 0.7) if _zoom_level >= MAX_ZOOM else Color(1, 1, 1, 1)
+	if _zoom_in_button != null:
+		_zoom_in_button.position = Vector2(frame_size.x - 31.0, 2.0)
+		_zoom_in_button.disabled = _zoom_level >= MAX_ZOOM
+		_zoom_in_button.modulate = Color(0.55, 0.55, 0.55, 0.7) if _zoom_level >= MAX_ZOOM else Color(1, 1, 1, 1)
 
-	if _zoom_out_btn != null:
-		_zoom_out_btn.position = Vector2(frame_size.x - 16.0, 2.0)
-		_zoom_out_btn.disabled = _zoom_level <= MIN_ZOOM
-		_zoom_out_btn.modulate = Color(0.55, 0.55, 0.55, 0.7) if _zoom_level <= MIN_ZOOM else Color(1, 1, 1, 1)
+	if _zoom_out_button != null:
+		_zoom_out_button.position = Vector2(frame_size.x - 16.0, 2.0)
+		_zoom_out_button.disabled = _zoom_level <= MIN_ZOOM
+		_zoom_out_button.modulate = Color(0.55, 0.55, 0.55, 0.7) if _zoom_level <= MIN_ZOOM else Color(1, 1, 1, 1)
 
 func refresh():
 	if _dungeon == null or not is_instance_valid(_dungeon):
@@ -261,12 +241,12 @@ func _rebuild_terrain_image():
 	_terrain_texture.update(_terrain_image)
 
 func _draw_icon_at_cell(canvas, icon_path, cell, offset):
-	var tex = _load_tex(icon_path)
-	if tex == null:
+	var texture = _load_tex(icon_path)
+	if texture == null:
 		return
-	var px = (float(cell.x + offset.x) + 0.5) * float(_zoom_level) - float(tex.get_width()) * 0.5
-	var py = (float(cell.y + offset.y) + 0.5) * float(_zoom_level) - float(tex.get_height()) * 0.5
-	canvas.draw_texture(tex, Vector2(floor(px), floor(py)))
+	var px = (float(cell.x + offset.x) + 0.5) * float(_zoom_level) - float(texture.get_width()) * 0.5
+	var py = (float(cell.y + offset.y) + 0.5) * float(_zoom_level) - float(texture.get_height()) * 0.5
+	canvas.draw_texture(texture, Vector2(floor(px), floor(py)))
 
 func _element_icon_path(element):
 	var suffix = ZOOM_SUFFIX.get(_zoom_level, "")
@@ -300,15 +280,15 @@ func _draw_map_contents(canvas):
 	var offset = _compute_grid_offset(grid)
 	var suffix = ZOOM_SUFFIX.get(_zoom_level, "")
 
-	for elem_cell in grid._elements_by_cell.keys():
-		if not grid.is_cell_explored(elem_cell.x, elem_cell.y):
+	for element_cell in grid._elements_by_cell.keys():
+		if not grid.is_cell_explored(element_cell.x, element_cell.y):
 			continue
-		var elem = grid._elements_by_cell[elem_cell]
-		if elem == null or not is_instance_valid(elem) or elem.is_broken:
+		var element = grid._elements_by_cell[element_cell]
+		if element == null or not is_instance_valid(element) or element.is_broken:
 			continue
-		var icon_path = _element_icon_path(elem)
+		var icon_path = _element_icon_path(element)
 		if icon_path != "":
-			_draw_icon_at_cell(canvas, icon_path, elem_cell, offset)
+			_draw_icon_at_cell(canvas, icon_path, element_cell, offset)
 
 	for tp_cell in grid._teleporters_by_cell.keys():
 		if grid.is_cell_explored(tp_cell.x, tp_cell.y):
@@ -323,7 +303,7 @@ func _draw_map_contents(canvas):
 
 	var player = _dungeon.get_player()
 	if player != null and is_instance_valid(player):
-		var player_pos = player.get_grid_position()
-		if player_pos != null:
+		var player_position = player.get_grid_position()
+		if player_position != null:
 			var player_base = "ui/icons/minimap_fplayer" if str(player.hero_kind) == "heroine" else "ui/icons/minimap_player"
-			_draw_icon_at_cell(canvas, player_base + suffix + ".png", Vector2i(int(player_pos.x), int(player_pos.y)), offset)
+			_draw_icon_at_cell(canvas, player_base + suffix + ".png", Vector2i(int(player_position.x), int(player_position.y)), offset)

@@ -49,52 +49,52 @@ func _build_ui():
 	margin.add_theme_constant_override("margin_bottom", 20)
 	container.add_child(margin)
 
-	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 12)
-	margin.add_child(vbox)
+	var vertical_box = VBoxContainer.new()
+	vertical_box.add_theme_constant_override("separation", 12)
+	margin.add_child(vertical_box)
 
 	var title = Label.new()
 	title.text = "Consumables & Wands Verification"
 	title.add_theme_font_size_override("font_size", 26)
-	vbox.add_child(title)
+	vertical_box.add_child(title)
 
-	var btn_hbox = HBoxContainer.new()
-	btn_hbox.add_theme_constant_override("separation", 10)
-	vbox.add_child(btn_hbox)
+	var button_horizontal_box = HBoxContainer.new()
+	button_horizontal_box.add_theme_constant_override("separation", 10)
+	vertical_box.add_child(button_horizontal_box)
 
-	var open_inv_btn = Button.new()
-	open_inv_btn.text = "Open Inventory"
-	open_inv_btn.pressed.connect(open_inventory)
-	btn_hbox.add_child(open_inv_btn)
+	var open_inventory_button = Button.new()
+	open_inventory_button.text = "Open Inventory"
+	open_inventory_button.pressed.connect(open_inventory)
+	button_horizontal_box.add_child(open_inventory_button)
 
-	var tick_btn = Button.new()
-	tick_btn.text = "Tick 1 Turn"
-	tick_btn.pressed.connect(func():
+	var tick_button = Button.new()
+	tick_button.text = "Tick 1 Turn"
+	tick_button.pressed.connect(func():
 		_player.tick_status_effects()
 		_log_label.text = "Ticked 1 turn. HP=" + str(_player.hp) + "/" + str(_player.max_hp) + " MP=" + str(_player.mp) + "/" + str(_player.max_mp)
 		_refresh_summary()
 	)
-	btn_hbox.add_child(tick_btn)
+	button_horizontal_box.add_child(tick_button)
 
-	var check_btn = Button.new()
-	check_btn.text = "Run Automated Self-Check"
-	check_btn.pressed.connect(_run_self_check)
-	btn_hbox.add_child(check_btn)
+	var check_button = Button.new()
+	check_button.text = "Run Automated Self-Check"
+	check_button.pressed.connect(_run_self_check)
+	button_horizontal_box.add_child(check_button)
 
-	var game_btn = Button.new()
-	game_btn.text = "Launch Game"
-	game_btn.pressed.connect(func(): OD.Scenes.goto(OD.Scenes.GAME))
-	btn_hbox.add_child(game_btn)
+	var game_button = Button.new()
+	game_button.text = "Launch Game"
+	game_button.pressed.connect(func(): OD.Scenes.goto(OD.Scenes.GAME))
+	button_horizontal_box.add_child(game_button)
 
 	_stats_label = Label.new()
 	_stats_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_stats_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	vbox.add_child(_stats_label)
+	vertical_box.add_child(_stats_label)
 
 	_log_label = Label.new()
 	_log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_log_label.text = "Ready."
-	vbox.add_child(_log_label)
+	vertical_box.add_child(_log_label)
 
 	_refresh_summary()
 	_run_self_check()
@@ -123,8 +123,8 @@ func open_inventory():
 		return
 	_inventory_dialog = InventoryDialogScript.new().init(_player, {
 		on_use_inventory = func(inv_idx):
-			var res = _player.use_consumable_at(inv_idx)
-			_log_label.text = "Used item: " + str(res)
+			var result = _player.use_consumable_at(inv_idx)
+			_log_label.text = "Used item: " + str(result)
 			_refresh_summary(),
 		on_close = func():
 			_inventory_dialog = null
@@ -137,7 +137,7 @@ func _refresh_summary():
 	var buff_names = []
 	for buff in _player.get_active_buffs():
 		buff_names.append(str(buff.get("name", "")) + " (" + str(int(buff.get("remaining_turns", 0))) + "t, x" + str(int(buff.get("stacks", 1))) + ")")
-	var inv_lines = []
+	var inventory_lines = []
 	for entry in _player.get_inventory_items():
 		var item = entry.item
 		var extra = ""
@@ -145,7 +145,7 @@ func _refresh_summary():
 			extra = " [" + str(int(item.get("charges", 0))) + "/" + str(int(item.get("max_charges", 0))) + " chg]"
 		elif int(item.get("count", 1)) > 1:
 			extra = " x" + str(int(item.get("count", 1)))
-		inv_lines.append("[" + str(entry.slot_index) + "] " + str(item.get("name", "")) + extra)
+		inventory_lines.append("[" + str(entry.slot_index) + "] " + str(item.get("name", "")) + extra)
 	_stats_label.text = (
 		"HP: %d/%d  |  MP: %d/%d  |  Magic Power: %d  |  Melee Power: %d  |  Dodge: %d\n" % [
 			_player.hp, _player.max_hp, _player.mp, _player.max_mp,
@@ -154,7 +154,7 @@ func _refresh_summary():
 			_player.get_secondary_stat("dodge_chance")
 		]
 		+ "Active Buffs: " + (", ".join(buff_names) if not buff_names.is_empty() else "None") + "\n\n"
-		+ "Inventory:\n" + "\n".join(inv_lines)
+		+ "Inventory:\n" + "\n".join(inventory_lines)
 	)
 
 func _find_slot_by_name(item_name):
@@ -175,8 +175,8 @@ func _run_self_check():
 
 	var steak = OD.Database.create_item_instance("Steak")
 	check_player.add_item(steak)
-	var food_res = check_player.use_consumable_at(0)
-	if not food_res.get("executed", false) or not check_player.has_buff("Digestion"):
+	var food_result = check_player.use_consumable_at(0)
+	if not food_result.get("executed", false) or not check_player.has_buff("Digestion"):
 		issues.append("Food did not apply Digestion buff")
 	var hp_before_tick = check_player.hp
 	check_player.tick_status_effects()
@@ -186,8 +186,8 @@ func _run_self_check():
 	var grog = OD.Database.create_item_instance("Grog")
 	check_player.add_item(grog)
 	var magic_before = check_player.get_secondary_stat("magic_power")
-	var booze_res = check_player.use_consumable_at(0)
-	if not booze_res.get("executed", false) or not check_player.has_buff("Tipsy"):
+	var booze_result = check_player.use_consumable_at(0)
+	if not booze_result.get("executed", false) or not check_player.has_buff("Tipsy"):
 		issues.append("Booze did not apply Tipsy buff")
 	if check_player.get_secondary_stat("magic_power") <= magic_before:
 		issues.append("Tipsy buff did not modify Magic Power")
@@ -199,8 +199,8 @@ func _run_self_check():
 	var hp_pot = OD.Database.create_item_instance("Potion of Healing")
 	check_player.add_item(hp_pot)
 	var hp_before_pot = check_player.hp
-	var pot_res = check_player.use_consumable_at(0)
-	if not pot_res.get("executed", false) or check_player.hp <= hp_before_pot:
+	var pot_result = check_player.use_consumable_at(0)
+	if not pot_result.get("executed", false) or check_player.hp <= hp_before_pot:
 		issues.append("Potion of Healing did not restore HP")
 
 	var steel_pot = OD.Database.create_item_instance("Potion of Steeling")

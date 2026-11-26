@@ -2,6 +2,8 @@ extends Control
 
 class_name BuffBar
 
+const UiHelpers = preload("res://script/instance/ui/ui_helpers.gd")
+
 const BAR_OFFSET_LEFT = -460
 const BAR_OFFSET_TOP = 12
 const BAR_OFFSET_RIGHT = -12
@@ -11,7 +13,7 @@ const ROW_SEPARATION = 6
 const BADGE_MIN_SIZE = Vector2(44, 52)
 const BADGE_BORDER_WIDTH = 2
 const BADGE_CONTENT_MARGIN = 4
-const BADGE_VBOX_SEPARATION = 2
+const BADGE_BOX_SEPARATION = 2
 const BADGE_ICON_SIZE = Vector2(32, 32)
 const BADGE_FONT_SIZE = 11
 
@@ -50,47 +52,40 @@ func _make_badge_style(is_bad):
 	box.set_content_margin_all(BADGE_CONTENT_MARGIN)
 	return box
 
-func _load_icon_texture(icon_path):
-	if icon_path == "" or OD.Load == null:
-		return null
-	if OD.Load.exists(icon_path):
-		return OD.Load.image(icon_path)
-	return null
-
-func _add_badge(title, icon_path, counter_text, tooltip_str, is_bad, on_click = Callable()):
+func _add_badge(title, icon_path, counter_text, tooltip_string, is_bad, on_click = Callable()):
 	var panel = PanelContainer.new()
 	panel.custom_minimum_size = BADGE_MIN_SIZE
 	panel.add_theme_stylebox_override("panel", _make_badge_style(is_bad))
-	panel.tooltip_text = tooltip_str
+	panel.tooltip_text = tooltip_string
 
-	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", BADGE_VBOX_SEPARATION)
-	panel.add_child(vbox)
+	var badge_box = VBoxContainer.new()
+	badge_box.add_theme_constant_override("separation", BADGE_BOX_SEPARATION)
+	panel.add_child(badge_box)
 
-	var tex = _load_icon_texture(icon_path)
-	if tex != null:
+	var icon_texture = UiHelpers.load_texture(icon_path)
+	if icon_texture != null:
 		var icon_rect = TextureRect.new()
-		icon_rect.texture = tex
+		icon_rect.texture = icon_texture
 		icon_rect.custom_minimum_size = BADGE_ICON_SIZE
 		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		vbox.add_child(icon_rect)
+		badge_box.add_child(icon_rect)
 	else:
 		var fallback = Label.new()
 		fallback.text = title.substr(0, 4)
 		fallback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		fallback.add_theme_font_size_override("font_size", BADGE_FONT_SIZE)
-		vbox.add_child(fallback)
+		badge_box.add_child(fallback)
 
-	var dur_lbl = Label.new()
-	dur_lbl.text = counter_text
-	dur_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	dur_lbl.add_theme_font_size_override("font_size", BADGE_FONT_SIZE)
-	vbox.add_child(dur_lbl)
+	var duration_label = Label.new()
+	duration_label.text = counter_text
+	duration_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	duration_label.add_theme_font_size_override("font_size", BADGE_FONT_SIZE)
+	badge_box.add_child(duration_label)
 
 	if on_click.is_valid():
-		panel.gui_input.connect(func(ev):
-			if ev is InputEventMouseButton and ev.pressed and (ev.button_index == MOUSE_BUTTON_LEFT or ev.button_index == MOUSE_BUTTON_RIGHT):
+		panel.gui_input.connect(func(event):
+			if event is InputEventMouseButton and event.pressed and (event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT):
 				on_click.call()
 		)
 
@@ -99,11 +94,10 @@ func _add_badge(title, icon_path, counter_text, tooltip_str, is_bad, on_click = 
 func refresh():
 	if _row == null or _player == null or not is_instance_valid(_player):
 		return
-	for child in _row.get_children():
-		child.queue_free()
+	UiHelpers.clear_children(_row)
 
 	for buff in _player.get_active_buffs():
-		var b_name = str(buff.get("name", "Buff"))
+		var buff_name = str(buff.get("name", "Buff"))
 		var is_bad = bool(buff.get("bad", false))
 		var parts = []
 		if bool(buff.get("use_timer", false)):
@@ -114,21 +108,21 @@ func refresh():
 			parts.append("A:" + str(int(buff.get("attacks_remaining", 0))))
 		if int(buff.get("stacks", 1)) > 1:
 			parts.append("x" + str(int(buff.get("stacks", 1))))
-		var counter_str = " ".join(parts) if not parts.is_empty() else "ON"
-		var tip = b_name
+		var counter_text = " ".join(parts) if not parts.is_empty() else "ON"
+		var tooltip_string = buff_name
 		if str(buff.get("description", "")) != "":
-			tip += "\n" + str(buff.get("description", ""))
+			tooltip_string += "\n" + str(buff.get("description", ""))
 		if bool(buff.get("removable", false)) and not is_bad:
-			tip += "\n(Click to dismiss)"
-			var dismiss_cb = func(): _player.dismiss_buff(b_name)
-			_add_badge(b_name, str(buff.get("icon", "")), counter_str, tip, is_bad, dismiss_cb)
+			tooltip_string += "\n(Click to dismiss)"
+			var dismiss_callback = func(): _player.dismiss_buff(buff_name)
+			_add_badge(buff_name, str(buff.get("icon", "")), counter_text, tooltip_string, is_bad, dismiss_callback)
 		else:
-			_add_badge(b_name, str(buff.get("icon", "")), counter_str, tip, is_bad)
+			_add_badge(buff_name, str(buff.get("icon", "")), counter_text, tooltip_string, is_bad)
 
 	for dot in _player.get_active_dots():
 		var dot_spell = str(dot.get("spell", "DoT"))
-		var rem = int(dot.get("remaining_turns", 0))
-		_add_badge(dot_spell, "", str(rem) + "t", "DoT: " + dot_spell + " (" + str(rem) + " turns)", true)
+		var remaining_turns = int(dot.get("remaining_turns", 0))
+		_add_badge(dot_spell, "", str(remaining_turns) + "t", "DoT: " + dot_spell + " (" + str(remaining_turns) + " turns)", true)
 
 	var flags = _player.get_status_flags()
 	for flag_key in flags.keys():

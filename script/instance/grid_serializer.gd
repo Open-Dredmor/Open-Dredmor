@@ -11,30 +11,30 @@ static func _vec2i_to_arr(vec):
 		return null
 	return [int(vec.x), int(vec.y)]
 
-static func _arr_to_vec2i(arr):
-	if typeof(arr) != TYPE_ARRAY or arr.size() < 2:
+static func _arr_to_vec2i(array):
+	if typeof(array) != TYPE_ARRAY or array.size() < 2:
 		return null
-	return Vector2i(int(arr[0]), int(arr[1]))
+	return Vector2i(int(array[0]), int(array[1]))
 
-static func _sanitize_value(val):
-	match typeof(val):
+static func _sanitize_value(value):
+	match typeof(value):
 		TYPE_VECTOR2:
-			return [float(val.x), float(val.y)]
+			return [float(value.x), float(value.y)]
 		TYPE_VECTOR2I:
-			return [int(val.x), int(val.y)]
+			return [int(value.x), int(value.y)]
 		TYPE_RECT2I:
-			return [int(val.position.x), int(val.position.y), int(val.size.x), int(val.size.y)]
+			return [int(value.position.x), int(value.position.y), int(value.size.x), int(value.size.y)]
 		TYPE_COLOR:
-			return [float(val.r), float(val.g), float(val.b), float(val.a)]
+			return [float(value.r), float(value.g), float(value.b), float(value.a)]
 		TYPE_ARRAY:
-			var out_arr = []
-			for item in val:
-				out_arr.append(_sanitize_value(item))
-			return out_arr
+			var out_array = []
+			for item in value:
+				out_array.append(_sanitize_value(item))
+			return out_array
 		TYPE_DICTIONARY:
 			var out_dict = {}
-			for key in val.keys():
-				var entry = val[key]
+			for key in value.keys():
+				var entry = value[key]
 				if entry is Node:
 					continue
 				out_dict[str(key)] = _sanitize_value(entry)
@@ -42,7 +42,7 @@ static func _sanitize_value(val):
 		TYPE_OBJECT:
 			return null
 		_:
-			return val
+			return value
 
 static func serialize_grid(grid):
 	if grid == null:
@@ -146,16 +146,16 @@ static func serialize_grid(grid):
 
 	var elements = []
 	for cell in grid._elements_by_cell.keys():
-		var elem = grid._elements_by_cell[cell]
-		if not is_instance_valid(elem):
+		var element = grid._elements_by_cell[cell]
+		if not is_instance_valid(element):
 			continue
 		elements.append({
 			x = int(cell.x),
 			y = int(cell.y),
-			element_type = str(elem.element_type),
-			used = bool(elem.used),
-			is_broken = bool(elem.is_broken),
-			state_data = _sanitize_value(elem.state_data)
+			element_type = str(element.element_type),
+			used = bool(element.used),
+			is_broken = bool(element.is_broken),
+			state_data = _sanitize_value(element.state_data)
 		})
 
 	var traps = []
@@ -194,10 +194,10 @@ static func serialize_grid(grid):
 
 	var spell_mines = []
 	for mine in grid._spell_mines:
-		var mine_pos = mine.get("grid_pos", Vector2i.ZERO)
+		var mine_position = mine.get("grid_pos", Vector2i.ZERO)
 		spell_mines.append({
-			x = int(mine_pos.x),
-			y = int(mine_pos.y),
+			x = int(mine_position.x),
+			y = int(mine_position.y),
 			spell_name = str(mine.get("spell_name", "")),
 			turns = int(mine.get("turns", 0))
 		})
@@ -206,12 +206,12 @@ static func serialize_grid(grid):
 	for monster in grid.get_monsters():
 		if monster is ShopkeeperScript:
 			continue
-		var m_pos = monster.get_grid_position()
-		if m_pos == null:
+		var m_position = monster.get_grid_position()
+		if m_position == null:
 			continue
 		monsters.append({
-			x = int(m_pos.x),
-			y = int(m_pos.y),
+			x = int(m_position.x),
+			y = int(m_position.y),
 			monster_name = str(monster.monster_name),
 			monster_level = int(monster.monster_level),
 			hp = int(monster.hp),
@@ -228,17 +228,17 @@ static func serialize_grid(grid):
 	var shops = []
 	if grid.shop_manager != null:
 		for shop in grid.shop_manager._shops:
-			var brax_pos = shop.brax.get_grid_position() if is_instance_valid(shop.brax) else null
+			var brax_position = shop.brax.get_grid_position() if is_instance_valid(shop.brax) else null
 			var pedestals_out = []
 			for ped in shop.pedestals:
 				if not is_instance_valid(ped):
 					continue
-				var ped_pos = ped.get_grid_position()
-				if ped_pos == null:
+				var ped_position = ped.get_grid_position()
+				if ped_position == null:
 					continue
 				pedestals_out.append({
-					x = int(ped_pos.x),
-					y = int(ped_pos.y),
+					x = int(ped_position.x),
+					y = int(ped_position.y),
 					item_data = _sanitize_value(ped.item_data),
 					is_paid = bool(ped.is_paid),
 					is_taken = bool(ped.is_taken)
@@ -247,12 +247,12 @@ static func serialize_grid(grid):
 			for guard in shop.guards:
 				if not is_instance_valid(guard):
 					continue
-				var guard_pos = guard.get_grid_position()
-				if guard_pos == null:
+				var guard_position = guard.get_grid_position()
+				if guard_position == null:
 					continue
 				guards_out.append({
-					x = int(guard_pos.x),
-					y = int(guard_pos.y),
+					x = int(guard_position.x),
+					y = int(guard_position.y),
 					monster_name = str(guard.monster_name),
 					hp = int(guard.hp),
 					max_hp = int(guard.max_hp),
@@ -263,7 +263,7 @@ static func serialize_grid(grid):
 				bounds = [int(shop.bounds.position.x), int(shop.bounds.position.y), int(shop.bounds.size.x), int(shop.bounds.size.y)],
 				brax_home = _vec2i_to_arr(shop.brax_home),
 				brax_shop = _vec2i_to_arr(shop.brax_shop),
-				brax_pos = _vec2i_to_arr(brax_pos),
+				brax_position = _vec2i_to_arr(brax_position),
 				brax_hp = int(shop.brax.hp) if is_instance_valid(shop.brax) else 0,
 				brax_max_hp = int(shop.brax.max_hp) if is_instance_valid(shop.brax) else 120,
 				brax_hostile = bool(shop.brax.is_hostile) if is_instance_valid(shop.brax) else false,
@@ -386,39 +386,39 @@ static func deserialize_grid(data):
 
 	for tp_data in data.get("teleporters", []):
 		if typeof(tp_data) == TYPE_DICTIONARY:
-			var tp_anim = OD.Load.animation("dungeon/teleporter.spr") if OD.Load.exists("dungeon/teleporter.spr") else OD.Assets.element("teleporter")
-			if tp_anim != null:
+			var tp_animation = OD.Load.animation("dungeon/teleporter.spr") if OD.Load.exists("dungeon/teleporter.spr") else OD.Assets.element("teleporter")
+			if tp_animation != null:
 				grid.add_teleporter(
 					int(tp_data.get("x", 0)),
 					int(tp_data.get("y", 0)),
 					int(tp_data.get("channel", 0)),
 					Vector2i(int(tp_data.get("target_x", 0)), int(tp_data.get("target_y", 0))),
-					tp_anim
+					tp_animation
 				)
 
-	for elem_data in data.get("elements", []):
-		if typeof(elem_data) != TYPE_DICTIONARY:
+	for element_data in data.get("elements", []):
+		if typeof(element_data) != TYPE_DICTIONARY:
 			continue
-		var elem_type = str(elem_data.get("element_type", ""))
-		var elem_anim = _resolve_element_animation(elem_type)
-		var state_dict = elem_data.get("state_data", {})
+		var elem_type = str(element_data.get("element_type", ""))
+		var element_animation = _resolve_element_animation(elem_type)
+		var state_dict = element_data.get("state_data", {})
 		if typeof(state_dict) != TYPE_DICTIONARY:
 			state_dict = {}
-		var elem = grid.add_element(int(elem_data.get("x", 0)), int(elem_data.get("y", 0)), elem_type, elem_anim, state_dict)
+		var elem = grid.add_element(int(element_data.get("x", 0)), int(element_data.get("y", 0)), elem_type, element_animation, state_dict)
 		if elem != null:
-			elem.used = bool(elem_data.get("used", false))
-			elem.is_broken = bool(elem_data.get("is_broken", false))
+			elem.used = bool(element_data.get("used", false))
+			elem.is_broken = bool(element_data.get("is_broken", false))
 			if elem.is_broken:
 				elem.visible = false
-				grid.unblock_cell(int(elem_data.get("x", 0)), int(elem_data.get("y", 0)))
+				grid.unblock_cell(int(element_data.get("x", 0)), int(element_data.get("y", 0)))
 			elif elem.used and elem._animation != null and elem_type in ["lever", "bookshelf", "uberchest", "freezer"]:
 				elem._animation.set_frame(1)
 
 	for trap_data in data.get("traps", []):
 		if typeof(trap_data) != TYPE_DICTIONARY:
 			continue
-		var trap_def = OD.Database.get_trap(str(trap_data.get("trap_name", "")))
-		var trap = grid.add_trap(int(trap_data.get("x", 0)), int(trap_data.get("y", 0)), trap_def)
+		var trap_definition = OD.Database.get_trap(str(trap_data.get("trap_name", "")))
+		var trap = grid.add_trap(int(trap_data.get("x", 0)), int(trap_data.get("y", 0)), trap_definition)
 		if trap != null:
 			trap.trap_name = str(trap_data.get("trap_name", trap.trap_name))
 			trap.trap_level = int(trap_data.get("trap_level", trap.trap_level))
@@ -475,19 +475,19 @@ static func deserialize_grid(data):
 		for shop_data in data.get("shops", []):
 			if typeof(shop_data) != TYPE_DICTIONARY:
 				continue
-			var b_arr = shop_data.get("bounds", [0, 0, 0, 0])
-			var bounds_rect = Rect2i(int(b_arr[0]), int(b_arr[1]), int(b_arr[2]), int(b_arr[3]))
+			var b_array = shop_data.get("bounds", [0, 0, 0, 0])
+			var bounds_rect = Rect2i(int(b_array[0]), int(b_array[1]), int(b_array[2]), int(b_array[3]))
 			var brax_home = _arr_to_vec2i(shop_data.get("brax_home", null))
 			var brax_shop = _arr_to_vec2i(shop_data.get("brax_shop", null))
-			var brax_pos = _arr_to_vec2i(shop_data.get("brax_pos", null))
+			var brax_position = _arr_to_vec2i(shop_data.get("brax_pos", null))
 			var shop_id = str(shop_data.get("id", "shop_1"))
 			var brax_node = null
-			if brax_pos != null and int(shop_data.get("brax_hp", 0)) > 0:
+			if brax_position != null and int(shop_data.get("brax_hp", 0)) > 0:
 				brax_node = ShopkeeperScript.new()
 				brax_node.init(shop_id, "Brax", bool(shop_data.get("brax_hostile", false)), false)
 				brax_node.max_hp = max(1, int(shop_data.get("brax_max_hp", 120)))
 				brax_node.hp = clamp(int(shop_data.get("brax_hp", 120)), 1, brax_node.max_hp)
-				grid.add_entity(brax_pos.x, brax_pos.y, brax_node)
+				grid.add_entity(brax_position.x, brax_position.y, brax_node)
 			var pedestals_restored = []
 			for ped_data in shop_data.get("pedestals", []):
 				if typeof(ped_data) != TYPE_DICTIONARY:

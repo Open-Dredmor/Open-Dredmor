@@ -1,3 +1,6 @@
+## Code Standards
+- Don't abbreviate words to make variable names shorter. For example, use "texture" instead of "tex"
+
 ## Reference Context & Checklist Workflow
 - This is a clean room implementation of Dungeons of Dredmor using Godot.
 - It requires a valid retail version of Dungeons of Dredmor to function

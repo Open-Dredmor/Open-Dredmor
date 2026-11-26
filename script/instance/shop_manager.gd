@@ -61,45 +61,45 @@ func get_shopkeeper_at(grid_x, grid_y):
 	var cell_key = Vector2i(int(grid_x), int(grid_y))
 	for shop in _shops:
 		if is_instance_valid(shop.brax):
-			var brax_pos = shop.brax.get_grid_position()
-			if brax_pos != null and Vector2i(int(brax_pos.x), int(brax_pos.y)) == cell_key:
+			var brax_position = shop.brax.get_grid_position()
+			if brax_position != null and Vector2i(int(brax_position.x), int(brax_position.y)) == cell_key:
 				return shop.brax
 		for guard in shop.guards:
 			if is_instance_valid(guard):
-				var guard_pos = guard.get_grid_position()
-				if guard_pos != null and Vector2i(int(guard_pos.x), int(guard_pos.y)) == cell_key:
+				var guard_position = guard.get_grid_position()
+				if guard_position != null and Vector2i(int(guard_position.x), int(guard_position.y)) == cell_key:
 					return guard
 	return null
 
 func has_actor_at(cell_key):
 	for shop in _shops:
 		if is_instance_valid(shop.brax):
-			var brax_pos = shop.brax.get_grid_position()
-			if brax_pos != null and Vector2i(int(brax_pos.x), int(brax_pos.y)) == cell_key:
+			var brax_position = shop.brax.get_grid_position()
+			if brax_position != null and Vector2i(int(brax_position.x), int(brax_position.y)) == cell_key:
 				return true
 		for guard in shop.guards:
 			if is_instance_valid(guard):
-				var guard_pos = guard.get_grid_position()
-				if guard_pos != null and Vector2i(int(guard_pos.x), int(guard_pos.y)) == cell_key:
+				var guard_position = guard.get_grid_position()
+				if guard_position != null and Vector2i(int(guard_position.x), int(guard_position.y)) == cell_key:
 					return true
 	return false
 
-func register_shop(shop_def, offset_cell, entity_grid):
+func register_shop(shop_definition, offset_cell, entity_grid):
 	var shop_id = "shop_" + str(_next_shop_index)
 	_next_shop_index += 1
 	var shifted_bounds = Rect2i(
-		shop_def.bounds.position + offset_cell,
-		shop_def.bounds.size
+		shop_definition.bounds.position + offset_cell,
+		shop_definition.bounds.size
 	)
-	var brax_home = shop_def.brax_home + offset_cell if shop_def.brax_home != Vector2i(-1, -1) else Vector2i(-1, -1)
-	var brax_shop = shop_def.brax_shop + offset_cell if shop_def.brax_shop != Vector2i(-1, -1) else Vector2i(-1, -1)
+	var brax_home = shop_definition.brax_home + offset_cell if shop_definition.brax_home != Vector2i(-1, -1) else Vector2i(-1, -1)
+	var brax_shop = shop_definition.brax_shop + offset_cell if shop_definition.brax_shop != Vector2i(-1, -1) else Vector2i(-1, -1)
 	var brax_node = null
 	if brax_home != Vector2i(-1, -1):
 		brax_node = ShopkeeperScript.new()
 		brax_node.init(shop_id, "Brax", false, false)
 		entity_grid.add_entity(brax_home.x, brax_home.y, brax_node)
 	var pedestals = []
-	for local_cell in shop_def.pedestal_cells:
+	for local_cell in shop_definition.pedestal_cells:
 		var world_cell = local_cell + offset_cell
 		var pedestal = get_pedestal_at(world_cell.x, world_cell.y)
 		if pedestal != null:
@@ -126,8 +126,8 @@ func teleport_brax_to_shop(shop, player_cell, entity_grid = null):
 		return
 	if shop.brax_shop == Vector2i(-1, -1):
 		return
-	var current_pos = shop.brax.get_grid_position()
-	var current_cell = Vector2i(int(current_pos.x), int(current_pos.y)) if current_pos != null else null
+	var current_position = shop.brax.get_grid_position()
+	var current_cell = Vector2i(int(current_position.x), int(current_position.y)) if current_position != null else null
 	if current_cell != null and current_cell == shop.brax_shop:
 		return
 	if shop.brax_shop != player_cell and not has_actor_at(shop.brax_shop):
@@ -140,8 +140,8 @@ func teleport_brax_home(shop, player_cell, entity_grid = null):
 		return
 	if shop.brax_home == Vector2i(-1, -1):
 		return
-	var current_pos = shop.brax.get_grid_position()
-	var current_cell = Vector2i(int(current_pos.x), int(current_pos.y)) if current_pos != null else null
+	var current_position = shop.brax.get_grid_position()
+	var current_cell = Vector2i(int(current_position.x), int(current_position.y)) if current_position != null else null
 	if current_cell != null and current_cell == shop.brax_home:
 		return
 	if shop.brax_home != player_cell and not has_actor_at(shop.brax_home):
@@ -149,8 +149,8 @@ func teleport_brax_home(shop, player_cell, entity_grid = null):
 		if entity_grid != null and current_cell != null:
 			entity_grid.move_entity(shop.brax, current_cell, shop.brax_home)
 
-func on_player_moved(player_pos, entity_grid):
-	var player_cell = Vector2i(int(player_pos.x), int(player_pos.y))
+func on_player_moved(player_position, entity_grid):
+	var player_cell = Vector2i(int(player_position.x), int(player_position.y))
 	for shop in _shops:
 		var interior = Rect2i(
 			shop.bounds.position + Vector2i(1, 1),
@@ -175,8 +175,8 @@ func make_shop_hostile(shop, entity_grid, player_cell, reason = "THIEF! Dread Co
 	if is_instance_valid(shop.brax):
 		shop.brax.set_hostile(true)
 	OD.Audio.play_sfx("cursed")
-	var alert_pos = shop.brax.get_grid_position() if is_instance_valid(shop.brax) else player_cell
-	shop_alert.emit(reason, alert_pos, Color(1.0, 0.25, 0.2))
+	var alert_position = shop.brax.get_grid_position() if is_instance_valid(shop.brax) else player_cell
+	shop_alert.emit(reason, alert_position, Color(1.0, 0.25, 0.2))
 	var guard_names = ["Dread Collector", "Big Red"]
 	var spawn_origin = shop.brax_home if shop.brax_home != Vector2i(-1, -1) else player_cell
 	for guard_name in guard_names:
@@ -199,19 +199,19 @@ func _find_spawn_cell(origin, player_cell, entity_grid):
 					return candidate
 	return null
 
-func step_hostile_actors(entity_grid, player_pos):
-	var player_cell = Vector2i(int(player_pos.x), int(player_pos.y))
+func step_hostile_actors(entity_grid, player_position):
+	var player_cell = Vector2i(int(player_position.x), int(player_position.y))
 	for shop in _shops:
 		if not shop.is_hostile:
 			continue
 		if is_instance_valid(shop.brax):
-			var brax_res = shop.brax.step_toward(player_cell, entity_grid)
-			if brax_res.get("attacked", false):
+			var brax_result = shop.brax.step_toward(player_cell, entity_grid)
+			if brax_result.get("attacked", false):
 				OD.Audio.play_sfx("large_attack")
-				hostile_attack.emit(brax_res.attacker, brax_res.damage, player_cell)
+				hostile_attack.emit(brax_result.attacker, brax_result.damage, player_cell)
 		for guard in shop.guards:
 			if is_instance_valid(guard):
-				var guard_res = guard.step_toward(player_cell, entity_grid)
-				if guard_res.get("attacked", false):
+				var guard_result = guard.step_toward(player_cell, entity_grid)
+				if guard_result.get("attacked", false):
 					OD.Audio.play_sfx("large_attack")
-					hostile_attack.emit(guard_res.attacker, guard_res.damage, player_cell)
+					hostile_attack.emit(guard_result.attacker, guard_result.damage, player_cell)

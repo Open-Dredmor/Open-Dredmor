@@ -59,18 +59,18 @@ func _ready():
 func _sync_visual():
 	if door_style == "3x3":
 		if orientation == "ew":
-			var frame_idx = 1 if (is_open or is_broken) else 0
+			var frame_index = 1 if (is_open or is_broken) else 0
 			if _animation != null:
-				_animation.set_frame(frame_idx)
+				_animation.set_frame(frame_index)
 			if _secondary_animation != null:
-				_secondary_animation.set_frame(frame_idx)
+				_secondary_animation.set_frame(frame_index)
 		else:
-			var frame_idx = 1 if (is_open or is_broken) else 0
+			var frame_index = 1 if (is_open or is_broken) else 0
 			if _animation != null:
-				_animation.position = Vector2(0.0, 0.0 if frame_idx != 0 else 32.0)
-				_animation.set_frame(frame_idx)
+				_animation.position = Vector2(0.0, 0.0 if frame_index != 0 else 32.0)
+				_animation.set_frame(frame_index)
 			if _secondary_animation != null:
-				_secondary_animation.set_frame(frame_idx)
+				_secondary_animation.set_frame(frame_index)
 		return
 	if _animation != null:
 		_animation.set_frame(0 if (is_open or is_broken) else 1)

@@ -30,17 +30,17 @@ func _build_gui():
 	margin.add_theme_constant_override("margin_top", 32)
 	container.add_child(margin)
 
-	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 14)
-	margin.add_child(vbox)
+	var vertical_box = VBoxContainer.new()
+	vertical_box.add_theme_constant_override("separation", 14)
+	margin.add_child(vertical_box)
 
 	var title_label = Label.new()
 	title_label.text = "Interaction UI Debug Scene"
-	vbox.add_child(title_label)
+	vertical_box.add_child(title_label)
 
 	var resource_row = HBoxContainer.new()
 	resource_row.add_theme_constant_override("separation", 10)
-	vbox.add_child(resource_row)
+	vertical_box.add_child(resource_row)
 
 	_resource_label = Label.new()
 	resource_row.add_child(_resource_label)
@@ -67,7 +67,7 @@ func _build_gui():
 	grid.columns = 3
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 12)
-	vbox.add_child(grid)
+	vertical_box.add_child(grid)
 
 	_add_test_button(grid, "Vending (Long Names)", _test_vending_long_names)
 	_add_test_button(grid, "Vending (Random Food DB)", func(): _test_element("foodvending"))
@@ -89,17 +89,17 @@ func _refresh_resource_label():
 		_resource_label.text = "Zorkmids: " + str(_zorkmids_ref.value) + " | Lutefisk: " + str(_lutefisk_ref.value)
 
 func _add_small_button(parent, label_text, callback):
-	var btn = Button.new()
-	btn.text = label_text
-	btn.pressed.connect(callback)
-	parent.add_child(btn)
+	var button = Button.new()
+	button.text = label_text
+	button.pressed.connect(callback)
+	parent.add_child(button)
 
 func _add_test_button(parent, label_text, callback):
-	var btn = Button.new()
-	btn.text = label_text
-	btn.custom_minimum_size = Vector2(240, 48)
-	btn.pressed.connect(callback)
-	parent.add_child(btn)
+	var button = Button.new()
+	button.text = label_text
+	button.custom_minimum_size = Vector2(240, 48)
+	button.pressed.connect(callback)
+	parent.add_child(button)
 
 func _cleanup_active():
 	if is_instance_valid(_active_dialog):
@@ -179,11 +179,11 @@ func _test_krong_used():
 	})
 
 func _test_lutefisk():
-	var elem = ElementScript.new()
-	elem.init("lutefiskstatue", null)
-	_open_dialog(elem.interact(), elem)
+	var element = ElementScript.new()
+	element.init("lutefiskstatue", null)
+	_open_dialog(element.interact(), element)
 
-func _test_element(elem_type):
-	var elem = ElementScript.new()
-	elem.init(elem_type, null)
-	_open_dialog(elem.interact(), elem)
+func _test_element(element_type):
+	var element = ElementScript.new()
+	element.init(element_type, null)
+	_open_dialog(element.interact(), element)

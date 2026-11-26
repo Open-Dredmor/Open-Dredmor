@@ -2,6 +2,8 @@ extends Control
 
 class_name CoreHud
 
+const UiHelpers = preload("res://script/instance/ui/ui_helpers.gd")
+
 const SpellEngineScript = preload("res://script/instance/combat/spell_engine.gd")
 const MinimapOverlayScript = preload("res://script/instance/ui/minimap.gd")
 const SkillTreeDialogScript = preload("res://script/instance/ui/skill_tree_dialog.gd")
@@ -27,7 +29,7 @@ var _callbacks = {}
 
 var _minimap = null
 var _room_label = null
-var _log_vbox = null
+var _log_vertical_box = null
 var _log_scroll = null
 var _log_expanded = false
 var _targeting_label = null
@@ -52,10 +54,10 @@ var _pause_dialog = null
 func _ready():
 	_update_bar_scale()
 	_update_top_right_layout()
-	var vp = get_viewport()
-	if vp != null:
-		vp.size_changed.connect(_update_bar_scale)
-		vp.size_changed.connect(_update_top_right_layout)
+	var viewport = get_viewport()
+	if viewport != null:
+		viewport.size_changed.connect(_update_bar_scale)
+		viewport.size_changed.connect(_update_top_right_layout)
 
 func init(dungeon, callbacks = {}):
 	_dungeon = dungeon
@@ -70,28 +72,14 @@ func init(dungeon, callbacks = {}):
 	_sync_initial_state()
 	return self
 
-func _font():
-	var dialog_assets = OD.Assets.dialog() if OD.Assets != null else null
-	return dialog_assets.font if dialog_assets != null else null
-
 func _styled_label(font_size, font_color, outline_size = 2):
-	var lbl = Label.new()
-	var font_res = _font()
-	if font_res != null:
-		lbl.add_theme_font_override("font", font_res)
-	lbl.add_theme_font_size_override("font_size", font_size)
-	lbl.add_theme_color_override("font_color", font_color)
-	lbl.add_theme_constant_override("outline_size", outline_size)
-	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.92))
-	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return lbl
+	var label = Label.new()
+	UiHelpers.style_label(label, font_size, font_color, null, outline_size)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
 
 func _load_tex(path):
-	if path == "" or OD.Load == null:
-		return null
-	if OD.Load.exists(path):
-		return OD.Load.image(path)
-	return null
+	return UiHelpers.load_texture(path)
 
 func _build_top_left_log():
 	_log_scroll = ScrollContainer.new()
@@ -103,11 +91,11 @@ func _build_top_left_log():
 	_log_scroll.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_log_scroll)
 
-	_log_vbox = VBoxContainer.new()
-	_log_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_log_vbox.add_theme_constant_override("separation", 2)
-	_log_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_log_scroll.add_child(_log_vbox)
+	_log_vertical_box = VBoxContainer.new()
+	_log_vertical_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_log_vertical_box.add_theme_constant_override("separation", 2)
+	_log_vertical_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_log_scroll.add_child(_log_vertical_box)
 
 func toggle_log_history():
 	_log_expanded = not _log_expanded
@@ -118,12 +106,12 @@ func toggle_log_history():
 		_log_scroll.size = Vector2(560, 320)
 		_log_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 		_log_scroll.mouse_filter = Control.MOUSE_FILTER_STOP
-		var bg = StyleBoxFlat.new()
-		bg.bg_color = Color(0.06, 0.05, 0.04, 0.84)
-		bg.border_color = Color(0.55, 0.44, 0.28, 0.9)
-		bg.set_border_width_all(1)
-		bg.set_content_margin_all(8)
-		_log_scroll.add_theme_stylebox_override("panel", bg)
+		var background = StyleBoxFlat.new()
+		background.bg_color = Color(0.06, 0.05, 0.04, 0.84)
+		background.border_color = Color(0.55, 0.44, 0.28, 0.9)
+		background.set_border_width_all(1)
+		background.set_content_margin_all(8)
+		_log_scroll.add_theme_stylebox_override("panel", background)
 	else:
 		_log_scroll.custom_minimum_size = Vector2(540, 140)
 		_log_scroll.size = Vector2(540, 140)
@@ -133,16 +121,16 @@ func toggle_log_history():
 	_rebuild_log_lines()
 
 func _rebuild_log_lines():
-	if _log_vbox == null or not is_instance_valid(_log_vbox):
+	if _log_vertical_box == null or not is_instance_valid(_log_vertical_box):
 		return
-	for child in _log_vbox.get_children():
-		_log_vbox.remove_child(child)
+	for child in _log_vertical_box.get_children():
+		_log_vertical_box.remove_child(child)
 		child.queue_free()
 	if OD.EventLog == null or not OD.EventLog.has_method("get_history"):
 		return
 	var history = OD.EventLog.get_history()
-	var start_idx = 0 if _log_expanded else max(0, history.size() - MAX_LOG_LINES)
-	for ii in range(start_idx, history.size()):
+	var start_index = 0 if _log_expanded else max(0, history.size() - MAX_LOG_LINES)
+	for ii in range(start_index, history.size()):
 		_add_log_label(history[ii])
 	_scroll_log_to_bottom()
 
@@ -170,15 +158,15 @@ func _build_top_right_location():
 func _update_top_right_layout():
 	if not is_inside_tree():
 		return
-	var vp_size = get_viewport_rect().size
+	var viewport_size = get_viewport_rect().size
 	var margin_right = 6.0
 	var margin_top = 4.0
 	if _minimap != null and is_instance_valid(_minimap):
 		var frame_size = _minimap.get_frame_size()
-		_minimap.position = Vector2(vp_size.x - frame_size.x - margin_right, margin_top)
+		_minimap.position = Vector2(viewport_size.x - frame_size.x - margin_right, margin_top)
 		if _room_label != null and is_instance_valid(_room_label):
 			var label_w = max(340.0, frame_size.x)
-			_room_label.position = Vector2(vp_size.x - label_w - margin_right, margin_top + frame_size.y + 4.0)
+			_room_label.position = Vector2(viewport_size.x - label_w - margin_right, margin_top + frame_size.y + 4.0)
 			_room_label.size = Vector2(label_w, 26.0)
 
 func _build_targeting_banner():
@@ -202,14 +190,14 @@ func _build_bottom_bar():
 	_bar_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	anchor.add_child(_bar_root)
 
-	var bg = TextureRect.new()
-	bg.texture = _load_tex("ui/gameplay/bottombar_bg.png")
-	bg.position = Vector2.ZERO
-	bg.size = Vector2(BAR_WIDTH, BAR_HEIGHT)
-	bg.stretch_mode = TextureRect.STRETCH_KEEP
-	bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	bg.mouse_filter = Control.MOUSE_FILTER_STOP
-	_bar_root.add_child(bg)
+	var background = TextureRect.new()
+	background.texture = _load_tex("ui/gameplay/bottombar_bg.png")
+	background.position = Vector2.ZERO
+	background.size = Vector2(BAR_WIDTH, BAR_HEIGHT)
+	background.stretch_mode = TextureRect.STRETCH_KEEP
+	background.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	background.mouse_filter = Control.MOUSE_FILTER_STOP
+	_bar_root.add_child(background)
 
 	_build_menu_tabs()
 	_build_zorkmid_box()
@@ -222,44 +210,44 @@ func _build_bottom_bar():
 func _update_bar_scale():
 	if _bar_root == null or not is_instance_valid(_bar_root) or not is_inside_tree():
 		return
-	var vp_size = get_viewport_rect().size
-	if vp_size.x <= 0.0:
+	var viewport_size = get_viewport_rect().size
+	if viewport_size.x <= 0.0:
 		return
-	var scale_factor = min(1.0, vp_size.x / BAR_WIDTH)
+	var scale_factor = min(1.0, viewport_size.x / BAR_WIDTH)
 	_bar_root.scale = Vector2(scale_factor, scale_factor)
 	var scaled_w = BAR_WIDTH * scale_factor
 	var scaled_h = BAR_HEIGHT * scale_factor
-	_bar_root.position = Vector2((vp_size.x - scaled_w) * 0.5, BAR_HEIGHT - scaled_h)
+	_bar_root.position = Vector2((viewport_size.x - scaled_w) * 0.5, BAR_HEIGHT - scaled_h)
 
 func _build_menu_tabs():
 	var tab_w = 56.0
 	var tab_h = 24.0
 	var start_x = 60.0
-	var pos_y = 26.0
+	var position_y = 26.0
 	for ii in range(MENU_TABS.size()):
 		var tab = MENU_TABS[ii]
-		var btn = TextureButton.new()
-		btn.position = Vector2(start_x + ii * tab_w, pos_y)
-		btn.size = Vector2(tab_w, tab_h)
-		btn.ignore_texture_size = true
-		btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-		btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		btn.texture_normal = _load_tex(tab.prefix + "0.png")
-		btn.texture_hover = _load_tex(tab.prefix + "1.png")
-		btn.texture_pressed = _load_tex(tab.prefix + "2.png")
-		btn.tooltip_text = tab.tip
-		btn.focus_mode = Control.FOCUS_NONE
-		btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		var button = TextureButton.new()
+		button.position = Vector2(start_x + ii * tab_w, position_y)
+		button.size = Vector2(tab_w, tab_h)
+		button.ignore_texture_size = true
+		button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		button.texture_normal = _load_tex(tab.prefix + "0.png")
+		button.texture_hover = _load_tex(tab.prefix + "1.png")
+		button.texture_pressed = _load_tex(tab.prefix + "2.png")
+		button.tooltip_text = tab.tip
+		button.focus_mode = Control.FOCUS_NONE
+		button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		var tab_id = tab.id
-		btn.pressed.connect(func(): _on_menu_tab_pressed(tab_id))
-		_bar_root.add_child(btn)
+		button.pressed.connect(func(): _on_menu_tab_pressed(tab_id))
+		_bar_root.add_child(button)
 		if tab_id == "skills":
 			_skill_points_badge = _styled_label(11, Color(1.0, 0.88, 0.25), 2)
 			_skill_points_badge.position = Vector2(tab_w - 18, -4)
 			_skill_points_badge.size = Vector2(20, 14)
 			_skill_points_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 			_skill_points_badge.visible = false
-			btn.add_child(_skill_points_badge)
+			button.add_child(_skill_points_badge)
 
 func _build_zorkmid_box():
 	_zorkmid_label = _styled_label(16, Color(0.95, 0.92, 0.85), 2)
@@ -270,31 +258,31 @@ func _build_zorkmid_box():
 	_bar_root.add_child(_zorkmid_label)
 
 func _build_digest_button():
-	var btn = TextureButton.new()
-	btn.position = Vector2(0, 95)
-	btn.size = Vector2(60, 24)
-	btn.ignore_texture_size = true
-	btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	btn.texture_normal = _load_tex("ui/gameplay/digest0.png")
-	btn.texture_hover = _load_tex("ui/gameplay/digest1.png")
-	btn.tooltip_text = "Wait 1 Turn (Space)"
-	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	btn.pressed.connect(func():
+	var button = TextureButton.new()
+	button.position = Vector2(0, 95)
+	button.size = Vector2(60, 24)
+	button.ignore_texture_size = true
+	button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	button.texture_normal = _load_tex("ui/gameplay/digest0.png")
+	button.texture_hover = _load_tex("ui/gameplay/digest1.png")
+	button.tooltip_text = "Wait 1 Turn (Space)"
+	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	button.pressed.connect(func():
 		if _callbacks.has("on_wait") and _callbacks.on_wait.is_valid():
 			_callbacks.on_wait.call()
 	)
-	_bar_root.add_child(btn)
+	_bar_root.add_child(button)
 
 func _build_belt_slots():
 	_belt_buttons.clear()
 	for ii in range(PlayerCharacter.BELT_SIZE):
-		var slot_idx = ii
+		var slot_index = ii
 		var key_text = "SHIFT " + str(ii + 1) if ii == 0 else str(ii + 1)
-		var btn = _create_slot_button(Vector2(134 + ii * 36, 58), Vector2(32, 32), key_text)
-		btn.pressed.connect(func(): _activate_belt_slot(slot_idx))
-		_bar_root.add_child(btn)
-		_belt_buttons.append(btn)
+		var button = _create_slot_button(Vector2(134 + ii * 36, 58), Vector2(32, 32), key_text)
+		button.pressed.connect(func(): _activate_belt_slot(slot_index))
+		_bar_root.add_child(button)
+		_belt_buttons.append(button)
 
 func _build_portrait():
 	_portrait_rect = TextureRect.new()
@@ -357,30 +345,30 @@ func _build_resource_bars():
 func _build_spell_slots():
 	_spell_buttons.clear()
 	for ii in range(PlayerCharacter.HOTBAR_SIZE):
-		var slot_idx = ii
-		var key_lbl = str((ii + 1) % 10)
-		var btn = _create_slot_button(Vector2(612 + ii * 36, 44), Vector2(34, 34), key_lbl)
-		btn.pressed.connect(func(): _activate_spell_slot(slot_idx))
-		_bar_root.add_child(btn)
-		_spell_buttons.append(btn)
+		var slot_index = ii
+		var key_label = str((ii + 1) % 10)
+		var button = _create_slot_button(Vector2(612 + ii * 36, 44), Vector2(34, 34), key_label)
+		button.pressed.connect(func(): _activate_spell_slot(slot_index))
+		_bar_root.add_child(button)
+		_spell_buttons.append(button)
 
 func _create_slot_button(pos, slot_size, key_text):
-	var btn = Button.new()
-	btn.position = pos
-	btn.size = slot_size
-	btn.flat = true
-	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	var button = Button.new()
+	button.position = pos
+	button.size = slot_size
+	button.flat = true
+	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
 	var empty_style = StyleBoxEmpty.new()
 	var hover_style = StyleBoxFlat.new()
 	hover_style.bg_color = Color(1.0, 0.9, 0.55, 0.16)
 	hover_style.border_color = Color(0.9, 0.78, 0.42, 0.65)
 	hover_style.set_border_width_all(1)
-	btn.add_theme_stylebox_override("normal", empty_style)
-	btn.add_theme_stylebox_override("disabled", empty_style)
-	btn.add_theme_stylebox_override("focus", empty_style)
-	btn.add_theme_stylebox_override("hover", hover_style)
-	btn.add_theme_stylebox_override("pressed", hover_style)
+	button.add_theme_stylebox_override("normal", empty_style)
+	button.add_theme_stylebox_override("disabled", empty_style)
+	button.add_theme_stylebox_override("focus", empty_style)
+	button.add_theme_stylebox_override("hover", hover_style)
+	button.add_theme_stylebox_override("pressed", hover_style)
 
 	var icon_rect = TextureRect.new()
 	icon_rect.name = "Icon"
@@ -389,22 +377,22 @@ func _create_slot_button(pos, slot_size, key_text):
 	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	btn.add_child(icon_rect)
+	button.add_child(icon_rect)
 
-	var key_lbl = _styled_label(9, Color(0.92, 0.88, 0.72), 2)
-	key_lbl.name = "KeyLabel"
-	key_lbl.text = key_text
-	key_lbl.position = Vector2(2, 0)
-	btn.add_child(key_lbl)
+	var key_label = _styled_label(9, Color(0.92, 0.88, 0.72), 2)
+	key_label.name = "KeyLabel"
+	key_label.text = key_text
+	key_label.position = Vector2(2, 0)
+	button.add_child(key_label)
 
-	var info_lbl = _styled_label(10, Color(1.0, 1.0, 1.0), 2)
-	info_lbl.name = "InfoLabel"
-	info_lbl.position = Vector2(1, slot_size.y - 13)
-	info_lbl.size = Vector2(slot_size.x - 2, 12)
-	info_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	btn.add_child(info_lbl)
+	var info_label = _styled_label(10, Color(1.0, 1.0, 1.0), 2)
+	info_label.name = "InfoLabel"
+	info_label.position = Vector2(1, slot_size.y - 13)
+	info_label.size = Vector2(slot_size.x - 2, 12)
+	info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	button.add_child(info_label)
 
-	return btn
+	return button
 
 func _connect_signals():
 	if OD.EventLog != null and OD.EventLog.has_signal("message_logged"):
@@ -541,23 +529,23 @@ func refresh_belt():
 		return
 	var items = player.get_belt_items()
 	for ii in range(min(_belt_buttons.size(), items.size())):
-		var btn = _belt_buttons[ii]
-		var icon_rect = btn.get_node("Icon")
-		var info_lbl = btn.get_node("InfoLabel")
+		var button = _belt_buttons[ii]
+		var icon_rect = button.get_node("Icon")
+		var info_label = button.get_node("InfoLabel")
 		var item_name = items[ii]
 		if item_name == "":
 			icon_rect.texture = null
-			info_lbl.text = ""
-			btn.tooltip_text = "Belt Slot " + str(ii + 1) + " (Shift+" + str(ii + 1) + ")"
-			btn.disabled = true
+			info_label.text = ""
+			button.tooltip_text = "Belt Slot " + str(ii + 1) + " (Shift+" + str(ii + 1) + ")"
+			button.disabled = true
 			continue
-		var inv_idx = player.find_inventory_index_by_name(item_name)
-		var item = player.inventory[inv_idx] if inv_idx >= 0 else null
+		var inventory_index = player.find_inventory_index_by_name(item_name)
+		var item = player.inventory[inventory_index] if inventory_index >= 0 else null
 		var count = player.get_inventory_count_by_name(item_name)
 		icon_rect.texture = _load_tex(str(item.get("icon", ""))) if item != null else null
-		info_lbl.text = str(count) if count > 1 else ""
-		btn.tooltip_text = item_name + " x" + str(count) + " (Shift+" + str(ii + 1) + ")"
-		btn.disabled = inv_idx == -1
+		info_label.text = str(count) if count > 1 else ""
+		button.tooltip_text = item_name + " x" + str(count) + " (Shift+" + str(ii + 1) + ")"
+		button.disabled = inventory_index == -1
 
 func refresh_spell_hotbar():
 	if _dungeon == null or not is_instance_valid(_dungeon):
@@ -567,32 +555,32 @@ func refresh_spell_hotbar():
 		return
 	var slots = player.get_hotbar_spells()
 	for ii in range(min(_spell_buttons.size(), slots.size())):
-		var btn = _spell_buttons[ii]
-		var icon_rect = btn.get_node("Icon")
-		var info_lbl = btn.get_node("InfoLabel")
+		var button = _spell_buttons[ii]
+		var icon_rect = button.get_node("Icon")
+		var info_label = button.get_node("InfoLabel")
 		var spell_name = slots[ii]
-		var key_lbl = str((ii + 1) % 10)
+		var key_label = str((ii + 1) % 10)
 		if spell_name == "":
 			icon_rect.texture = null
-			info_lbl.text = ""
-			btn.tooltip_text = "Empty Spell Slot " + key_lbl
-			btn.disabled = true
+			info_label.text = ""
+			button.tooltip_text = "Empty Spell Slot " + key_label
+			button.disabled = true
 			continue
-		var spell_def = OD.Database.get_spell(spell_name) if OD.Database != null else null
-		var cost = SpellEngineScript.compute_mana_cost(player, spell_def)
-		var cd = player.get_spell_cooldown(spell_name)
-		var icon_path = str(spell_def.icon) if spell_def != null and spell_def.get("icon") != null else ""
+		var spell_definition = OD.Database.get_spell(spell_name) if OD.Database != null else null
+		var cost = SpellEngineScript.compute_mana_cost(player, spell_definition)
+		var cooldown = player.get_spell_cooldown(spell_name)
+		var icon_path = str(spell_definition.icon) if spell_definition != null and spell_definition.get("icon") != null else ""
 		icon_rect.texture = _load_tex(icon_path)
-		if cd > 0:
-			info_lbl.text = "CD " + str(cd)
-			info_lbl.add_theme_color_override("font_color", Color(1.0, 0.45, 0.45))
+		if cooldown > 0:
+			info_label.text = "CD " + str(cooldown)
+			info_label.add_theme_color_override("font_color", Color(1.0, 0.45, 0.45))
 		elif cost > 0:
-			info_lbl.text = str(cost)
-			info_lbl.add_theme_color_override("font_color", Color(0.55, 0.85, 1.0))
+			info_label.text = str(cost)
+			info_label.add_theme_color_override("font_color", Color(0.55, 0.85, 1.0))
 		else:
-			info_lbl.text = ""
-		btn.tooltip_text = spell_name + " (MP: " + str(cost) + ", CD: " + str(cd) + ")"
-		btn.disabled = cd > 0 or int(player.mp) < cost
+			info_label.text = ""
+		button.tooltip_text = spell_name + " (MP: " + str(cost) + ", CD: " + str(cooldown) + ")"
+		button.disabled = cooldown > 0 or int(player.mp) < cost
 
 func _on_targeting_changed(spell_name):
 	if _targeting_label == null:
@@ -611,42 +599,42 @@ func _add_log_label(message):
 	line.text = str(message)
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	line.custom_minimum_size = Vector2(520, 0)
-	_log_vbox.add_child(line)
+	_log_vertical_box.add_child(line)
 
 func _append_log_line(message):
-	if _log_vbox == null or not is_instance_valid(_log_vbox):
+	if _log_vertical_box == null or not is_instance_valid(_log_vertical_box):
 		return
 	_add_log_label(message)
 	if not _log_expanded:
-		while _log_vbox.get_child_count() > MAX_LOG_LINES:
-			var oldest = _log_vbox.get_child(0)
-			_log_vbox.remove_child(oldest)
+		while _log_vertical_box.get_child_count() > MAX_LOG_LINES:
+			var oldest = _log_vertical_box.get_child(0)
+			_log_vertical_box.remove_child(oldest)
 			oldest.queue_free()
 	_scroll_log_to_bottom()
 
-func _activate_belt_slot(slot_idx):
+func _activate_belt_slot(slot_index):
 	if _dungeon == null or not is_instance_valid(_dungeon):
 		return
 	var player = _dungeon.get_player()
 	if player == null:
 		return
-	var item_name = player.get_belt_item(slot_idx)
+	var item_name = player.get_belt_item(slot_index)
 	if item_name == "":
 		return
-	var inv_idx = player.find_inventory_index_by_name(item_name)
-	if inv_idx == -1:
+	var inventory_index = player.find_inventory_index_by_name(item_name)
+	if inventory_index == -1:
 		return
-	var res = _dungeon.begin_use_inventory_item(inv_idx)
-	if typeof(res) == TYPE_DICTIONARY and res.get("open_crafting", false):
-		_dungeon.open_crafting_dialog(str(res.get("tool_tag", "")))
+	var result = _dungeon.begin_use_inventory_item(inventory_index)
+	if typeof(result) == TYPE_DICTIONARY and result.get("open_crafting", false):
+		_dungeon.open_crafting_dialog(str(result.get("tool_tag", "")))
 
-func _activate_spell_slot(slot_idx):
+func _activate_spell_slot(slot_index):
 	if _dungeon == null or not is_instance_valid(_dungeon):
 		return
 	var player = _dungeon.get_player()
 	if player == null:
 		return
-	var spell_name = player.get_hotbar_spell(slot_idx)
+	var spell_name = player.get_hotbar_spell(slot_index)
 	if spell_name == "":
 		return
 	_dungeon.begin_spell_targeting(spell_name)
@@ -689,41 +677,41 @@ func _notify_before_open_modal():
 	if _callbacks.has("on_before_open_modal") and _callbacks.on_before_open_modal.is_valid():
 		_callbacks.on_before_open_modal.call()
 
-func handle_key_input(ev):
-	if not (ev is InputEventKey) or not ev.is_pressed() or ev.echo:
+func handle_key_input(event):
+	if not (event is InputEventKey) or not event.is_pressed() or event.echo:
 		return false
 	if is_modal_open():
 		return false
-	if _log_expanded and ev.keycode == KEY_ESCAPE:
+	if _log_expanded and event.keycode == KEY_ESCAPE:
 		toggle_log_history()
 		return true
-	if ev.keycode == KEY_L:
+	if event.keycode == KEY_L:
 		toggle_log_history()
 		return true
-	if ev.keycode == KEY_M:
+	if event.keycode == KEY_M:
 		toggle_pause_menu()
 		return true
-	if ev.keycode == KEY_K:
+	if event.keycode == KEY_K:
 		toggle_skill_tree()
 		return true
-	if ev.keycode == KEY_Q:
+	if event.keycode == KEY_Q:
 		toggle_quest_log()
 		return true
-	if ev.keycode == KEY_TAB:
+	if event.keycode == KEY_TAB:
 		if _minimap != null and is_instance_valid(_minimap):
-			_minimap.cycle_zoom(ev.shift_pressed)
+			_minimap.cycle_zoom(event.shift_pressed)
 		return true
-	if ev.keycode == KEY_EQUAL or ev.keycode == KEY_KP_ADD:
+	if event.keycode == KEY_EQUAL or event.keycode == KEY_KP_ADD:
 		if _minimap != null and is_instance_valid(_minimap):
 			_minimap.zoom_in()
 		return true
-	if ev.keycode == KEY_MINUS or ev.keycode == KEY_KP_SUBTRACT:
+	if event.keycode == KEY_MINUS or event.keycode == KEY_KP_SUBTRACT:
 		if _minimap != null and is_instance_valid(_minimap):
 			_minimap.zoom_out()
 		return true
 	for ii in range(HOTBAR_KEYS.size()):
-		if ev.keycode == HOTBAR_KEYS[ii]:
-			if ev.shift_pressed and ii < PlayerCharacter.BELT_SIZE:
+		if event.keycode == HOTBAR_KEYS[ii]:
+			if event.shift_pressed and ii < PlayerCharacter.BELT_SIZE:
 				_activate_belt_slot(ii)
 			else:
 				_activate_spell_slot(ii)

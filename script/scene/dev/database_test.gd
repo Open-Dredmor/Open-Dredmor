@@ -28,35 +28,35 @@ func _build_gui():
 	margin.add_theme_constant_override("margin_bottom", 24)
 	container.add_child(margin)
 
-	var root_vbox = VBoxContainer.new()
-	root_vbox.add_theme_constant_override("separation", 12)
-	margin.add_child(root_vbox)
+	var root_vertical_box = VBoxContainer.new()
+	root_vertical_box.add_theme_constant_override("separation", 12)
+	margin.add_child(root_vertical_box)
 
 	_summary_label = Label.new()
 	_summary_label.text = _format_summary()
-	root_vbox.add_child(_summary_label)
+	root_vertical_box.add_child(_summary_label)
 
-	root_vbox.add_child(_build_category_row())
+	root_vertical_box.add_child(_build_category_row())
 
 	var split = HBoxContainer.new()
 	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	split.add_theme_constant_override("separation", 16)
-	root_vbox.add_child(split)
+	root_vertical_box.add_child(split)
 
-	var left_vbox = VBoxContainer.new()
-	left_vbox.custom_minimum_size = Vector2(420, 0)
-	left_vbox.add_theme_constant_override("separation", 8)
-	split.add_child(left_vbox)
+	var left_vertical_box = VBoxContainer.new()
+	left_vertical_box.custom_minimum_size = Vector2(420, 0)
+	left_vertical_box.add_theme_constant_override("separation", 8)
+	split.add_child(left_vertical_box)
 
 	_search_input = LineEdit.new()
 	_search_input.placeholder_text = "Filter entries..."
 	_search_input.text_changed.connect(_on_search_changed)
-	left_vbox.add_child(_search_input)
+	left_vertical_box.add_child(_search_input)
 
 	_entry_list = ItemList.new()
 	_entry_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_entry_list.item_selected.connect(_on_entry_selected)
-	left_vbox.add_child(_entry_list)
+	left_vertical_box.add_child(_entry_list)
 
 	_detail_text = TextEdit.new()
 	_detail_text.editable = false
@@ -88,10 +88,10 @@ func _build_category_row():
 		{ id = "tweaks", label = "Tweaks" },
 		{ id = "branches", label = "Branches" }
 	]:
-		var btn = Button.new()
-		btn.text = category_info.label
-		btn.pressed.connect(func(): _select_category(category_info.id))
-		row.add_child(btn)
+		var button = Button.new()
+		button.text = category_info.label
+		button.pressed.connect(func(): _select_category(category_info.id))
+		row.add_child(button)
 	return row
 
 func _select_category(category_id):

@@ -41,56 +41,56 @@ func _build_ui():
 	margin.add_theme_constant_override("margin_bottom", 16)
 	container.add_child(margin)
 
-	var root_hbox = HBoxContainer.new()
-	root_hbox.add_theme_constant_override("separation", 20)
-	margin.add_child(root_hbox)
+	var root_horizontal_box = HBoxContainer.new()
+	root_horizontal_box.add_theme_constant_override("separation", 20)
+	margin.add_child(root_horizontal_box)
 
-	var left_vbox = VBoxContainer.new()
-	left_vbox.custom_minimum_size = Vector2(400, 0)
-	left_vbox.add_theme_constant_override("separation", 10)
-	root_hbox.add_child(left_vbox)
+	var left_vertical_box = VBoxContainer.new()
+	left_vertical_box.custom_minimum_size = Vector2(400, 0)
+	left_vertical_box.add_theme_constant_override("separation", 10)
+	root_horizontal_box.add_child(left_vertical_box)
 
 	var title = Label.new()
 	title.text = "Monster AI & Spawning Verification"
 	title.add_theme_font_size_override("font_size", 20)
-	left_vbox.add_child(title)
+	left_vertical_box.add_child(title)
 
 	_status_label = Label.new()
 	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	left_vbox.add_child(_status_label)
+	left_vertical_box.add_child(_status_label)
 
-	var btn_grid = GridContainer.new()
-	btn_grid.columns = 2
-	btn_grid.add_theme_constant_override("h_separation", 8)
-	btn_grid.add_theme_constant_override("v_separation", 8)
-	left_vbox.add_child(btn_grid)
+	var button_grid = GridContainer.new()
+	button_grid.columns = 2
+	button_grid.add_theme_constant_override("h_separation", 8)
+	button_grid.add_theme_constant_override("v_separation", 8)
+	left_vertical_box.add_child(button_grid)
 
-	_add_btn(btn_grid, "Spawn Diggle", func():
+	_add_btn(button_grid, "Spawn Diggle", func():
 		var mon = _grid.spawn_monster_at("Diggle", 10, 5, 1, true)
 		_log("Spawned Diggle: " + str(mon != null))
 		_refresh_status()
 	)
-	_add_btn(btn_grid, "Spawn Octo (Caster)", func():
+	_add_btn(button_grid, "Spawn Octo (Caster)", func():
 		var mon = _grid.spawn_monster_at("Octo", 9, 5, 1, true)
 		_log("Spawned Octo (spells=" + str(mon.spells if mon != null else []) + ")")
 		_refresh_status()
 	)
-	_add_btn(btn_grid, "Step Turn (AI)", func():
+	_add_btn(button_grid, "Step Turn (AI)", func():
 		_scheduler.advance_turn({ entity_grid = _grid, player = _player })
 		_log("Turn " + str(_scheduler.turn_count) + " -> Monsters: " + str(_grid.get_monsters().size()))
 		_refresh_status()
 	)
-	_add_btn(btn_grid, "Force Periodic Spawn", func():
+	_add_btn(button_grid, "Force Periodic Spawn", func():
 		var mon = _grid.maybe_spawn_periodic_monster(_player.get_grid_position(), 1, 25, true)
 		_log("Periodic spawn -> " + (mon.monster_name if mon != null else "None"))
 		_refresh_status()
 	)
-	_add_btn(btn_grid, "Launch Game", func(): OD.Scenes.goto(OD.Scenes.GAME))
+	_add_btn(button_grid, "Launch Game", func(): OD.Scenes.goto(OD.Scenes.GAME))
 
 	var log_panel = PanelContainer.new()
 	log_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	log_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root_hbox.add_child(log_panel)
+	root_horizontal_box.add_child(log_panel)
 
 	var scroll = ScrollContainer.new()
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -132,13 +132,13 @@ func _setup_sandbox():
 	_grid.visible = false
 
 func _add_btn(parent_node, label_text, callback):
-	var btn = Button.new()
-	btn.text = label_text
-	btn.pressed.connect(callback)
-	parent_node.add_child(btn)
+	var button = Button.new()
+	button.text = label_text
+	button.pressed.connect(callback)
+	parent_node.add_child(button)
 
-func _log(msg):
-	_log_lines.append(msg)
+func _log(message):
+	_log_lines.append(message)
 	if _log_lines.size() > 35:
 		_log_lines.remove_at(0)
 	if _log_label != null:
@@ -160,13 +160,13 @@ func _run_automated_verification():
 
 	var diggle = _grid.spawn_monster_at("Diggle", 7, 5, 1, true)
 	assert(diggle != null)
-	var start_pos = diggle.get_grid_position()
+	var start_position = diggle.get_grid_position()
 
 	_grid.update_fov(_player.get_grid_position(), 8)
 	_scheduler.advance_turn({ entity_grid = _grid, player = _player })
 	assert(diggle.alerted)
-	var after_pos = diggle.get_grid_position()
-	assert(after_pos.x < start_pos.x)
+	var after_position = diggle.get_grid_position()
+	assert(after_position.x < start_position.x)
 
 	var hp_before = _player.hp
 	for _ii in range(8):

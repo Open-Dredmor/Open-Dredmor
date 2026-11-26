@@ -4,16 +4,16 @@ var DEFAULT_ANIMATION_FRAME_RATE_MILLISECONDS = 400
 
 var cache = {}
 var _resolve_cache = {}
-var _dir_entries_cache = {}
+var _directory_entries_cache = {}
 var _exists_cache = {}
-var _anim_frames_cache = {}
+var _animation_frames_cache = {}
 
 func clear_cache():
 	cache = {}
 	_resolve_cache = {}
-	_dir_entries_cache = {}
+	_directory_entries_cache = {}
 	_exists_cache = {}
-	_anim_frames_cache = {}
+	_animation_frames_cache = {}
 
 func exists(relative_path, internal=false):
 	var cache_key = ("res://" if internal else "") + str(relative_path)
@@ -23,28 +23,28 @@ func exists(relative_path, internal=false):
 	_exists_cache[cache_key] = found
 	return found
 
-func _get_dir_entries_lower(dir_path):
-	if _dir_entries_cache.has(dir_path):
-		return _dir_entries_cache[dir_path]
+func _get_dir_entries_lower(directory_path):
+	if _directory_entries_cache.has(directory_path):
+		return _directory_entries_cache[directory_path]
 	var entries = {}
-	var dir = DirAccess.open(dir_path)
-	if dir != null:
-		dir.list_dir_begin()
-		var item_name = dir.get_next()
+	var directory = DirAccess.open(directory_path)
+	if directory != null:
+		directory.list_dir_begin()
+		var item_name = directory.get_next()
 		while item_name != "":
 			if item_name != "." and item_name != "..":
 				entries[item_name.to_lower()] = item_name
-			item_name = dir.get_next()
-		dir.list_dir_end()
-	_dir_entries_cache[dir_path] = entries
+			item_name = directory.get_next()
+		directory.list_dir_end()
+	_directory_entries_cache[directory_path] = entries
 	return entries
 
-func _resolve_case_insensitive(base_dir, relative_path):
+func _resolve_case_insensitive(base_directory, relative_path):
 	var parts = relative_path.split("/", false)
-	var current = base_dir
-	for idx in range(parts.size()):
-		var part = parts[idx]
-		var is_last = idx == parts.size() - 1
+	var current = base_directory
+	for index in range(parts.size()):
+		var part = parts[index]
+		var is_last = index == parts.size() - 1
 		var candidate = current + part
 		if is_last:
 			if FileAccess.file_exists(candidate):
@@ -67,22 +67,22 @@ func resolve(relative_path, internal = false):
 		return "res://asset/" + relative_path
 	if _resolve_cache.has(relative_path):
 		return _resolve_cache[relative_path]
-	var install_dir = OD.Settings.dredmor_install_dir()
-	var direct_path = install_dir + relative_path
+	var install_directory = OD.Settings.dredmor_install_dir()
+	var direct_path = install_directory + relative_path
 	if FileAccess.file_exists(direct_path):
 		_resolve_cache[relative_path] = direct_path
 		return direct_path
 	for pack_prefix in OD.Database.get_active_pack_prefixes():
-		var pack_path = install_dir + pack_prefix + relative_path
+		var pack_path = install_directory + pack_prefix + relative_path
 		if FileAccess.file_exists(pack_path):
 			_resolve_cache[relative_path] = pack_path
 			return pack_path
-	var ci_direct = _resolve_case_insensitive(install_dir, relative_path)
+	var ci_direct = _resolve_case_insensitive(install_directory, relative_path)
 	if ci_direct != null:
 		_resolve_cache[relative_path] = ci_direct
 		return ci_direct
 	for pack_prefix in OD.Database.get_active_pack_prefixes():
-		var ci_pack = _resolve_case_insensitive(install_dir + pack_prefix, relative_path)
+		var ci_pack = _resolve_case_insensitive(install_directory + pack_prefix, relative_path)
 		if ci_pack != null:
 			_resolve_cache[relative_path] = ci_pack
 			return ci_pack
@@ -248,16 +248,16 @@ func split_animation(relative_paths):
 	return animation
 
 func _build_animation_from_cached(frame_list):
-	var anim = OD.Animations.new()
-	anim.init()
+	var animation = OD.Animations.new()
+	animation.init()
 	for entry in frame_list:
-		anim.add_texture_frame(entry.texture, entry.delay_milliseconds)
-	return anim
+		animation.add_texture_frame(entry.texture, entry.delay_milliseconds)
+	return animation
 
 func animation(relative_path, palette_path = null):
 	var cache_key = str(relative_path) + "|" + (str(palette_path) if palette_path != null else "")
-	if _anim_frames_cache.has(cache_key):
-		return _build_animation_from_cached(_anim_frames_cache[cache_key])
+	if _animation_frames_cache.has(cache_key):
+		return _build_animation_from_cached(_animation_frames_cache[cache_key])
 	var parts = relative_path.split('.')
 	var extension = parts[parts.size()-1]
 	var frame_list = null
@@ -274,7 +274,7 @@ func animation(relative_path, palette_path = null):
 			return null
 	if frame_list == null:
 		return null
-	_anim_frames_cache[cache_key] = frame_list
+	_animation_frames_cache[cache_key] = frame_list
 	return _build_animation_from_cached(frame_list)
 
 func _parse_color_table(color_table_bytes):
@@ -339,16 +339,16 @@ func _pro_motion_sprite_frames(relative_path, palette_path = null):
 		var color_table = frame.color_table
 		var image_data = frame.image_data
 		for jj in range(pixel_count):
-			var color_idx = image_data[jj]
-			var rgb = color_table[color_idx]
-			var out_idx = jj * 4
-			pixels[out_idx] = rgb[0]
-			pixels[out_idx + 1] = rgb[1]
-			pixels[out_idx + 2] = rgb[2]
-			var alpha = 0 if color_idx == 0 else 255
+			var color_index = image_data[jj]
+			var rgb = color_table[color_index]
+			var out_index = jj * 4
+			pixels[out_index] = rgb[0]
+			pixels[out_index + 1] = rgb[1]
+			pixels[out_index + 2] = rgb[2]
+			var alpha = 0 if color_index == 0 else 255
 			if _trans_chunk != null and jj < _trans_chunk.size():
 				alpha = _trans_chunk[jj]
-			pixels[out_idx + 3] = alpha
+			pixels[out_index + 3] = alpha
 
 		var img = Image.create_from_data(width, height, false, Image.FORMAT_RGBA8, pixels)
 		var image_texture = ImageTexture.create_from_image(img)

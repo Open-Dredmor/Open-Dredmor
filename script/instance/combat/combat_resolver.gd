@@ -27,19 +27,19 @@ const ALL_DAMAGE_TYPES = [
 	"voltaic"
 ]
 
-static func _get_tweak_int(tweak_name, default_val):
+static func _get_tweak_int(tweak_name, default_value):
 	if OD.Database != null:
-		return int(OD.Database.get_tweak(tweak_name, default_val))
-	return int(default_val)
+		return int(OD.Database.get_tweak(tweak_name, default_value))
+	return int(default_value)
 
-static func _get_stat(actor, stat_key, default_val = 0):
+static func _get_stat(actor, stat_key, default_value = 0):
 	if actor == null:
-		return default_val
+		return default_value
 	if actor.has_method("get_secondary_stat"):
 		return int(actor.get_secondary_stat(stat_key))
 	if actor.get(stat_key) != null:
 		return int(actor.get(stat_key))
-	return default_val
+	return default_value
 
 static func _get_resistance(actor, damage_type):
 	if actor == null:
@@ -60,15 +60,15 @@ static func _get_damage_bonus(actor, damage_type):
 	return 0
 
 static func _extract_damage_map(weapon_or_attack):
-	var dmg_map = {}
-	for dmg_type in ALL_DAMAGE_TYPES:
-		dmg_map[dmg_type] = 0
+	var damage_map = {}
+	for damage_type in ALL_DAMAGE_TYPES:
+		damage_map[damage_type] = 0
 	if weapon_or_attack == null or typeof(weapon_or_attack) != TYPE_DICTIONARY:
-		return dmg_map
-	for dmg_type in ALL_DAMAGE_TYPES:
-		if weapon_or_attack.has(dmg_type):
-			dmg_map[dmg_type] += int(weapon_or_attack[dmg_type])
-	return dmg_map
+		return damage_map
+	for damage_type in ALL_DAMAGE_TYPES:
+		if weapon_or_attack.has(damage_type):
+			damage_map[damage_type] += int(weapon_or_attack[damage_type])
+	return damage_map
 
 static func _roll_percent(chance_percent):
 	var clamped = clamp(int(chance_percent), 0, 100)
@@ -108,39 +108,39 @@ static func resolve_attack(attacker, defender, options = {}):
 		}
 
 	var dmg_map = {}
-	for dmg_type in ALL_DAMAGE_TYPES:
-		dmg_map[dmg_type] = 0
+	for damage_type in ALL_DAMAGE_TYPES:
+		dmg_map[damage_type] = 0
 
 	if weapon_data != null:
 		var w_map = _extract_damage_map(weapon_data)
-		for dmg_type in ALL_DAMAGE_TYPES:
-			dmg_map[dmg_type] += w_map[dmg_type]
+		for damage_type in ALL_DAMAGE_TYPES:
+			dmg_map[damage_type] += w_map[damage_type]
 	if ammo_data != null:
 		var a_map = _extract_damage_map(ammo_data)
-		for dmg_type in ALL_DAMAGE_TYPES:
-			dmg_map[dmg_type] += a_map[dmg_type]
+		for damage_type in ALL_DAMAGE_TYPES:
+			dmg_map[damage_type] += a_map[damage_type]
 
 	if options.has("damage_map") and typeof(options.damage_map) == TYPE_DICTIONARY:
-		for dmg_type in ALL_DAMAGE_TYPES:
-			if options.damage_map.has(dmg_type):
-				dmg_map[dmg_type] += int(options.damage_map[dmg_type])
+		for damage_type in ALL_DAMAGE_TYPES:
+			if options.damage_map.has(damage_type):
+				dmg_map[damage_type] += int(options.damage_map[damage_type])
 
 	if attacker != null and attack_kind == "melee":
 		if weapon_data == null and not options.has("damage_map"):
 			if attacker.get("damage_profile") != null and typeof(attacker.damage_profile) == TYPE_DICTIONARY:
-				for dmg_type in ALL_DAMAGE_TYPES:
-					dmg_map[dmg_type] += int(attacker.damage_profile.get(dmg_type, 0))
+				for damage_type in ALL_DAMAGE_TYPES:
+					dmg_map[damage_type] += int(attacker.damage_profile.get(damage_type, 0))
 			elif attacker.get("attack_damage") != null:
 				dmg_map["crushing"] += int(attacker.attack_damage)
 			else:
 				dmg_map["crushing"] += 2
-		for dmg_type in ALL_DAMAGE_TYPES:
-			dmg_map[dmg_type] += _get_damage_bonus(attacker, dmg_type)
+		for damage_type in ALL_DAMAGE_TYPES:
+			dmg_map[damage_type] += _get_damage_bonus(attacker, damage_type)
 		var melee_power = _get_stat(attacker, "melee_power", 0)
 		dmg_map["crushing"] += max(0, melee_power)
 	elif attacker != null and attack_kind == "thrown":
-		for dmg_type in ALL_DAMAGE_TYPES:
-			dmg_map[dmg_type] += _get_damage_bonus(attacker, dmg_type)
+		for damage_type in ALL_DAMAGE_TYPES:
+			dmg_map[damage_type] += _get_damage_bonus(attacker, damage_type)
 		var thrown_power = _get_stat(attacker, "melee_power", 0)
 		dmg_map["crushing"] += max(0, thrown_power)
 	elif attacker != null and attack_kind == "spell":
@@ -160,11 +160,11 @@ static func resolve_attack(attacker, defender, options = {}):
 		is_critical = _roll_percent(_get_stat(attacker, "crit_chance", 0))
 
 	if is_critical:
-		for dmg_type in ALL_DAMAGE_TYPES:
-			dmg_map[dmg_type] *= 2
+		for damage_type in ALL_DAMAGE_TYPES:
+			dmg_map[damage_type] *= 2
 	elif is_haywire:
-		for dmg_type in ALL_DAMAGE_TYPES:
-			dmg_map[dmg_type] = int(ceil(float(dmg_map[dmg_type]) * 1.5))
+		for damage_type in ALL_DAMAGE_TYPES:
+			dmg_map[damage_type] = int(ceil(float(dmg_map[damage_type]) * 1.5))
 
 	var is_blocked = false
 	if attack_kind != "spell":
@@ -177,24 +177,24 @@ static func resolve_attack(attacker, defender, options = {}):
 	var total_damage = 0
 	var breakdown = {}
 
-	for dmg_type in ALL_DAMAGE_TYPES:
-		var raw_amount = int(dmg_map[dmg_type])
+	for damage_type in ALL_DAMAGE_TYPES:
+		var raw_amount = int(dmg_map[damage_type])
 		if raw_amount <= 0:
 			continue
 		var after_armour = raw_amount
-		if MUNDANE_DAMAGE_TYPES.has(dmg_type):
+		if MUNDANE_DAMAGE_TYPES.has(damage_type):
 			var absorbed = min(after_armour, remaining_armour)
 			after_armour -= absorbed
 			remaining_armour -= absorbed
-		if is_blocked and MUNDANE_DAMAGE_TYPES.has(dmg_type):
+		if is_blocked and MUNDANE_DAMAGE_TYPES.has(damage_type):
 			after_armour = int(floor(float(after_armour) * 0.5))
-		var resist = _get_resistance(defender, dmg_type)
+		var resist = _get_resistance(defender, damage_type)
 		var final_amount = max(0, after_armour - resist)
 		if attack_kind == "spell" and magic_resistance > 0 and final_amount > 0:
 			if _roll_percent(min(75, magic_resistance)):
 				final_amount = int(floor(float(final_amount) * 0.5))
 		if final_amount > 0:
-			breakdown[dmg_type] = final_amount
+			breakdown[damage_type] = final_amount
 			total_damage += final_amount
 
 	var ammo_recovered = false
@@ -206,8 +206,8 @@ static func resolve_attack(attacker, defender, options = {}):
 	var can_counter = attack_kind == "melee" and not bool(options.get("is_counter", false))
 	var countered = false
 	if can_counter and defender != null:
-		var def_hp = int(defender.get("hp")) if defender.get("hp") != null else 0
-		if def_hp - total_damage > 0:
+		var definition_hp = int(defender.get("hp")) if defender.get("hp") != null else 0
+		if definition_hp - total_damage > 0:
 			countered = _roll_percent(_get_stat(defender, "counter_chance", 0))
 
 	return {

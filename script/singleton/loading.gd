@@ -39,17 +39,17 @@ func _ensure_ui():
 	panel.add_theme_stylebox_override("panel", panel_style)
 	center.add_child(panel)
 
-	var vbox = VBoxContainer.new()
-	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	vbox.add_theme_constant_override("separation", 14)
-	panel.add_child(vbox)
+	var vertical_box = VBoxContainer.new()
+	vertical_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	vertical_box.add_theme_constant_override("separation", 14)
+	panel.add_child(vertical_box)
 
-	var title_lbl = Label.new()
-	title_lbl.text = "Open Dredmor"
-	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title_lbl.add_theme_font_size_override("font_size", 28)
-	title_lbl.add_theme_color_override("font_color", Color(0.95, 0.85, 0.55))
-	vbox.add_child(title_lbl)
+	var title_label = Label.new()
+	title_label.text = "Open Dredmor"
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.add_theme_font_size_override("font_size", 28)
+	title_label.add_theme_color_override("font_color", Color(0.95, 0.85, 0.55))
+	vertical_box.add_child(title_label)
 
 	_status_label = Label.new()
 	_status_label.text = "Loading..."
@@ -57,7 +57,7 @@ func _ensure_ui():
 	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status_label.add_theme_font_size_override("font_size", 16)
 	_status_label.add_theme_color_override("font_color", Color(0.9, 0.88, 0.84))
-	vbox.add_child(_status_label)
+	vertical_box.add_child(_status_label)
 
 	_progress_bar = ProgressBar.new()
 	_progress_bar.custom_minimum_size = Vector2(460, 22)
@@ -65,22 +65,22 @@ func _ensure_ui():
 	_progress_bar.max_value = 100.0
 	_progress_bar.value = 0.0
 	_progress_bar.show_percentage = false
-	var bar_bg = StyleBoxFlat.new()
-	bar_bg.bg_color = Color(0.06, 0.05, 0.04, 1.0)
-	bar_bg.border_color = Color(0.45, 0.36, 0.24, 1.0)
-	bar_bg.set_border_width_all(1)
+	var bar_background = StyleBoxFlat.new()
+	bar_background.bg_color = Color(0.06, 0.05, 0.04, 1.0)
+	bar_background.border_color = Color(0.45, 0.36, 0.24, 1.0)
+	bar_background.set_border_width_all(1)
 	var bar_fill = StyleBoxFlat.new()
 	bar_fill.bg_color = Color(0.68, 0.22, 0.16, 1.0)
-	_progress_bar.add_theme_stylebox_override("background", bar_bg)
+	_progress_bar.add_theme_stylebox_override("background", bar_background)
 	_progress_bar.add_theme_stylebox_override("fill", bar_fill)
-	vbox.add_child(_progress_bar)
+	vertical_box.add_child(_progress_bar)
 
 	_percent_label = Label.new()
 	_percent_label.text = "0%"
 	_percent_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_percent_label.add_theme_font_size_override("font_size", 14)
 	_percent_label.add_theme_color_override("font_color", Color(0.85, 0.78, 0.62))
-	vbox.add_child(_percent_label)
+	vertical_box.add_child(_percent_label)
 
 func show_progress(status_text, percent):
 	_ensure_ui()

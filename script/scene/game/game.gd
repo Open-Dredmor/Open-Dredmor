@@ -23,6 +23,13 @@ func _ready():
 func _build_ui():
 	if OD.DungeonSettings.get_settings().hero == null:
 		await _dev_seed()
+	else:
+		if OD.Audio != null and OD.Audio._root == null:
+			OD.Audio.setup(get_tree().get_root())
+		if OD.Database.packs == null:
+			await OD.Database.ingest_async(10.0, 75.0)
+		elif OD.DungeonSettings.has_initialized_packs() and OD.Database.get_active_packs() != OD.DungeonSettings.get_active_packs():
+			OD.Database.set_active_packs(OD.DungeonSettings.get_active_packs())
 
 	if OD.Loading != null:
 		await OD.Loading.step("Loading game audio & assets...", 80.0)
@@ -33,20 +40,20 @@ func _build_ui():
 	centered_container.set_size(OD.Settings.display_size())
 	centered_container.name = "CenteredContainer"
 	container.add_child(centered_container)
-	var hbox = HBoxContainer.new()
-	hbox.anchor_left = .3
-	hbox.anchor_top = .2
-	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	hbox.name = "HBox"
-	centered_container.add_child(hbox)
-	var vbox = VBoxContainer.new()
-	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	vbox.name = "VBox"
-	hbox.add_child(vbox)
+	var horizontal_box = HBoxContainer.new()
+	horizontal_box.anchor_left = .3
+	horizontal_box.anchor_top = .2
+	horizontal_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	horizontal_box.name = "HBox"
+	centered_container.add_child(horizontal_box)
+	var vertical_box = VBoxContainer.new()
+	vertical_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	vertical_box.name = "VBox"
+	horizontal_box.add_child(vertical_box)
 
 	moveable_container = Node2D.new()
 	moveable_container.name = "MoveableContainer"
-	vbox.add_child(moveable_container)
+	vertical_box.add_child(moveable_container)
 
 	if OD.Loading != null:
 		await OD.Loading.step("Generating dungeon floor...", 82.0)
@@ -112,10 +119,10 @@ func _submit_wait_turn():
 	if mapper != null and mapper.has_method("create_wait_command"):
 		_dungeon.submit_command(mapper.create_wait_command())
 		return
-	var wait_ev = InputEventKey.new()
-	wait_ev.keycode = KEY_SPACE
-	wait_ev.pressed = true
-	_dungeon.handle_dungeon_input(wait_ev)
+	var wait_event = InputEventKey.new()
+	wait_event.keycode = KEY_SPACE
+	wait_event.pressed = true
+	_dungeon.handle_dungeon_input(wait_event)
 
 func _on_player_died(summary):
 	if _hud_layer == null or is_instance_valid(_death_dialog):
@@ -133,17 +140,17 @@ func _on_player_died(summary):
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	backdrop.add_child(center)
 
-	var vp_size = OD.Settings.display_size()
-	var dialog_w = clamp(vp_size.x * 0.48, 420.0, 640.0)
-	var dialog_h = clamp(vp_size.y * 0.55, 340.0, 520.0)
+	var viewport_size = OD.Settings.display_size()
+	var dialog_w = clamp(viewport_size.x * 0.48, 420.0, 640.0)
+	var dialog_h = clamp(viewport_size.y * 0.55, 340.0, 520.0)
 
 	var panel = PanelContainer.new()
 	panel.custom_minimum_size = Vector2(dialog_w, dialog_h)
 	var dialog_assets = OD.Assets.dialog()
-	var bg_tex = dialog_assets.textures.alert_bigger if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("alert_bigger") else null
-	if bg_tex != null:
+	var background_texture = dialog_assets.textures.alert_bigger if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("alert_bigger") else null
+	if background_texture != null:
 		var style_box = StyleBoxTexture.new()
-		style_box.texture = bg_tex
+		style_box.texture = background_texture
 		style_box.texture_margin_left = 44
 		style_box.texture_margin_right = 44
 		style_box.texture_margin_top = 44
@@ -155,23 +162,23 @@ func _on_player_died(summary):
 		panel.add_theme_stylebox_override("panel", style_box)
 	center.add_child(panel)
 
-	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 12)
-	panel.add_child(vbox)
+	var vertical_box = VBoxContainer.new()
+	vertical_box.add_theme_constant_override("separation", 12)
+	panel.add_child(vertical_box)
 
-	var header_hbox = HBoxContainer.new()
-	header_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	header_hbox.add_theme_constant_override("separation", 14)
-	vbox.add_child(header_hbox)
+	var header_horizontal_box = HBoxContainer.new()
+	header_horizontal_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	header_horizontal_box.add_theme_constant_override("separation", 14)
+	vertical_box.add_child(header_horizontal_box)
 
 	if OD.Load != null and OD.Load.exists("ui/dredmor_grave.png"):
-		var grave_tex = OD.Load.image("ui/dredmor_grave.png")
-		if grave_tex != null:
+		var grave_texture = OD.Load.image("ui/dredmor_grave.png")
+		if grave_texture != null:
 			var grave_rect = TextureRect.new()
-			grave_rect.texture = grave_tex
+			grave_rect.texture = grave_texture
 			grave_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			grave_rect.custom_minimum_size = Vector2(64, 64)
-			header_hbox.add_child(grave_rect)
+			header_horizontal_box.add_child(grave_rect)
 
 	var title = Label.new()
 	title.text = "Here Lies " + str(entry.get("name", "Unknown"))
@@ -180,12 +187,12 @@ func _on_player_died(summary):
 	title.add_theme_font_override("font", dialog_assets.font)
 	title.add_theme_font_size_override("font_size", 32)
 	title.add_theme_color_override("font_color", Color(0.58, 0.08, 0.08))
-	header_hbox.add_child(title)
+	header_horizontal_box.add_child(title)
 
 	var scroll = ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	vbox.add_child(scroll)
+	vertical_box.add_child(scroll)
 
 	var details = Label.new()
 	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -193,32 +200,32 @@ func _on_player_died(summary):
 	details.add_theme_font_override("font", dialog_assets.font)
 	details.add_theme_font_size_override("font_size", 20)
 	details.add_theme_color_override("font_color", Color(0.16, 0.1, 0.06))
-	var skills_str = ", ".join(entry.get("skills", []))
+	var skills_text = ", ".join(entry.get("skills", []))
 	var lines = [
 		"Level: %d | Floor: %d | Difficulty: %s" % [int(entry.get("level", 1)), int(entry.get("floor", 1)), str(entry.get("difficulty", "Medium"))],
 		"Slain by: %s" % str(entry.get("cause_of_death", "Unknown")),
 		"Final Score: %d" % int(entry.get("score", 0)),
-		"Skills: %s" % (skills_str if skills_str != "" else "None")
+		"Skills: %s" % (skills_text if skills_text != "" else "None")
 	]
 	if perma_deleted:
 		lines.append("Permadeath: Save file deleted.")
 	details.text = "\n".join(lines)
 	scroll.add_child(details)
 
-	var btn_row = HBoxContainer.new()
-	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	btn_row.add_theme_constant_override("separation", 18)
-	vbox.add_child(btn_row)
+	var button_row = HBoxContainer.new()
+	button_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	button_row.add_theme_constant_override("separation", 18)
+	vertical_box.add_child(button_row)
 
 	var ink_color = Color(0.18, 0.12, 0.08)
-	var blank_tex = dialog_assets.textures.blank if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("blank") else null
-	var scores_btn = OD.Chrome.parchment_button("High Scores", dialog_assets.font, ink_color, blank_tex, 20)
-	scores_btn.pressed.connect(func(): OD.Scenes.goto(OD.Scenes.HIGH_SCORES_MENU))
-	btn_row.add_child(scores_btn)
+	var blank_texture = dialog_assets.textures.blank if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("blank") else null
+	var scores_button = OD.Chrome.parchment_button("High Scores", dialog_assets.font, ink_color, blank_texture, 20)
+	scores_button.pressed.connect(func(): OD.Scenes.goto(OD.Scenes.HIGH_SCORES_MENU))
+	button_row.add_child(scores_button)
 
-	var menu_btn = OD.Chrome.parchment_button("Main Menu", dialog_assets.font, ink_color, blank_tex, 20)
-	menu_btn.pressed.connect(func(): OD.Scenes.goto(OD.Scenes.MAIN_MENU))
-	btn_row.add_child(menu_btn)
+	var menu_button = OD.Chrome.parchment_button("Main Menu", dialog_assets.font, ink_color, blank_texture, 20)
+	menu_button.pressed.connect(func(): OD.Scenes.goto(OD.Scenes.MAIN_MENU))
+	button_row.add_child(menu_button)
 
 func _dev_seed():
 	OD.Audio.setup(get_tree().get_root())
@@ -241,7 +248,7 @@ var _camera_follow_enabled = true
 var _target_zoom = 1.0
 var _zoom_anchor_local = Vector2.ZERO
 var _has_zoom_anchor = false
-var _drag_start_pos = Vector2.ZERO
+var _drag_start_position = Vector2.ZERO
 var _drag_press_time_ms = 0
 var _total_pan_px = 0.0
 var old_position
@@ -261,18 +268,18 @@ func _toggle_crafting():
 		return
 	_dungeon.open_crafting_dialog()
 
-func _create_item_window_callbacks(close_fn):
+func _create_item_window_callbacks(close_function):
 	return {
 		on_drop_inventory = func(inv_idx, count): _dungeon.drop_inventory_item(inv_idx, count),
 		on_drop_equipped = func(slot_name): _dungeon.drop_equipped_item(slot_name),
 		on_use_inventory = func(inv_idx):
-			var use_res = _dungeon.begin_use_inventory_item(inv_idx)
-			if typeof(use_res) == TYPE_DICTIONARY and use_res.get("open_crafting", false):
-				_dungeon.open_crafting_dialog(str(use_res.get("tool_tag", "")))
-			elif typeof(use_res) == TYPE_DICTIONARY and use_res.get("targeting", false):
+			var use_result = _dungeon.begin_use_inventory_item(inv_idx)
+			if typeof(use_result) == TYPE_DICTIONARY and use_result.get("open_crafting", false):
+				_dungeon.open_crafting_dialog(str(use_result.get("tool_tag", "")))
+			elif typeof(use_result) == TYPE_DICTIONARY and use_result.get("targeting", false):
 				_close_game_modals(),
 		on_pickup = func(): _dungeon.pickup_loot_at_player(),
-		on_close = close_fn
+		on_close = close_function
 	}
 
 func toggle_character():
@@ -307,52 +314,52 @@ func _is_mouse_over_hud():
 	var hovered = get_viewport().gui_get_hovered_control()
 	return hovered != null and _hud_layer.is_ancestor_of(hovered)
 
-func _input(ev):
+func _input(event):
 	if _dungeon == null or not is_instance_valid(_dungeon):
 		return
 	if _core_hud != null and _core_hud.is_modal_open():
 		return
-	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_I:
+	if event is InputEventKey and event.is_pressed() and not event.echo and event.keycode == KEY_I:
 		if not _dungeon.has_interaction_dialog_open():
 			get_viewport().set_input_as_handled()
 			toggle_inventory()
 			return
-	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_C:
+	if event is InputEventKey and event.is_pressed() and not event.echo and event.keycode == KEY_C:
 		if not _dungeon.has_interaction_dialog_open():
 			get_viewport().set_input_as_handled()
 			toggle_character()
 			return
-	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_R:
+	if event is InputEventKey and event.is_pressed() and not event.echo and event.keycode == KEY_R:
 		if not _dungeon.has_interaction_dialog_open():
 			get_viewport().set_input_as_handled()
 			_toggle_crafting()
 			return
-	if _core_hud != null and _core_hud.handle_key_input(ev):
+	if _core_hud != null and _core_hud.handle_key_input(event):
 		get_viewport().set_input_as_handled()
 		return
-	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_ESCAPE and not _dungeon.has_interaction_dialog_open() and _dungeon.get_pending_spell_name() == "":
-		var top_win = FloatingWindowScript.get_topmost_window(get_tree())
-		if top_win != null:
-			var win_owner = top_win.get_parent()
-			if win_owner != null and win_owner.has_method("dismiss"):
-				win_owner.dismiss()
+	if event is InputEventKey and event.is_pressed() and not event.echo and event.keycode == KEY_ESCAPE and not _dungeon.has_interaction_dialog_open() and _dungeon.get_pending_spell_name() == "":
+		var top_window = FloatingWindowScript.get_topmost_window(get_tree())
+		if top_window != null:
+			var window_owner = top_window.get_parent()
+			if window_owner != null and window_owner.has_method("dismiss"):
+				window_owner.dismiss()
 				get_viewport().set_input_as_handled()
 				return
 		if _core_hud != null:
 			get_viewport().set_input_as_handled()
 			_core_hud.toggle_pause_menu()
 			return
-	if ev is InputEventMouse and (FloatingWindowScript.is_point_over_any(get_tree(), ev.position) or _is_mouse_over_hud()):
+	if event is InputEventMouse and (FloatingWindowScript.is_point_over_any(get_tree(), event.position) or _is_mouse_over_hud()):
 		drag_enabled = false
 		_is_dragging = false
 		return
 	if _dungeon.has_interaction_dialog_open():
 		drag_enabled = false
 		_is_dragging = false
-		_dungeon.handle_dungeon_input(ev)
+		_dungeon.handle_dungeon_input(event)
 		return
 	var mapper = _dungeon.get_input_mapper()
-	var cam_action = mapper.translate_camera_input(ev) if mapper != null else null
+	var cam_action = mapper.translate_camera_input(event) if mapper != null else null
 	if cam_action != null:
 		match cam_action.kind:
 			"pan":
@@ -367,20 +374,20 @@ func _input(ev):
 				if cam_action.pressed:
 					drag_enabled = true
 					_is_dragging = false
-					_drag_start_pos = cam_action.position
+					_drag_start_position = cam_action.position
 					_drag_press_time_ms = Time.get_ticks_msec()
 					_total_pan_px = 0.0
 					old_position = get_global_mouse_position()
 				else:
 					var held_ms = Time.get_ticks_msec() - _drag_press_time_ms
-					var was_drag = _is_dragging or _total_pan_px >= DRAG_THRESHOLD_PX or cam_action.position.distance_to(_drag_start_pos) >= DRAG_THRESHOLD_PX or held_ms >= CLICK_MAX_HOLD_MS
+					var was_drag = _is_dragging or _total_pan_px >= DRAG_THRESHOLD_PX or cam_action.position.distance_to(_drag_start_position) >= DRAG_THRESHOLD_PX or held_ms >= CLICK_MAX_HOLD_MS
 					drag_enabled = false
 					_is_dragging = false
 					if not was_drag:
-						_dungeon.handle_dungeon_input(ev)
+						_dungeon.handle_dungeon_input(event)
 				return
 			"drag_motion":
-				if drag_enabled and cam_action.position.distance_to(_drag_start_pos) >= DRAG_THRESHOLD_PX:
+				if drag_enabled and cam_action.position.distance_to(_drag_start_position) >= DRAG_THRESHOLD_PX:
 					_is_dragging = true
 			"zoom":
 				_zoom_at(cam_action.factor)
@@ -390,7 +397,7 @@ func _input(ev):
 				return
 			"ignore":
 				return
-	_dungeon.handle_dungeon_input(ev)
+	_dungeon.handle_dungeon_input(event)
 
 func _zoom_at(zoom_factor):
 	if moveable_container == null:

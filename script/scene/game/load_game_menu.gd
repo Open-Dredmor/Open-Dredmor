@@ -73,15 +73,15 @@ func _build_gui():
 	info_panel.custom_minimum_size = Vector2(info_panel.texture.get_width(), info_panel.texture.get_height())
 	content_row.add_child(info_panel)
 
-	var info_vbox = VBoxContainer.new()
-	info_vbox.anchor_right = 1.0
-	info_vbox.anchor_bottom = 1.0
-	info_vbox.offset_left = 24
-	info_vbox.offset_top = 24
-	info_vbox.offset_right = -24
-	info_vbox.offset_bottom = -24
-	info_vbox.add_theme_constant_override("separation", 16)
-	info_panel.add_child(info_vbox)
+	var info_vertical_box = VBoxContainer.new()
+	info_vertical_box.anchor_right = 1.0
+	info_vertical_box.anchor_bottom = 1.0
+	info_vertical_box.offset_left = 24
+	info_vertical_box.offset_top = 24
+	info_vertical_box.offset_right = -24
+	info_vertical_box.offset_bottom = -24
+	info_vertical_box.add_theme_constant_override("separation", 16)
+	info_panel.add_child(info_vertical_box)
 
 	_details_label = Label.new()
 	_details_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -89,12 +89,12 @@ func _build_gui():
 	_details_label.add_theme_font_override("font", assets.fonts.default)
 	_details_label.add_theme_font_size_override("font_size", 22)
 	_details_label.add_theme_color_override("font_color", Color(0, 0, 0))
-	info_vbox.add_child(_details_label)
+	info_vertical_box.add_child(_details_label)
 
 	_delete_button = OD.Chrome.button(assets.textures.delete_button)
 	_delete_button.visible = false
 	_delete_button.pressed.connect(_on_DeleteButton_pressed)
-	info_vbox.add_child(_delete_button)
+	info_vertical_box.add_child(_delete_button)
 
 	_refresh_saves()
 

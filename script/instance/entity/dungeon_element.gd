@@ -169,12 +169,12 @@ func _interact_bookshelf():
 	var out_name = recipe.outputs[0].name if recipe.outputs.size() > 0 and recipe.outputs[0].has("name") else "Unknown"
 	var out_item = OD.Database.get_item(out_name)
 	var icon_path = out_item.icon if out_item != null else ""
-	var item_desc = out_item.description if out_item != null else ""
+	var item_description = out_item.description if out_item != null else ""
 	return {
 		kind = "info",
 		title = "Bookshelf",
 		icon = icon_path,
-		tooltip = item_desc,
+		tooltip = item_description,
 		discovered_recipe = recipe,
 		message = "Discovered crafting recipe: " + out_name + " (" + recipe.tool + ")"
 	}
@@ -194,14 +194,14 @@ func _interact_pedestal():
 	state_data["item"] = null
 	OD.Audio.play_sfx("metal_get")
 	var icon_path = str(item.get("icon", item.get("iconFile", "")))
-	var item_desc = str(item.get("description", ""))
+	var item_description = str(item.get("description", ""))
 	if typeof(item.get("description", "")) == TYPE_DICTIONARY and item.description.has("text"):
-		item_desc = str(item.description.text)
+		item_description = str(item.description.text)
 	return {
 		kind = "pedestal",
 		title = "Pedestal",
 		icon = icon_path,
-		tooltip = item_desc,
+		tooltip = item_description,
 		granted_item = item,
 		message = "Picked up: " + str(item.get("name", "Artifact"))
 	}
@@ -218,12 +218,12 @@ func offer_lutefisk(amount):
 		var artifact = OD.Database.create_artifact_instance(null, floor_lvl)
 		var reward_name = artifact.get("name", "Lutefisk Artifact") if artifact != null else "Lutefisk Artifact"
 		var icon_path = str(artifact.get("icon", "")) if artifact != null else ""
-		var item_desc = str(artifact.get("description", "")) if artifact != null else ""
+		var item_description = str(artifact.get("description", "")) if artifact != null else ""
 		OD.Audio.play_sfx("enchanted")
 		return {
 			message = "The Lutefisk God is pleased! Granted: " + reward_name,
 			icon = icon_path,
-			tooltip = item_desc,
+			tooltip = item_description,
 			granted_item = artifact
 		}
 	return {
@@ -277,7 +277,7 @@ func _interact_chest(title_text, loot_category):
 		}
 	return { kind = "info", title = title_text, message = "You open the " + title_text + "!" }
 
-func _interact_supply_box(title_text, category_name, fallback_msg):
+func _interact_supply_box(title_text, category_name, fallback_message):
 	if used:
 		return { kind = "info", title = title_text, message = "It is empty." }
 	used = true
@@ -296,7 +296,7 @@ func _interact_supply_box(title_text, category_name, fallback_msg):
 			granted_item = item,
 			message = "Found: " + str(item.get("name", "Supply"))
 		}
-	return { kind = "info", title = title_text, message = fallback_msg }
+	return { kind = "info", title = title_text, message = fallback_message }
 
 func _interact_quest_statue():
 	if used:

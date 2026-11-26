@@ -43,60 +43,60 @@ func _build_ui():
 	margin.add_theme_constant_override("margin_bottom", 20)
 	container.add_child(margin)
 
-	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 12)
-	margin.add_child(vbox)
+	var vertical_box = VBoxContainer.new()
+	vertical_box.add_theme_constant_override("separation", 12)
+	margin.add_child(vertical_box)
 
 	var title = Label.new()
 	title.text = "Loot Generation & Artifacts Verification"
 	title.add_theme_font_size_override("font_size", 26)
-	vbox.add_child(title)
+	vertical_box.add_child(title)
 
-	var btn_hbox = HBoxContainer.new()
-	btn_hbox.add_theme_constant_override("separation", 10)
-	vbox.add_child(btn_hbox)
+	var button_horizontal_box = HBoxContainer.new()
+	button_horizontal_box.add_theme_constant_override("separation", 10)
+	vertical_box.add_child(button_horizontal_box)
 
-	var open_inv_btn = Button.new()
-	open_inv_btn.text = "Open Inventory (Inspect & Equip)"
-	open_inv_btn.pressed.connect(open_inventory)
-	btn_hbox.add_child(open_inv_btn)
+	var open_inventory_button = Button.new()
+	open_inventory_button.text = "Open Inventory (Inspect & Equip)"
+	open_inventory_button.pressed.connect(open_inventory)
+	button_horizontal_box.add_child(open_inventory_button)
 
-	var roll_f1_btn = Button.new()
-	roll_f1_btn.text = "Roll Floor 1 Artifact"
-	roll_f1_btn.pressed.connect(func(): _grant_rolled_artifact(1))
-	btn_hbox.add_child(roll_f1_btn)
+	var roll_f1_button = Button.new()
+	roll_f1_button.text = "Roll Floor 1 Artifact"
+	roll_f1_button.pressed.connect(func(): _grant_rolled_artifact(1))
+	button_horizontal_box.add_child(roll_f1_button)
 
-	var roll_f8_btn = Button.new()
-	roll_f8_btn.text = "Roll Floor 8 Artifact"
-	roll_f8_btn.pressed.connect(func(): _grant_rolled_artifact(8))
-	btn_hbox.add_child(roll_f8_btn)
+	var roll_f8_button = Button.new()
+	roll_f8_button.text = "Roll Floor 8 Artifact"
+	roll_f8_button.pressed.connect(func(): _grant_rolled_artifact(8))
+	button_horizontal_box.add_child(roll_f8_button)
 
-	var check_btn = Button.new()
-	check_btn.text = "Run Automated Self-Check"
-	check_btn.pressed.connect(_run_self_check)
-	btn_hbox.add_child(check_btn)
+	var check_button = Button.new()
+	check_button.text = "Run Automated Self-Check"
+	check_button.pressed.connect(_run_self_check)
+	button_horizontal_box.add_child(check_button)
 
-	var game_btn = Button.new()
-	game_btn.text = "Launch Game"
-	game_btn.pressed.connect(func(): OD.Scenes.goto(OD.Scenes.GAME))
-	btn_hbox.add_child(game_btn)
+	var game_button = Button.new()
+	game_button.text = "Launch Game"
+	game_button.pressed.connect(func(): OD.Scenes.goto(OD.Scenes.GAME))
+	button_horizontal_box.add_child(game_button)
 
 	_summary_label = Label.new()
 	_summary_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	vbox.add_child(_summary_label)
+	vertical_box.add_child(_summary_label)
 
 	_log_label = Label.new()
 	_log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_log_label.text = "Ready."
-	vbox.add_child(_log_label)
+	vertical_box.add_child(_log_label)
 
 	_refresh_summary()
 	_run_self_check()
 
 func _seed_initial_loot():
-	for floor_lvl in [1, 4, 8]:
-		var art = OD.Database.create_artifact_instance(null, floor_lvl)
+	for floor_level in [1, 4, 8]:
+		var art = OD.Database.create_artifact_instance(null, floor_level)
 		if art != null:
 			_player.add_item(art)
 	for kind in ["component", "reagent", "gem", "potion", "booze", "wand"]:
@@ -104,13 +104,13 @@ func _seed_initial_loot():
 		if rolled != null and rolled.has("item"):
 			_player.add_item(rolled.item)
 
-func _grant_rolled_artifact(floor_lvl):
-	var art = OD.Database.create_artifact_instance(null, floor_lvl)
+func _grant_rolled_artifact(floor_level):
+	var art = OD.Database.create_artifact_instance(null, floor_level)
 	if art == null:
-		_log_label.text = "Failed to generate artifact for floor " + str(floor_lvl)
+		_log_label.text = "Failed to generate artifact for floor " + str(floor_level)
 		return
-	var res = _player.add_item(art)
-	_log_label.text = "Generated Floor " + str(floor_lvl) + " Artifact: " + str(art.get("name", "")) + " (Q" + str(art.get("artifact_quality", 1)) + ") | Added=" + str(res.added)
+	var result = _player.add_item(art)
+	_log_label.text = "Generated Floor " + str(floor_level) + " Artifact: " + str(art.get("name", "")) + " (Q" + str(art.get("artifact_quality", 1)) + ") | Added=" + str(result.added)
 	_refresh_summary()
 
 func open_inventory():
@@ -125,14 +125,14 @@ func open_inventory():
 func _refresh_summary():
 	if _player == null or _summary_label == null:
 		return
-	var inv_lines = []
+	var inventory_lines = []
 	var items = _player.get_inventory_items()
-	for idx in range(items.size()):
-		var it = items[idx]
+	for index in range(items.size()):
+		var it = items[index]
 		if it != null:
 			var tag = " [ART Q" + str(it.get("artifact_quality", 1)) + "]" if bool(it.get("is_artifact", false)) else ""
-			inv_lines.append("%s (Lvl %d, %s)%s" % [str(it.get("name", "")), int(it.get("level", 1)), str(it.get("category", "")), tag])
-	_summary_label.text = "Primary Stats: " + str(_player.primary_stats) + "\nInventory (" + str(inv_lines.size()) + "):\n- " + "\n- ".join(inv_lines)
+			inventory_lines.append("%s (Lvl %d, %s)%s" % [str(it.get("name", "")), int(it.get("level", 1)), str(it.get("category", "")), tag])
+	_summary_label.text = "Primary Stats: " + str(_player.primary_stats) + "\nInventory (" + str(inventory_lines.size()) + "):\n- " + "\n- ".join(inventory_lines)
 
 func _run_self_check():
 	var failures = []
@@ -141,17 +141,17 @@ func _run_self_check():
 	if f1_weapon == null:
 		failures.append("get_loot(weapon, floor 1) returned null")
 	else:
-		var w1_lvl = int(f1_weapon.get("level", 1))
-		if w1_lvl > 3:
-			failures.append("Floor 1 weapon level too high: " + str(w1_lvl))
+		var w1_level = int(f1_weapon.get("level", 1))
+		if w1_level > 3:
+			failures.append("Floor 1 weapon level too high: " + str(w1_level))
 
 	var f8_armour = OD.Database.get_loot("armour", null, 8)
 	if f8_armour == null:
 		failures.append("get_loot(armour, floor 8) returned null")
 	else:
-		var a8_def = OD.Database.get_item(str(f8_armour.get("name", "")))
-		if a8_def == null or int(a8_def.get("level", 1)) < 5 or int(a8_def.get("level", 1)) > 10:
-			failures.append("Floor 8 armour level out of range: " + str(a8_def.get("level", -1) if a8_def != null else -1))
+		var a8_definition = OD.Database.get_item(str(f8_armour.get("name", "")))
+		if a8_definition == null or int(a8_definition.get("level", 1)) < 5 or int(a8_definition.get("level", 1)) > 10:
+			failures.append("Floor 8 armour level out of range: " + str(a8_definition.get("level", -1) if a8_definition != null else -1))
 
 	var comp = OD.Database.get_loot("component", null, 2)
 	var reag = OD.Database.get_loot("reagent", null, 2)
@@ -175,26 +175,26 @@ func _run_self_check():
 
 	var uberchest = DungeonElementScript.new()
 	uberchest.init("uberchest", null, { floor_level = 5 })
-	var chest_res = uberchest.interact()
-	if not chest_res.has("granted_item") or chest_res.granted_item == null:
+	var chest_result = uberchest.interact()
+	if not chest_result.has("granted_item") or chest_result.granted_item == null:
 		failures.append("uberchest did not grant an item")
 
 	var evilchest = DungeonElementScript.new()
 	evilchest.init("evilchest", null, { floor_level = 5 })
-	var evil_res = evilchest.interact()
-	if not evil_res.has("granted_item") or evil_res.granted_item == null:
+	var evil_result = evilchest.interact()
+	if not evil_result.has("granted_item") or evil_result.granted_item == null:
 		failures.append("evilchest did not grant an item")
 
 	var pedestal = DungeonElementScript.new()
 	pedestal.init("pedestal", null, { floor_level = 5 })
-	var ped_res = pedestal.interact()
-	if not ped_res.has("granted_item") or ped_res.granted_item == null or not bool(ped_res.granted_item.get("is_artifact", false)):
+	var ped_result = pedestal.interact()
+	if not ped_result.has("granted_item") or ped_result.granted_item == null or not bool(ped_result.granted_item.get("is_artifact", false)):
 		failures.append("pedestal did not grant an artifact")
 
-	var mon_def = OD.Database.get_random_monster()
-	if mon_def != null:
+	var mon_definition = OD.Database.get_random_monster()
+	if mon_definition != null:
 		var mon = MonsterEntityScript.new()
-		mon.init(mon_def, 3)
+		mon.init(mon_definition, 3)
 		var saw_drop = false
 		for _ii in range(30):
 			if not mon.roll_drops().is_empty():

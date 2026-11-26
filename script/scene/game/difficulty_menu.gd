@@ -21,12 +21,12 @@ func _build_gui():
 	difficulty_menu.set_size(OD.Settings.display_size())
 
 	if OD.Load.exists("ui/menus/bg_stonetile.png"):
-		var bg_tile = TextureRect.new()
-		bg_tile.texture = OD.Load.image("ui/menus/bg_stonetile.png")
-		bg_tile.stretch_mode = TextureRect.STRETCH_TILE
-		bg_tile.set_anchors_preset(Control.PRESET_FULL_RECT)
-		bg_tile.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		difficulty_menu.add_child(bg_tile)
+		var background_tile = TextureRect.new()
+		background_tile.texture = OD.Load.image("ui/menus/bg_stonetile.png")
+		background_tile.stretch_mode = TextureRect.STRETCH_TILE
+		background_tile.set_anchors_preset(Control.PRESET_FULL_RECT)
+		background_tile.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		difficulty_menu.add_child(background_tile)
 
 	var header_background = TextureRect.new()
 	header_background.texture = assets.textures.header_background
@@ -152,8 +152,8 @@ func _build_gui():
 
 func _build_content_packs_panel(parent, assets):
 	var dialog_assets = OD.Assets.dialog()
-	var font_res = dialog_assets.font if dialog_assets != null else null
-	var parchment_bg = dialog_assets.textures.alert_bigger if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("alert_bigger") else null
+	var font_result = dialog_assets.font if dialog_assets != null else null
+	var parchment_background = dialog_assets.textures.alert_bigger if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("alert_bigger") else null
 	var ink_color = Color(0.16, 0.10, 0.06)
 	var header_ink = Color(0.28, 0.12, 0.05)
 
@@ -162,9 +162,9 @@ func _build_content_packs_panel(parent, assets):
 	panel.anchor_top = 0.20
 	panel.anchor_right = 0.94
 	panel.anchor_bottom = 0.80
-	if parchment_bg != null:
+	if parchment_background != null:
 		var style_box = StyleBoxTexture.new()
-		style_box.texture = parchment_bg
+		style_box.texture = parchment_background
 		style_box.texture_margin_left = 32
 		style_box.texture_margin_right = 32
 		style_box.texture_margin_top = 32
@@ -176,31 +176,31 @@ func _build_content_packs_panel(parent, assets):
 		panel.add_theme_stylebox_override("panel", style_box)
 	parent.add_child(panel)
 
-	var vbox = VBoxContainer.new()
-	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	vbox.add_theme_constant_override("separation", 12)
-	panel.add_child(vbox)
+	var vertical_box = VBoxContainer.new()
+	vertical_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vertical_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vertical_box.add_theme_constant_override("separation", 12)
+	panel.add_child(vertical_box)
 
 	var title_label = Label.new()
 	title_label.text = "Expansions"
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if font_res != null:
-		title_label.add_theme_font_override("font", font_res)
+	if font_result != null:
+		title_label.add_theme_font_override("font", font_result)
 	title_label.add_theme_font_size_override("font_size", 26)
 	title_label.add_theme_color_override("font_color", header_ink)
-	vbox.add_child(title_label)
+	vertical_box.add_child(title_label)
 
 	var scroll = ScrollContainer.new()
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	vbox.add_child(scroll)
+	vertical_box.add_child(scroll)
 
-	var list_vbox = VBoxContainer.new()
-	list_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	list_vbox.add_theme_constant_override("separation", 10)
-	scroll.add_child(list_vbox)
+	var list_vertical_box = VBoxContainer.new()
+	list_vertical_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list_vertical_box.add_theme_constant_override("separation", 10)
+	scroll.add_child(list_vertical_box)
 
 	var available_packs = []
 	for pack_info in OD.Database.get_available_packs():
@@ -210,11 +210,11 @@ func _build_content_packs_panel(parent, assets):
 		var empty_label = Label.new()
 		empty_label.text = "No expansions found."
 		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		if font_res != null:
-			empty_label.add_theme_font_override("font", font_res)
+		if font_result != null:
+			empty_label.add_theme_font_override("font", font_result)
 		empty_label.add_theme_font_size_override("font_size", 19)
 		empty_label.add_theme_color_override("font_color", ink_color)
-		list_vbox.add_child(empty_label)
+		list_vertical_box.add_child(empty_label)
 		return
 
 	var box_style = StyleBoxFlat.new()
@@ -227,30 +227,30 @@ func _build_content_packs_panel(parent, assets):
 
 	for pack_info in available_packs:
 		var is_enabled = _selected_pack_ids.has(pack_info.id)
-		var row_btn = Button.new()
-		row_btn.toggle_mode = true
-		row_btn.button_pressed = is_enabled
-		row_btn.custom_minimum_size = Vector2(0, 38)
-		row_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		row_btn.add_theme_stylebox_override("normal", transparent_style)
-		row_btn.add_theme_stylebox_override("hover", transparent_style)
-		row_btn.add_theme_stylebox_override("pressed", transparent_style)
-		row_btn.add_theme_stylebox_override("focus", transparent_style)
-		list_vbox.add_child(row_btn)
+		var row_button = Button.new()
+		row_button.toggle_mode = true
+		row_button.button_pressed = is_enabled
+		row_button.custom_minimum_size = Vector2(0, 38)
+		row_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		row_button.add_theme_stylebox_override("normal", transparent_style)
+		row_button.add_theme_stylebox_override("hover", transparent_style)
+		row_button.add_theme_stylebox_override("pressed", transparent_style)
+		row_button.add_theme_stylebox_override("focus", transparent_style)
+		list_vertical_box.add_child(row_button)
 
-		var row_hbox = HBoxContainer.new()
-		row_hbox.set_anchors_preset(Control.PRESET_FULL_RECT)
-		row_hbox.add_theme_constant_override("separation", 12)
-		row_hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row_btn.add_child(row_hbox)
+		var row_horizontal_box = HBoxContainer.new()
+		row_horizontal_box.set_anchors_preset(Control.PRESET_FULL_RECT)
+		row_horizontal_box.add_theme_constant_override("separation", 12)
+		row_horizontal_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row_button.add_child(row_horizontal_box)
 
 		var check_box = PanelContainer.new()
 		check_box.custom_minimum_size = Vector2(28, 28)
 		check_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		check_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		check_box.add_theme_stylebox_override("panel", box_style)
-		row_hbox.add_child(check_box)
+		row_horizontal_box.add_child(check_box)
 
 		var mark = TextureRect.new()
 		mark.texture = assets.textures.checkmark_small
@@ -259,20 +259,20 @@ func _build_content_packs_panel(parent, assets):
 		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		check_box.add_child(mark)
 
-		var name_lbl = Label.new()
-		name_lbl.text = pack_info.name
-		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		if font_res != null:
-			name_lbl.add_theme_font_override("font", font_res)
-		name_lbl.add_theme_font_size_override("font_size", 20)
-		name_lbl.add_theme_color_override("font_color", ink_color)
-		row_hbox.add_child(name_lbl)
+		var name_label = Label.new()
+		name_label.text = pack_info.name
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if font_result != null:
+			name_label.add_theme_font_override("font", font_result)
+		name_label.add_theme_font_size_override("font_size", 20)
+		name_label.add_theme_color_override("font_color", ink_color)
+		row_horizontal_box.add_child(name_label)
 
 		var pid = pack_info.id
-		row_btn.toggled.connect(func(pressed_state):
+		row_button.toggled.connect(func(pressed_state):
 			mark.visible = pressed_state
 			_on_pack_toggled(pressed_state, pid)
 		)

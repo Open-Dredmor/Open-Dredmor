@@ -44,58 +44,58 @@ func _build_ui():
 	margin.add_theme_constant_override("margin_bottom", 20)
 	container.add_child(margin)
 
-	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 12)
-	margin.add_child(vbox)
+	var vertical_box = VBoxContainer.new()
+	vertical_box.add_theme_constant_override("separation", 12)
+	margin.add_child(vertical_box)
 
 	var title = Label.new()
 	title.text = "Inventory & Equipment Verification"
 	title.add_theme_font_size_override("font_size", 26)
-	vbox.add_child(title)
+	vertical_box.add_child(title)
 
-	var btn_hbox = HBoxContainer.new()
-	btn_hbox.add_theme_constant_override("separation", 10)
-	vbox.add_child(btn_hbox)
+	var button_horizontal_box = HBoxContainer.new()
+	button_horizontal_box.add_theme_constant_override("separation", 10)
+	vertical_box.add_child(button_horizontal_box)
 
-	var open_inv_btn = Button.new()
-	open_inv_btn.text = "Open Inventory (I)"
-	open_inv_btn.pressed.connect(open_inventory)
-	btn_hbox.add_child(open_inv_btn)
+	var open_inventory_button = Button.new()
+	open_inventory_button.text = "Open Inventory (I)"
+	open_inventory_button.pressed.connect(open_inventory)
+	button_horizontal_box.add_child(open_inventory_button)
 
-	var pickup_btn = Button.new()
-	pickup_btn.text = "Pick Up Floor Item"
-	pickup_btn.pressed.connect(_pickup_next_floor_item)
-	btn_hbox.add_child(pickup_btn)
+	var pickup_button = Button.new()
+	pickup_button.text = "Pick Up Floor Item"
+	pickup_button.pressed.connect(_pickup_next_floor_item)
+	button_horizontal_box.add_child(pickup_button)
 
-	var self_check_btn = Button.new()
-	self_check_btn.text = "Run Automated Self-Check"
-	self_check_btn.pressed.connect(_run_self_check)
-	btn_hbox.add_child(self_check_btn)
+	var self_check_button = Button.new()
+	self_check_button.text = "Run Automated Self-Check"
+	self_check_button.pressed.connect(_run_self_check)
+	button_horizontal_box.add_child(self_check_button)
 
-	var game_btn = Button.new()
-	game_btn.text = "Launch Game"
-	game_btn.pressed.connect(func(): OD.Scenes.goto(OD.Scenes.GAME))
-	btn_hbox.add_child(game_btn)
+	var game_button = Button.new()
+	game_button.text = "Launch Game"
+	game_button.pressed.connect(func(): OD.Scenes.goto(OD.Scenes.GAME))
+	button_horizontal_box.add_child(game_button)
 
-	var split_hbox = HBoxContainer.new()
-	split_hbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	split_hbox.add_theme_constant_override("separation", 20)
-	vbox.add_child(split_hbox)
+	var split_horizontal_box = HBoxContainer.new()
+	split_horizontal_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	split_horizontal_box.add_theme_constant_override("separation", 20)
+	vertical_box.add_child(split_horizontal_box)
 
 	_stats_label = Label.new()
 	_stats_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_stats_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	split_hbox.add_child(_stats_label)
+	split_horizontal_box.add_child(_stats_label)
 
 	_floor_label = Label.new()
 	_floor_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_floor_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	split_hbox.add_child(_floor_label)
+	split_horizontal_box.add_child(_floor_label)
 
 	_log_label = Label.new()
 	_log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_log_label.text = "Ready. Press 'Open Inventory (I)' to inspect/equip/drop items."
-	vbox.add_child(_log_label)
+	vertical_box.add_child(_log_label)
 
 	_refresh_summary()
 	open_inventory()
@@ -162,10 +162,10 @@ func _pickup_next_floor_item():
 		_log_label.text = "No floor items remaining."
 		return
 	var next_item = _floor_loot[0]
-	var res = _player.add_item(next_item)
-	if res.added:
-		if res.remaining > 0:
-			next_item["count"] = res.remaining
+	var result = _player.add_item(next_item)
+	if result.added:
+		if result.remaining > 0:
+			next_item["count"] = result.remaining
 		else:
 			_floor_loot.remove_at(0)
 		_log_label.text = "Picked up " + str(next_item.get("name", "Item")) + "!"
@@ -192,8 +192,8 @@ func _refresh_summary():
 		floor_lines.append("- " + str(item.get("name", "Item")) + " x" + str(item.get("count", 1)))
 	_floor_label.text = "\n".join(floor_lines)
 
-func _input(ev):
-	if ev is InputEventKey and ev.is_pressed() and not ev.echo and ev.keycode == KEY_I:
+func _input(event):
+	if event is InputEventKey and event.is_pressed() and not event.echo and event.keycode == KEY_I:
 		if is_instance_valid(_inventory_dialog):
 			_inventory_dialog.dismiss()
 		else:
@@ -224,6 +224,6 @@ func _run_self_check():
 	var rings_ok = test_player.get_equipped_item("ring_left") != null and test_player.get_equipped_item("ring_right") != null
 
 	test_player.free()
-	var msg = "Self-check -> Stack=%s, EquipStats=%s (baseArmour=%d), 2xRings=%s" % [str(stack_ok), str(stats_updated), base_armour, str(rings_ok)]
-	_log_label.text = msg
-	print(msg)
+	var message = "Self-check -> Stack=%s, EquipStats=%s (baseArmour=%d), 2xRings=%s" % [str(stack_ok), str(stats_updated), base_armour, str(rings_ok)]
+	_log_label.text = message
+	print(message)

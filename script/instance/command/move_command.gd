@@ -34,8 +34,8 @@ func can_execute(context):
 	if debug_teleport and destination != null:
 		return true
 	if delta != Vector2i.ZERO:
-		var current_pos = target_actor.get_grid_position()
-		var next_cell = Vector2i(int(current_pos.x) + delta.x, int(current_pos.y) + delta.y)
+		var current_position = target_actor.get_grid_position()
+		var next_cell = Vector2i(int(current_position.x) + delta.x, int(current_position.y) + delta.y)
 		return entity_grid.is_walkable(next_cell.x, next_cell.y)
 	if is_path and destination != null:
 		return entity_grid.is_walkable(destination.x, destination.y)
@@ -49,22 +49,22 @@ func execute(context):
 	if dungeon == null or entity_grid == null or target_actor == null:
 		return { executed = false, consumes_turn = false, message = "" }
 	if debug_teleport and destination != null:
-		var prev_pos = target_actor.get_grid_position()
+		var previous_position = target_actor.get_grid_position()
 		dungeon.clear_pending_interaction()
 		OD.ActionQueue.clear()
 		if target_cursor != null:
 			target_cursor.select(destination.x, destination.y)
 		target_actor.move_to(destination.x, destination.y)
 		target_actor.idle()
-		entity_grid.move_entity(target_actor, prev_pos, target_actor.get_grid_position())
+		entity_grid.move_entity(target_actor, previous_position, target_actor.get_grid_position())
 		entity_grid.on_player_step(target_actor.get_grid_position())
 		var debug_stairs = entity_grid.get_stairs_at(destination.x, destination.y)
 		if debug_stairs != null:
 			dungeon.change_floor_to(debug_stairs.direction)
 		return { executed = true, consumes_turn = false, message = "" }
 	if delta != Vector2i.ZERO:
-		var current_pos = target_actor.get_grid_position()
-		var next_cell = Vector2i(int(current_pos.x) + delta.x, int(current_pos.y) + delta.y)
+		var current_position = target_actor.get_grid_position()
+		var next_cell = Vector2i(int(current_position.x) + delta.x, int(current_position.y) + delta.y)
 		if not entity_grid.is_walkable(next_cell.x, next_cell.y):
 			return { executed = false, consumes_turn = false, message = "" }
 		dungeon.clear_pending_interaction()
@@ -72,7 +72,7 @@ func execute(context):
 		target_actor.move_delta(delta.x, delta.y)
 		if not target_actor.is_moving():
 			target_actor.idle()
-		entity_grid.move_entity(target_actor, current_pos, target_actor.get_grid_position())
+		entity_grid.move_entity(target_actor, current_position, target_actor.get_grid_position())
 		entity_grid.on_player_step(target_actor.get_grid_position())
 		return { executed = true, consumes_turn = true, message = "" }
 	if is_path and destination != null:

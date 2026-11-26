@@ -135,8 +135,8 @@ func insert(source_grid, offset_position):
 		_destructible_cells[destructible_cell + offset_cell] = true
 	for blocker_cell in source_grid._blocker_cells.keys():
 		_blocker_cells[blocker_cell + offset_cell] = true
-	for elem_cell in source_grid._elements_by_cell.keys():
-		_elements_by_cell[elem_cell + offset_cell] = source_grid._elements_by_cell[elem_cell]
+	for element_cell in source_grid._elements_by_cell.keys():
+		_elements_by_cell[element_cell + offset_cell] = source_grid._elements_by_cell[element_cell]
 	for trap_cell in source_grid._traps_by_cell.keys():
 		_traps_by_cell[trap_cell + offset_cell] = source_grid._traps_by_cell[trap_cell]
 	for loot_cell in source_grid._loot_by_cell.keys():
@@ -154,21 +154,21 @@ func insert(source_grid, offset_position):
 			cell = info.cell + offset_cell,
 			is_blocker = info.is_blocker
 		}
-	for script_def in source_grid._room_scripts:
+	for script_definition in source_grid._room_scripts:
 		var shifted_conditions = []
-		for cond in script_def.conditions:
+		for cond in script_definition.conditions:
 			var shifted_cond = cond.duplicate()
 			if shifted_cond.has("grid_pos"):
 				shifted_cond.grid_pos = shifted_cond.grid_pos + offset_cell
 			shifted_conditions.append(shifted_cond)
 		var shifted_actions = []
-		for act in script_def.actions:
+		for act in script_definition.actions:
 			var shifted_act = act.duplicate()
 			if shifted_act.has("grid_pos"):
 				shifted_act.grid_pos = shifted_act.grid_pos + offset_cell
 			shifted_actions.append(shifted_act)
 		_room_scripts.append({
-			repeat = script_def.repeat,
+			repeat = script_definition.repeat,
 			conditions = shifted_conditions,
 			actions = shifted_actions
 		})
@@ -189,8 +189,8 @@ func insert(source_grid, offset_position):
 		for child in source_layer.get_children():
 			child.get_parent().remove_child(child)
 			if child.has_method("get_grid_position") and child.get_grid_position() != null:
-				var new_grid_pos = child.get_grid_position() + offset_position
-				child.move_to(new_grid_pos.x, new_grid_pos.y)
+				var new_grid_position = child.get_grid_position() + offset_position
+				child.move_to(new_grid_position.x, new_grid_position.y)
 				if child.has_meta("door_cells"):
 					var shifted_door_cells = []
 					for door_cell in child.get_meta("door_cells"):
@@ -394,18 +394,18 @@ func _has_clear_los(from_cell, to_cell):
 	var dy = abs(y1 - y0)
 	var sx = 1 if x0 < x1 else -1
 	var sy = 1 if y0 < y1 else -1
-	var err = dx - dy
+	var error = dx - dy
 	while true:
 		if x0 == x1 and y0 == y1:
 			return true
 		if (x0 != int(from_cell.x) or y0 != int(from_cell.y)) and is_opaque(x0, y0):
 			return false
-		var e2 = 2 * err
+		var e2 = 2 * error
 		if e2 > -dy:
-			err -= dy
+			error -= dy
 			x0 += sx
 		if e2 < dx:
-			err += dx
+			error += dx
 			y0 += sy
 	return true
 
@@ -440,24 +440,24 @@ func has_visible_enemy(origin_cell, sight_radius = 8):
 				if is_instance_valid(guard):
 					candidates.append(guard)
 			for actor in candidates:
-				var pos = actor.get_grid_position()
-				if pos == null:
+				var position = actor.get_grid_position()
+				if position == null:
 					continue
-				var enemy_cell = Vector2i(int(pos.x), int(pos.y))
+				var enemy_cell = Vector2i(int(position.x), int(position.y))
 				if fov.has_computed():
 					if fov.is_visible(enemy_cell.x, enemy_cell.y):
 						return true
 				else:
-					var dist = max(abs(enemy_cell.x - origin.x), abs(enemy_cell.y - origin.y))
-					if dist <= sight_radius and _has_clear_los(origin, enemy_cell):
+					var distance = max(abs(enemy_cell.x - origin.x), abs(enemy_cell.y - origin.y))
+					if distance <= sight_radius and _has_clear_los(origin, enemy_cell):
 						return true
 	for cell_key in _entities_by_cell.keys():
 		if fov.has_computed():
 			if fov.is_visible(cell_key.x, cell_key.y) and has_enemy_at(cell_key.x, cell_key.y):
 				return true
 		else:
-			var dist = max(abs(cell_key.x - origin.x), abs(cell_key.y - origin.y))
-			if dist > sight_radius:
+			var distance = max(abs(cell_key.x - origin.x), abs(cell_key.y - origin.y))
+			if distance > sight_radius:
 				continue
 			if has_enemy_at(cell_key.x, cell_key.y) and _has_clear_los(origin, cell_key):
 				return true
@@ -507,15 +507,15 @@ func find_path(start_cell, goal_cell, options = {}):
 	var directions = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
 	var found = false
 	while not open_list.is_empty() and visited_count < max_visited:
-		var best_idx = 0
+		var best_index = 0
 		var best_f = f_score.get(open_list[0], 9999999)
 		for ii in range(1, open_list.size()):
 			var candidate_f = f_score.get(open_list[ii], 9999999)
 			if candidate_f < best_f:
 				best_f = candidate_f
-				best_idx = ii
-		var current = open_list[best_idx]
-		open_list.remove_at(best_idx)
+				best_index = ii
+		var current = open_list[best_index]
+		open_list.remove_at(best_index)
 		open_set.erase(current)
 		if current == goal:
 			found = true
@@ -523,8 +523,8 @@ func find_path(start_cell, goal_cell, options = {}):
 		closed_set[current] = true
 		visited_count += 1
 		var current_g = g_score.get(current, 0)
-		for dir in directions:
-			var next_cell = current + dir
+		for direction in directions:
+			var next_cell = current + direction
 			if closed_set.has(next_cell):
 				continue
 			if not is_walkable(next_cell.x, next_cell.y):
@@ -561,18 +561,18 @@ func register_named_entity(entity_id, node, layer_name, grid_x, grid_y, is_block
 		is_blocker = is_blocker
 	}
 
-func add_room_script(script_def):
-	_room_scripts.append(script_def)
+func add_room_script(script_definition):
+	_room_scripts.append(script_definition)
 
-func evaluate_scripts(player_grid_pos):
-	var player_cell = Vector2i(int(player_grid_pos.x), int(player_grid_pos.y))
-	for script_def in _room_scripts:
-		if script_def.repeat == 0:
+func evaluate_scripts(player_grid_position):
+	var player_cell = Vector2i(int(player_grid_position.x), int(player_grid_position.y))
+	for script_definition in _room_scripts:
+		if script_definition.repeat == 0:
 			continue
-		if _conditions_met(script_def.conditions, player_cell):
-			if script_def.repeat > 0:
-				script_def.repeat -= 1
-			for action in script_def.actions:
+		if _conditions_met(script_definition.conditions, player_cell):
+			if script_definition.repeat > 0:
+				script_definition.repeat -= 1
+			for action in script_definition.actions:
 				_execute_script_action(action, player_cell)
 
 func _conditions_met(conditions, player_cell):
@@ -612,14 +612,14 @@ func _execute_script_action(action, player_cell):
 			var target_id = action.get("id", "")
 			if _named_entities.has(target_id) and action.has("grid_pos"):
 				var info = _named_entities[target_id]
-				var dest = action.grid_pos
+				var destination = action.grid_pos
 				if info.is_blocker:
 					_blocker_cells.erase(info.cell)
-					_blocker_cells[dest] = true
-				info.cell = dest
+					_blocker_cells[destination] = true
+				info.cell = destination
 				if is_instance_valid(info.node):
-					info.node.position = OD.Math.grid_to_pixel(dest.x, dest.y)
-					info.node.set_meta("grid_cell", dest)
+					info.node.position = OD.Math.grid_to_pixel(destination.x, destination.y)
+					info.node.set_meta("grid_cell", destination)
 		"create":
 			if action.has("grid_pos"):
 				var pos = action.grid_pos
@@ -637,18 +637,18 @@ func _execute_script_action(action, player_cell):
 						created_node = OD.Load.animation(monster.idleSprite.down, palette_path)
 				if created_node != null:
 					var layer_name = create_type if layers.lookup.has(create_type) else "custom_blocker"
-					var pixel_pos = OD.Math.grid_to_pixel(pos.x, pos.y)
+					var pixel_position = OD.Math.grid_to_pixel(pos.x, pos.y)
 					created_node.set_meta("grid_cell", pos)
-					add_animation(pixel_pos.x, pixel_pos.y, layer_name, created_node)
+					add_animation(pixel_position.x, pixel_position.y, layer_name, created_node)
 					if create_type == "customblocker" and (not action.has("passable") or int(action.passable) == 0):
 						mark_blocker(pos.x, pos.y)
 						is_blocker = true
 					if action.has("id"):
 						register_named_entity(action.id, created_node, layer_name, pos.x, pos.y, is_blocker)
 		"ticker":
-			var msg = action.get("text", "")
-			if msg != "":
-				script_ticker.emit(msg)
+			var message = action.get("text", "")
+			if message != "":
+				script_ticker.emit(message)
 		"spell":
 			var spell_name = action.get("casts", "")
 			if spell_name != "":
@@ -723,10 +723,10 @@ func carve_liquid_cell(grid_x, grid_y, liquid_type):
 		_floor_cells.erase(cell_key)
 		mark_blocker(cell_key.x, cell_key.y)
 	_liquid_cells[cell_key] = liquid_type
-	var anim = _tilesets.liquids.get_animation(liquid_type)
-	var pixel_pos = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
-	anim.set_meta("grid_cell", cell_key)
-	add_animation(pixel_pos.x, pixel_pos.y, "liquid", anim)
+	var animation = _tilesets.liquids.get_animation(liquid_type)
+	var pixel_position = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
+	animation.set_meta("grid_cell", cell_key)
+	add_animation(pixel_position.x, pixel_position.y, "liquid", animation)
 
 func add_floor_decal(grid_x, grid_y, decal_path):
 	var cell_key = Vector2i(int(grid_x), int(grid_y))
@@ -741,8 +741,8 @@ func add_floor_decal(grid_x, grid_y, decal_path):
 			sprite.texture = tex
 			decal_node = sprite
 	if decal_node != null:
-		var pixel_pos = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
-		decal_node.position = pixel_pos
+		var pixel_position = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
+		decal_node.position = pixel_position
 		decal_node.set_meta("grid_cell", cell_key)
 		get_layer("floor_decoration").add_child(decal_node)
 		_floor_decals.append({
@@ -782,15 +782,15 @@ func unblock_cell(grid_x, grid_y):
 func add_stairs(grid_x, grid_y, direction):
 	var cell_key = Vector2i(int(grid_x), int(grid_y))
 	var sprite_path = "dungeon/stairs_up.spr" if direction == "up" else "dungeon/stairs_down.spr"
-	var stairs_anim = OD.Load.animation(sprite_path)
-	var pixel_pos = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
-	if stairs_anim.is_tall():
-		pixel_pos.y -= OD.Assets.CELL_PIXEL_HEIGHT / 2.0
-	stairs_anim.set_meta("grid_cell", cell_key)
-	add_animation(pixel_pos.x, pixel_pos.y, "floor_decoration", stairs_anim)
+	var stairs_animation = OD.Load.animation(sprite_path)
+	var pixel_position = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
+	if stairs_animation.is_tall():
+		pixel_position.y -= OD.Assets.CELL_PIXEL_HEIGHT / 2.0
+	stairs_animation.set_meta("grid_cell", cell_key)
+	add_animation(pixel_position.x, pixel_position.y, "floor_decoration", stairs_animation)
 	_stairs_by_cell[cell_key] = {
 		direction = direction,
-		node = stairs_anim
+		node = stairs_animation
 	}
 	if direction == "up":
 		stairs_up_cell = cell_key
@@ -806,9 +806,9 @@ func get_stairs_at(grid_x, grid_y):
 
 func add_teleporter(grid_x, grid_y, channel, target_cell, animation):
 	var cell_key = Vector2i(int(grid_x), int(grid_y))
-	var pixel_pos = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
+	var pixel_position = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
 	animation.set_meta("grid_cell", cell_key)
-	add_animation(pixel_pos.x, pixel_pos.y, "floor_decoration", animation)
+	add_animation(pixel_position.x, pixel_position.y, "floor_decoration", animation)
 	_teleporters_by_cell[cell_key] = {
 		channel = channel,
 		target_cell = Vector2i(int(target_cell.x), int(target_cell.y)),
@@ -822,10 +822,10 @@ func get_teleporter_at(grid_x, grid_y):
 		return _teleporters_by_cell[cell_key]
 	return null
 
-func add_trap(grid_x, grid_y, trap_def):
+func add_trap(grid_x, grid_y, trap_definition):
 	var cell_key = Vector2i(int(grid_x), int(grid_y))
 	var trap = TrapScript.new()
-	trap.init(trap_def)
+	trap.init(trap_definition)
 	add_entity(grid_x, grid_y, trap)
 	_traps_by_cell[cell_key] = trap
 	return trap
@@ -835,8 +835,8 @@ func add_loot_item(grid_x, grid_y, loot_data):
 	var icon_path = ""
 	if loot_data.get("kind", "") == "zorkmids":
 		var cash_paths = OD.Resources.paths.loot.zorkmids
-		var cash_idx = clamp(int(loot_data.get("amount", 10)) / 8, 0, cash_paths.size() - 1)
-		icon_path = cash_paths[cash_idx]
+		var cash_index = clamp(int(loot_data.get("amount", 10)) / 8, 0, cash_paths.size() - 1)
+		icon_path = cash_paths[cash_index]
 	elif loot_data.get("kind", "") == "lockpick":
 		icon_path = OD.Resources.paths.loot.lockpick
 	elif loot_data.has("item") and loot_data.item != null:
@@ -855,9 +855,9 @@ func add_loot_item(grid_x, grid_y, loot_data):
 			loot_node = sprite
 	if loot_node == null:
 		return null
-	var pixel_pos = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
+	var pixel_position = OD.Math.grid_to_pixel(cell_key.x, cell_key.y)
 	loot_node.set_meta("grid_cell", cell_key)
-	add_animation(pixel_pos.x, pixel_pos.y, "loot", loot_node)
+	add_animation(pixel_position.x, pixel_position.y, "loot", loot_node)
 	var entry = {
 		node = loot_node,
 		data = loot_data
@@ -891,9 +891,9 @@ func remove_loot_at(grid_x, grid_y, index = -1):
 	if typeof(entries) != TYPE_ARRAY or entries.is_empty():
 		_loot_by_cell.erase(cell_key)
 		return null
-	var target_idx = entries.size() - 1 if index < 0 else clamp(int(index), 0, entries.size() - 1)
-	var removed = entries[target_idx]
-	entries.remove_at(target_idx)
+	var target_index = entries.size() - 1 if index < 0 else clamp(int(index), 0, entries.size() - 1)
+	var removed = entries[target_index]
+	entries.remove_at(target_index)
 	if removed.has("node") and is_instance_valid(removed.node):
 		removed.node.queue_free()
 	if entries.is_empty():
@@ -916,22 +916,22 @@ func _get_player_sight_radius():
 				return actor.get_sight_radius()
 	return 8
 
-func on_player_step(player_pos):
+func on_player_step(player_position):
 	if layers.lookup.has("actors"):
 		for actor in layers.lookup["actors"].get_children():
 			if actor.get("entity_kind") == "player" and actor.has_method("on_moved"):
 				actor.on_moved()
-	evaluate_scripts(player_pos)
-	update_trap_visibility(player_pos)
-	update_fov(player_pos, _get_player_sight_radius())
-	trigger_trap_at(player_pos)
-	trigger_spell_mines_at(player_pos)
+	evaluate_scripts(player_position)
+	update_trap_visibility(player_position)
+	update_fov(player_position, _get_player_sight_radius())
+	trigger_trap_at(player_position)
+	trigger_spell_mines_at(player_position)
 	if shop_manager != null:
-		shop_manager.on_player_moved(player_pos, self)
-	var teleporter = get_teleporter_at(player_pos.x, player_pos.y)
+		shop_manager.on_player_moved(player_position, self)
+	var teleporter = get_teleporter_at(player_position.x, player_position.y)
 	if teleporter != null:
-		teleporter_stepped.emit(teleporter, Vector2i(int(player_pos.x), int(player_pos.y)))
-	var cell_key = Vector2i(int(player_pos.x), int(player_pos.y))
+		teleporter_stepped.emit(teleporter, Vector2i(int(player_position.x), int(player_position.y)))
+	var cell_key = Vector2i(int(player_position.x), int(player_position.y))
 	if _loot_by_cell.has(cell_key):
 		loot_stepped.emit(cell_key)
 
@@ -947,19 +947,19 @@ func get_monsters():
 					result.append(entity)
 	return result
 
-func step_monsters(player_pos, player = null, dungeon = null):
+func step_monsters(player_position, player = null, dungeon = null):
 	var acted = 0
 	for monster in get_monsters():
 		if monster.has_method("step_ai"):
-			var action = monster.step_ai(self, player_pos, player, dungeon)
+			var action = monster.step_ai(self, player_position, player, dungeon)
 			if action != "none":
 				acted += 1
 	if shop_manager != null:
-		shop_manager.step_hostile_actors(self, player_pos)
+		shop_manager.step_hostile_actors(self, player_position)
 		acted += 1
 	return acted
 
-func maybe_spawn_periodic_monster(player_pos, target_floor_level = -1, turn_number = 0, force_spawn = false):
+func maybe_spawn_periodic_monster(player_position, target_floor_level = -1, turn_number = 0, force_spawn = false):
 	if not force_spawn:
 		if OD.DungeonSettings != null and OD.DungeonSettings.get_settings() != null:
 			if bool(OD.DungeonSettings.get_settings().get("no_time_to_grind", false)):
@@ -969,32 +969,32 @@ func maybe_spawn_periodic_monster(player_pos, target_floor_level = -1, turn_numb
 	if get_monsters().size() >= 40:
 		return null
 	var lvl = floor_level if target_floor_level < 0 else int(target_floor_level)
-	var p_cell = Vector2i(int(player_pos.x), int(player_pos.y)) if player_pos != null else Vector2i.ZERO
+	var p_cell = Vector2i(int(player_position.x), int(player_position.y)) if player_position != null else Vector2i.ZERO
 	var far_cells = []
 	var any_cells = []
 	for cell_key in _floor_cells.keys():
 		if is_walkable(cell_key.x, cell_key.y):
 			any_cells.append(cell_key)
-			var dist = max(abs(cell_key.x - p_cell.x), abs(cell_key.y - p_cell.y))
-			if dist >= 6:
+			var distance = max(abs(cell_key.x - p_cell.x), abs(cell_key.y - p_cell.y))
+			if distance >= 6:
 				far_cells.append(cell_key)
 	var pool = far_cells if not far_cells.is_empty() else any_cells
 	if pool.is_empty() or OD.Database == null:
 		return null
 	var chosen_cell = pool[randi() % pool.size()]
-	var mon_def = null
+	var mon_definition = null
 	for _try in range(12):
-		var cand = OD.Database.get_random_monster()
-		if typeof(cand) == TYPE_DICTIONARY and cand.has("name") and OD.Database.get_monster(str(cand.name)) != null:
-			var cand_lvl = str(cand.get("level", "0")).to_int()
-			if cand_lvl <= max(1, lvl + 1):
-				mon_def = cand
+		var candidate = OD.Database.get_random_monster()
+		if typeof(candidate) == TYPE_DICTIONARY and candidate.has("name") and OD.Database.get_monster(str(candidate.name)) != null:
+			var candidate_level = str(candidate.get("level", "0")).to_int()
+			if candidate_level <= max(1, lvl + 1):
+				mon_definition = candidate
 				break
-	if mon_def == null:
-		mon_def = OD.Database.get_monster("Diggle")
-	if mon_def == null or not mon_def.has("name"):
+	if mon_definition == null:
+		mon_definition = OD.Database.get_monster("Diggle")
+	if mon_definition == null or not mon_definition.has("name"):
 		return null
-	return spawn_monster_at(str(mon_def.name), chosen_cell.x, chosen_cell.y, lvl, true)
+	return spawn_monster_at(str(mon_definition.name), chosen_cell.x, chosen_cell.y, lvl, true)
 
 func tick_traps():
 	var ticked = 0
@@ -1011,13 +1011,13 @@ func get_trap_at(grid_x, grid_y):
 			return trap
 	return null
 
-func update_trap_visibility(player_pos, trap_sight_radius = 2, trap_sense_level = 1):
+func update_trap_visibility(player_position, trap_sight_radius = 2, trap_sense_level = 1):
 	for trap in _traps_by_cell.values():
 		if is_instance_valid(trap):
-			trap.update_visibility(player_pos, trap_sight_radius, trap_sense_level)
+			trap.update_visibility(player_position, trap_sight_radius, trap_sense_level)
 
-func trigger_trap_at(grid_pos):
-	var cell_key = Vector2i(int(grid_pos.x), int(grid_pos.y))
+func trigger_trap_at(grid_position):
+	var cell_key = Vector2i(int(grid_position.x), int(grid_position.y))
 	var trap = get_trap_at(cell_key.x, cell_key.y)
 	if trap == null:
 		return null
@@ -1131,17 +1131,17 @@ func dig_wall(grid_x, grid_y):
 func move_actor_to(actor, target_x, target_y):
 	if actor == null or not is_instance_valid(actor):
 		return false
-	var dest = Vector2i(int(target_x), int(target_y))
-	var old_pos = actor.get_grid_position() if actor.has_method("get_grid_position") else null
-	if old_pos != null:
-		unregister_entity(actor, Vector2i(int(old_pos.x), int(old_pos.y)))
+	var destination = Vector2i(int(target_x), int(target_y))
+	var old_position = actor.get_grid_position() if actor.has_method("get_grid_position") else null
+	if old_position != null:
+		unregister_entity(actor, Vector2i(int(old_position.x), int(old_position.y)))
 	else:
 		unregister_entity(actor)
 	if actor.has_method("move_to"):
-		actor.move_to(dest.x, dest.y)
+		actor.move_to(destination.x, destination.y)
 	else:
-		actor.position = OD.Math.grid_to_pixel(dest.x, dest.y)
-	register_entity(dest.x, dest.y, actor)
+		actor.position = OD.Math.grid_to_pixel(destination.x, destination.y)
+	register_entity(destination.x, destination.y, actor)
 	return true
 
 func get_random_walkable_cell():
@@ -1156,23 +1156,23 @@ func get_random_walkable_cell():
 func spawn_monster_at(monster_name, grid_x, grid_y, target_floor_level = -1, hostile = true, ignore_walkable = false):
 	if OD.Database == null:
 		return null
-	var monster_def = OD.Database.get_monster(str(monster_name))
-	if monster_def == null:
+	var monster_definition = OD.Database.get_monster(str(monster_name))
+	if monster_definition == null:
 		return null
 	var spawn_cell = Vector2i(int(grid_x), int(grid_y))
 	if not ignore_walkable and not is_walkable(spawn_cell.x, spawn_cell.y):
 		var found = null
 		for offset in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1), Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1)]:
-			var cand = spawn_cell + offset
-			if is_walkable(cand.x, cand.y):
-				found = cand
+			var candidate = spawn_cell + offset
+			if is_walkable(candidate.x, candidate.y):
+				found = candidate
 				break
 		if found == null:
 			return null
 		spawn_cell = found
-	var level_val = floor_level if target_floor_level < 0 else int(target_floor_level)
+	var level_value = floor_level if target_floor_level < 0 else int(target_floor_level)
 	var monster = MonsterEntityScript.new()
-	monster.init(monster_def, level_val)
+	monster.init(monster_definition, level_value)
 	monster.is_hostile = hostile
 	add_entity(spawn_cell.x, spawn_cell.y, monster)
 	return monster
@@ -1180,8 +1180,8 @@ func spawn_monster_at(monster_name, grid_x, grid_y, target_floor_level = -1, hos
 func replace_monster_at(old_monster, new_monster_name, target_floor_level = -1):
 	if old_monster == null or not is_instance_valid(old_monster):
 		return null
-	var pos = old_monster.get_grid_position()
-	var cell = Vector2i(int(pos.x), int(pos.y)) if pos != null else Vector2i.ZERO
+	var position = old_monster.get_grid_position()
+	var cell = Vector2i(int(position.x), int(position.y)) if position != null else Vector2i.ZERO
 	var was_hostile = bool(old_monster.get("is_hostile"))
 	unregister_entity(old_monster, cell)
 	if old_monster.get_parent() != null:
@@ -1189,17 +1189,17 @@ func replace_monster_at(old_monster, new_monster_name, target_floor_level = -1):
 	old_monster.queue_free()
 	return spawn_monster_at(new_monster_name, cell.x, cell.y, target_floor_level, was_hostile)
 
-func place_spell_mine(mine_def):
-	if mine_def == null or typeof(mine_def) != TYPE_DICTIONARY:
+func place_spell_mine(mine_definition):
+	if mine_definition == null or typeof(mine_definition) != TYPE_DICTIONARY:
 		return null
-	var cell = Vector2i(int(mine_def.get("cell", Vector2i.ZERO).x), int(mine_def.get("cell", Vector2i.ZERO).y))
+	var cell = Vector2i(int(mine_definition.get("cell", Vector2i.ZERO).x), int(mine_definition.get("cell", Vector2i.ZERO).y))
 	var mine_node = null
-	var series = str(mine_def.get("sprite_series", ""))
-	var first_idx = int(mine_def.get("sprite_first", 0))
-	var frame_count = int(mine_def.get("sprite_num", 0))
-	var frame_rate = int(mine_def.get("sprite_rate", 100))
+	var series = str(mine_definition.get("sprite_series", ""))
+	var first_index = int(mine_definition.get("sprite_first", 0))
+	var frame_count = int(mine_definition.get("sprite_num", 0))
+	var frame_rate = int(mine_definition.get("sprite_rate", 100))
 	if series != "" and frame_count > 0 and OD.Load != null:
-		mine_node = OD.Load.png_sprite(series, first_idx, first_idx + frame_count, frame_rate)
+		mine_node = OD.Load.png_sprite(series, first_index, first_index + frame_count, frame_rate)
 	if mine_node == null:
 		var marker = ColorRect.new()
 		marker.size = Vector2(18, 18)
@@ -1210,11 +1210,11 @@ func place_spell_mine(mine_def):
 	add_animation(px.x, px.y, "trap", mine_node)
 	var entry = {
 		cell = cell,
-		spell_name = str(mine_def.get("spell_name", "")),
-		caster = mine_def.get("caster", null),
-		radius = int(mine_def.get("radius", 1)),
-		remaining_turns = int(mine_def.get("timer", 5)),
-		permanent = bool(mine_def.get("permanent", false)),
+		spell_name = str(mine_definition.get("spell_name", "")),
+		caster = mine_definition.get("caster", null),
+		radius = int(mine_definition.get("radius", 1)),
+		remaining_turns = int(mine_definition.get("timer", 5)),
+		permanent = bool(mine_definition.get("permanent", false)),
 		node = mine_node
 	}
 	_spell_mines.append(entry)
@@ -1223,23 +1223,23 @@ func place_spell_mine(mine_def):
 func get_spell_mines():
 	return _spell_mines.duplicate()
 
-func _remove_spell_mine_at_index(idx):
-	var mine = _spell_mines[idx]
+func _remove_spell_mine_at_index(index):
+	var mine = _spell_mines[index]
 	if mine.node != null and is_instance_valid(mine.node):
 		if mine.node.get_parent() != null:
 			mine.node.get_parent().remove_child(mine.node)
 		mine.node.queue_free()
-	_spell_mines.remove_at(idx)
+	_spell_mines.remove_at(index)
 	return mine
 
-func trigger_spell_mines_at(grid_pos):
-	var target = Vector2i(int(grid_pos.x), int(grid_pos.y))
+func trigger_spell_mines_at(grid_position):
+	var target = Vector2i(int(grid_position.x), int(grid_position.y))
 	var triggered = []
 	var ii = 0
 	while ii < _spell_mines.size():
 		var mine = _spell_mines[ii]
-		var dist = max(abs(mine.cell.x - target.x), abs(mine.cell.y - target.y))
-		if dist <= max(0, int(mine.radius) - 1):
+		var distance = max(abs(mine.cell.x - target.x), abs(mine.cell.y - target.y))
+		if distance <= max(0, int(mine.radius) - 1):
 			var popped = _remove_spell_mine_at_index(ii)
 			triggered.append(popped)
 			spell_mine_detonated.emit(popped, target)

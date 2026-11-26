@@ -4,8 +4,8 @@ class_name RetailSaveImporter
 
 const SaveManagerScript = preload("res://script/instance/save_manager.gd")
 
-static func _normalize_dir(dir_path):
-	var cleaned = str(dir_path).strip_edges()
+static func _normalize_dir(directory_path):
+	var cleaned = str(directory_path).strip_edges()
 	if cleaned == "":
 		return ""
 	if not cleaned.ends_with("/"):
@@ -14,17 +14,17 @@ static func _normalize_dir(dir_path):
 
 static func get_common_save_dirs():
 	var candidates = []
-	var docs_dir = OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS)
-	if docs_dir != "":
-		candidates.append(docs_dir + "/Gaslamp Games/Dungeons of Dredmor")
-	var home_dir = OS.get_environment("HOME")
-	if home_dir != "":
-		candidates.append(home_dir + "/Documents/Gaslamp Games/Dungeons of Dredmor")
-		candidates.append(home_dir + "/.local/share/Gaslamp Games/Dungeons of Dredmor")
-		candidates.append(home_dir + "/Library/Application Support/Dungeons of Dredmor")
-	var dev_dir = ProjectSettings.globalize_path("res://airef/retail-save-dir/Dungeons of Dredmor")
-	if dev_dir != "":
-		candidates.append(dev_dir)
+	var docs_directory = OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS)
+	if docs_directory != "":
+		candidates.append(docs_directory + "/Gaslamp Games/Dungeons of Dredmor")
+	var home_directory = OS.get_environment("HOME")
+	if home_directory != "":
+		candidates.append(home_directory + "/Documents/Gaslamp Games/Dungeons of Dredmor")
+		candidates.append(home_directory + "/.local/share/Gaslamp Games/Dungeons of Dredmor")
+		candidates.append(home_directory + "/Library/Application Support/Dungeons of Dredmor")
+	var dev_directory = ProjectSettings.globalize_path("res://airef/retail-save-dir/Dungeons of Dredmor")
+	if dev_directory != "":
+		candidates.append(dev_directory)
 	var unique = []
 	var seen = {}
 	for raw_path in candidates:
@@ -41,18 +41,18 @@ static func _read_u32(bytes, offset):
 	return { ok = true, value = val, next = offset + 4 }
 
 static func _read_ascii_str(bytes, offset, min_len = 3, max_len = 64):
-	var len_res = _read_u32(bytes, offset)
-	if not len_res.ok:
+	var len_result = _read_u32(bytes, offset)
+	if not len_result.ok:
 		return { ok = false, value = "", next = offset }
-	var str_len = len_res.value
-	var start = len_res.next
-	if str_len < min_len or str_len > max_len or start + str_len > bytes.size():
+	var text_len = len_result.value
+	var start = len_result.next
+	if text_len < min_len or text_len > max_len or start + text_len > bytes.size():
 		return { ok = false, value = "", next = offset }
-	for ii in range(start, start + str_len):
-		var byte_val = bytes[ii]
-		if byte_val < 32 or byte_val > 126:
+	for ii in range(start, start + text_len):
+		var byte_value = bytes[ii]
+		if byte_value < 32 or byte_value > 126:
 			return { ok = false, value = "", next = offset }
-	return { ok = true, value = bytes.slice(start, start + str_len).get_string_from_ascii(), next = start + str_len }
+	return { ok = true, value = bytes.slice(start, start + text_len).get_string_from_ascii(), next = start + text_len }
 
 static func parse_metadata(meta_path, fallback_name = "Hero"):
 	var result = {
@@ -73,51 +73,51 @@ static func parse_metadata(meta_path, fallback_name = "Hero"):
 		result.warnings.append("Corrupted metadata.dat header; using fallback metadata.")
 		return result
 	var off = 8
-	var name_res = _read_ascii_str(bytes, off, 1, 256)
-	if name_res.ok and name_res.value != "":
-		result.name = name_res.value
-		off = name_res.next
+	var name_result = _read_ascii_str(bytes, off, 1, 256)
+	if name_result.ok and name_result.value != "":
+		result.name = name_result.value
+		off = name_result.next
 	else:
 		result.warnings.append("Truncated character name in metadata.dat.")
 		return result
-	var rank_res = _read_ascii_str(bytes, off, 0, 256)
-	if rank_res.ok:
-		result.rank = rank_res.value
-		off = rank_res.next
-	var branch_res = _read_ascii_str(bytes, off, 0, 256)
-	if branch_res.ok:
-		result.branch = branch_res.value
-		off = branch_res.next
-	var floor_res = _read_u32(bytes, off)
-	if floor_res.ok:
-		result.floor_idx = clamp(floor_res.value, 0, 99)
+	var rank_result = _read_ascii_str(bytes, off, 0, 256)
+	if rank_result.ok:
+		result.rank = rank_result.value
+		off = rank_result.next
+	var branch_result = _read_ascii_str(bytes, off, 0, 256)
+	if branch_result.ok:
+		result.branch = branch_result.value
+		off = branch_result.next
+	var floor_result = _read_u32(bytes, off)
+	if floor_result.ok:
+		result.floor_idx = clamp(floor_result.value, 0, 99)
 		result.floor = result.floor_idx + 1
-		off = floor_res.next
-	for _idx in range(7):
-		var skill_res = _read_u32(bytes, off)
-		if not skill_res.ok:
+		off = floor_result.next
+	for _index in range(7):
+		var skill_result = _read_u32(bytes, off)
+		if not skill_result.ok:
 			break
-		result.skill_ids.append(skill_res.value)
-		off = skill_res.next
+		result.skill_ids.append(skill_result.value)
+		off = skill_result.next
 	result.ok = true
 	return result
 
-static func inspect_retail_save(save_dir_path):
-	var norm_dir = _normalize_dir(save_dir_path)
-	var dir_name = norm_dir.trim_suffix("/").get_file()
-	var fallback_name = dir_name.get_basename()
-	var meta = parse_metadata(norm_dir + "metadata.dat", fallback_name)
-	var has_savegame = FileAccess.file_exists(norm_dir + "savegame.dat")
+static func inspect_retail_save(save_directory_path):
+	var norm_directory = _normalize_dir(save_directory_path)
+	var directory_name = norm_directory.trim_suffix("/").get_file()
+	var fallback_name = directory_name.get_basename()
+	var meta = parse_metadata(norm_directory + "metadata.dat", fallback_name)
+	var has_savegame = FileAccess.file_exists(norm_directory + "savegame.dat")
 	var level_files = []
-	var dir = DirAccess.open(norm_dir)
-	if dir != null:
-		dir.list_dir_begin()
-		var fn = dir.get_next()
-		while fn != "":
-			if not dir.current_is_dir() and fn.begins_with("level") and fn.ends_with(".dat"):
-				level_files.append(fn)
-			fn = dir.get_next()
-		dir.list_dir_end()
+	var directory = DirAccess.open(norm_directory)
+	if directory != null:
+		directory.list_dir_begin()
+		var function = directory.get_next()
+		while function != "":
+			if not directory.current_is_dir() and function.begins_with("level") and function.ends_with(".dat"):
+				level_files.append(function)
+			function = directory.get_next()
+		directory.list_dir_end()
 	level_files.sort()
 	var warnings = meta.warnings.duplicate()
 	if not has_savegame:
@@ -125,10 +125,10 @@ static func inspect_retail_save(save_dir_path):
 	if level_files.is_empty():
 		warnings.append("No level*.dat files found")
 	var health_text = "Healthy" if warnings.is_empty() else "Recoverable (" + str(warnings.size()) + " warning(s))"
-	var thumb_path = norm_dir + "thumbnail.bmp"
+	var thumb_path = norm_directory + "thumbnail.bmp"
 	return {
-		path = norm_dir,
-		dir_name = dir_name,
+		path = norm_directory,
+		directory_name = directory_name,
 		name = meta.name,
 		rank = meta.rank,
 		branch = meta.branch,
@@ -147,28 +147,28 @@ static func inspect_retail_save(save_dir_path):
 			meta.branch,
 			level_files.size(),
 			health_text,
-			norm_dir
+			norm_directory
 		]
 	}
 
-static func scan_directory(dir_path):
-	var norm_dir = _normalize_dir(dir_path)
+static func scan_directory(directory_path):
+	var norm_directory = _normalize_dir(directory_path)
 	var found = []
-	if norm_dir == "" or not DirAccess.dir_exists_absolute(norm_dir):
+	if norm_directory == "" or not DirAccess.dir_exists_absolute(norm_directory):
 		return found
-	if norm_dir.trim_suffix("/").ends_with(".dredmorsave"):
-		found.append(inspect_retail_save(norm_dir))
+	if norm_directory.trim_suffix("/").ends_with(".dredmorsave"):
+		found.append(inspect_retail_save(norm_directory))
 		return found
-	var dir = DirAccess.open(norm_dir)
-	if dir == null:
+	var directory = DirAccess.open(norm_directory)
+	if directory == null:
 		return found
-	dir.list_dir_begin()
-	var entry = dir.get_next()
+	directory.list_dir_begin()
+	var entry = directory.get_next()
 	while entry != "":
-		if dir.current_is_dir() and entry.ends_with(".dredmorsave"):
-			found.append(inspect_retail_save(norm_dir + entry))
-		entry = dir.get_next()
-	dir.list_dir_end()
+		if directory.current_is_dir() and entry.ends_with(".dredmorsave"):
+			found.append(inspect_retail_save(norm_directory + entry))
+		entry = directory.get_next()
+	directory.list_dir_end()
 	found.sort_custom(func(item_a, item_b): return str(item_a.name).naturalnocasecmp_to(str(item_b.name)) < 0)
 	return found
 
@@ -176,12 +176,12 @@ static func scan_common_directories():
 	var all_saves = []
 	var seen_paths = {}
 	var matched_dirs = []
-	for dir_path in get_common_save_dirs():
-		if not DirAccess.dir_exists_absolute(dir_path):
+	for directory_path in get_common_save_dirs():
+		if not DirAccess.dir_exists_absolute(directory_path):
 			continue
-		var entries = scan_directory(dir_path)
+		var entries = scan_directory(directory_path)
 		if not entries.is_empty():
-			matched_dirs.append(dir_path)
+			matched_dirs.append(directory_path)
 			for entry in entries:
 				if not seen_paths.has(entry.path):
 					seen_paths[entry.path] = true
@@ -191,10 +191,10 @@ static func scan_common_directories():
 		matched_dirs = matched_dirs
 	}
 
-static func _find_player_offset(bytes, char_name):
-	if char_name == "":
+static func _find_player_offset(bytes, character_name):
+	if character_name == "":
 		return -1
-	var name_bytes = char_name.to_utf8_buffer()
+	var name_bytes = character_name.to_utf8_buffer()
 	var len_bytes = PackedByteArray([
 		name_bytes.size() & 0xff,
 		(name_bytes.size() >> 8) & 0xff,
@@ -205,17 +205,17 @@ static func _find_player_offset(bytes, char_name):
 	pattern.append_array(len_bytes)
 	pattern.append_array(name_bytes)
 	var max_start = bytes.size() - pattern.size()
-	for idx in range(max_start + 1):
+	for index in range(max_start + 1):
 		var matched = true
 		for jj in range(pattern.size()):
-			if bytes[idx + jj] != pattern[jj]:
+			if bytes[index + jj] != pattern[jj]:
 				matched = false
 				break
 		if matched:
-			return idx
+			return index
 	return -1
 
-static func _extract_player_data_from_level(level_path, char_name, fallback_skills):
+static func _extract_player_data_from_level(level_path, character_name, fallback_skills):
 	var extracted = {
 		found = false,
 		zorkmids = 150,
@@ -233,30 +233,30 @@ static func _extract_player_data_from_level(level_path, char_name, fallback_skil
 	if bytes.size() < 32 or bytes.slice(0, 4).get_string_from_ascii() != "DLEV":
 		extracted.warnings.append("Corrupted level header in " + level_path.get_file())
 		return extracted
-	var player_off = _find_player_offset(bytes, char_name)
+	var player_off = _find_player_offset(bytes, character_name)
 	if player_off == -1:
 		extracted.warnings.append("Player record not found in " + level_path.get_file() + "; recovered metadata only.")
 		return extracted
 
 	extracted.found = true
-	var name_len_res = _read_u32(bytes, player_off)
-	var after_name = player_off + 4 + name_len_res.value
+	var name_len_result = _read_u32(bytes, player_off)
+	var after_name = player_off + 4 + name_len_result.value
 	if after_name + 22 * 4 <= bytes.size():
-		var zork_res = _read_u32(bytes, after_name + 3 * 4)
-		var xp_res = _read_u32(bytes, after_name + 4 * 4)
-		if zork_res.ok:
-			extracted.zorkmids = clamp(zork_res.value, 0, 9999999)
-		if xp_res.ok:
-			extracted.xp = max(0, xp_res.value)
+		var zork_result = _read_u32(bytes, after_name + 3 * 4)
+		var xp_result = _read_u32(bytes, after_name + 4 * 4)
+		if zork_result.ok:
+			extracted.zorkmids = clamp(zork_result.value, 0, 9999999)
+		if xp_result.ok:
+			extracted.xp = max(0, xp_result.value)
 		var tiers = []
 		for ii in range(7):
-			var t_res = _read_u32(bytes, after_name + (8 + ii) * 4)
-			tiers.append(clamp(t_res.value, 1, 8) if t_res.ok else 1)
+			var t_result = _read_u32(bytes, after_name + (8 + ii) * 4)
+			tiers.append(clamp(t_result.value, 1, 8) if t_result.ok else 1)
 		var sids = []
 		for ii in range(7):
-			var s_res = _read_u32(bytes, after_name + (15 + ii) * 4)
-			if s_res.ok:
-				sids.append(s_res.value)
+			var s_result = _read_u32(bytes, after_name + (15 + ii) * 4)
+			if s_result.ok:
+				sids.append(s_result.value)
 		if sids.size() == 7:
 			extracted.skill_ids = sids
 		var total_tiers = 0
@@ -267,24 +267,24 @@ static func _extract_player_data_from_level(level_path, char_name, fallback_skil
 
 	var scan_start = after_name + 22 * 4
 	var scan_end = min(bytes.size(), scan_start + 8192)
-	var pos = scan_start
+	var position = scan_start
 	var seen_items = {}
-	while pos + 4 < scan_end:
-		var str_res = _read_ascii_str(bytes, pos, 3, 64)
-		if str_res.ok:
-			var candidate = str_res.value
+	while position + 4 < scan_end:
+		var text_result = _read_ascii_str(bytes, position, 3, 64)
+		if text_result.ok:
+			var candidate = text_result.value
 			if OD.Database != null and OD.Database.has_method("get_item"):
-				var item_def = OD.Database.get_item(candidate)
-				if item_def != null and not seen_items.has(candidate):
+				var item_definition = OD.Database.get_item(candidate)
+				if item_definition != null and not seen_items.has(candidate):
 					seen_items[candidate] = true
-					extracted.items.append(OD.Database.create_item_instance(item_def))
-					pos = str_res.next
+					extracted.items.append(OD.Database.create_item_instance(item_definition))
+					position = text_result.next
 					continue
-		pos += 1
+		position += 1
 	return extracted
 
-static func import_save(save_dir_path, target_save_path = ""):
-	var info = inspect_retail_save(save_dir_path)
+static func import_save(save_directory_path, target_save_path = ""):
+	var info = inspect_retail_save(save_directory_path)
 	var warnings = info.warnings.duplicate()
 
 	var target_level_file = info.path + "level" + str(info.floor_idx) + ".dat"
@@ -292,11 +292,11 @@ static func import_save(save_dir_path, target_save_path = ""):
 		target_level_file = info.path + info.level_files[info.level_files.size() - 1]
 	var pdata = _extract_player_data_from_level(target_level_file, info.name, info.skill_ids)
 	if not pdata.found:
-		for idx in range(info.level_files.size() - 1, -1, -1):
-			var cand_file = info.path + info.level_files[idx]
-			if cand_file == target_level_file:
+		for index in range(info.level_files.size() - 1, -1, -1):
+			var candidate_file = info.path + info.level_files[index]
+			if candidate_file == target_level_file:
 				continue
-			var alt_pdata = _extract_player_data_from_level(cand_file, info.name, info.skill_ids)
+			var alt_pdata = _extract_player_data_from_level(candidate_file, info.name, info.skill_ids)
 			if alt_pdata.found:
 				pdata = alt_pdata
 				break
@@ -319,26 +319,26 @@ static func import_save(save_dir_path, target_save_path = ""):
 			valid_tiers[str(sid)] = 1
 		warnings.append("No matching vanilla skills found; assigned default skills.")
 
-	var temp_player = PlayerCharacter.new()
-	temp_player._init_stat_tables()
-	temp_player.character_name = info.name
-	temp_player.hero_kind = "hero"
-	temp_player.chosen_skills = valid_skills.duplicate()
-	temp_player.skill_tiers_unlocked.clear()
+	var temporary_player = PlayerCharacter.new()
+	temporary_player._init_stat_tables()
+	temporary_player.character_name = info.name
+	temporary_player.hero_kind = "hero"
+	temporary_player.chosen_skills = valid_skills.duplicate()
+	temporary_player.skill_tiers_unlocked.clear()
 	for sid in valid_skills:
-		temp_player.skill_tiers_unlocked[sid] = 0
+		temporary_player.skill_tiers_unlocked[sid] = 0
 		var tier_count = max(1, int(valid_tiers.get(str(sid), 1)))
 		for _step in range(tier_count):
-			temp_player.unlock_next_skill_tier(sid, true)
-	temp_player.level = pdata.level
-	temp_player.xp = pdata.xp
-	temp_player.xp_to_next_level = temp_player._compute_xp_threshold(temp_player.level)
-	temp_player.zorkmids_ref = { value = pdata.zorkmids }
-	for ii in range(min(pdata.items.size(), temp_player.INVENTORY_SIZE)):
-		temp_player.inventory[ii] = pdata.items[ii]
-	temp_player.recalculate_stats()
-	temp_player.hp = temp_player.max_hp
-	temp_player.mp = temp_player.max_mp
+			temporary_player.unlock_next_skill_tier(sid, true)
+	temporary_player.level = pdata.level
+	temporary_player.xp = pdata.xp
+	temporary_player.xp_to_next_level = temporary_player._compute_xp_threshold(temporary_player.level)
+	temporary_player.zorkmids_ref = { value = pdata.zorkmids }
+	for ii in range(min(pdata.items.size(), temporary_player.INVENTORY_SIZE)):
+		temporary_player.inventory[ii] = pdata.items[ii]
+	temporary_player.recalculate_stats()
+	temporary_player.hp = temporary_player.max_hp
+	temporary_player.mp = temporary_player.max_mp
 
 	var out_path = str(target_save_path)
 	if out_path == "":
@@ -355,7 +355,7 @@ static func import_save(save_dir_path, target_save_path = ""):
 		retail_source_path = info.path,
 		name = info.name,
 		hero = "hero",
-		level = int(temp_player.level),
+		level = int(temporary_player.level),
 		floor = int(info.floor),
 		branch_name = "The Dungeon",
 		difficulty = "Medium",
@@ -383,11 +383,11 @@ static func import_save(save_dir_path, target_save_path = ""):
 			base_turn_seconds = 0.5,
 			turn_pacing_seconds = 0.12
 		},
-		player = SaveManagerScript.serialize_player(temp_player),
+		player = SaveManagerScript.serialize_player(temporary_player),
 		floors = {},
 		pocket_dimensions = {}
 	}
-	temp_player.free()
+	temporary_player.free()
 
 	var file = FileAccess.open(out_path, FileAccess.WRITE)
 	if file == null:

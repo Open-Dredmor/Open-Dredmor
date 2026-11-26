@@ -11,30 +11,30 @@ const MUTED_INK = Color(0.32, 0.22, 0.14)
 var _saves = []
 var _selected_index = -1
 var _save_tree = null
-var _dir_input = null
+var _directory_input = null
 var _status_label = null
 var _details_label = null
 var _thumb_frame = null
 var _thumb_rect = null
-var _import_one_btn = null
-var _import_batch_btn = null
-var _select_all_btn = null
+var _import_one_button = null
+var _import_batch_button = null
+var _select_all_button = null
 var _done_button = null
-var _font_res = null
-var _blank_tex = null
+var _font_result = null
+var _blank_texture = null
 
 func _ready():
 	call_deferred("_build_gui")
 
 func _exit_tree():
-	var win = get_window()
-	if win != null and win.files_dropped.is_connected(_on_files_dropped):
-		win.files_dropped.disconnect(_on_files_dropped)
+	var window = get_window()
+	if window != null and window.files_dropped.is_connected(_on_files_dropped):
+		window.files_dropped.disconnect(_on_files_dropped)
 
-func _create_parchment_panel_style(bg_tex):
-	if bg_tex != null:
+func _create_parchment_panel_style(background_texture):
+	if background_texture != null:
 		var style_box = StyleBoxTexture.new()
-		style_box.texture = bg_tex
+		style_box.texture = background_texture
 		style_box.texture_margin_left = 32
 		style_box.texture_margin_right = 32
 		style_box.texture_margin_top = 32
@@ -62,7 +62,7 @@ func _create_inset_style():
 	box.content_margin_bottom = 6
 	return box
 
-func _style_tree(tree_ctrl):
+func _style_tree(tree_control):
 	var panel_box = StyleBoxFlat.new()
 	panel_box.bg_color = Color(0.79, 0.71, 0.58, 0.55)
 	panel_box.border_color = Color(0.45, 0.34, 0.24, 0.85)
@@ -83,34 +83,34 @@ func _style_tree(tree_ctrl):
 	header_box.content_margin_top = 4
 	header_box.content_margin_bottom = 4
 
-	tree_ctrl.add_theme_stylebox_override("panel", panel_box)
-	tree_ctrl.add_theme_stylebox_override("focus", panel_box)
-	tree_ctrl.add_theme_stylebox_override("selected", selected_box)
-	tree_ctrl.add_theme_stylebox_override("selected_focus", selected_box)
-	tree_ctrl.add_theme_stylebox_override("title_button_normal", header_box)
-	tree_ctrl.add_theme_stylebox_override("title_button_hover", header_box)
-	tree_ctrl.add_theme_stylebox_override("title_button_pressed", header_box)
-	tree_ctrl.add_theme_color_override("font_color", INK_COLOR)
-	tree_ctrl.add_theme_color_override("font_selected_color", Color(0.10, 0.05, 0.02))
-	tree_ctrl.add_theme_color_override("title_button_color", INK_COLOR)
-	tree_ctrl.add_theme_color_override("guide_color", Color(0.45, 0.34, 0.24, 0.35))
+	tree_control.add_theme_stylebox_override("panel", panel_box)
+	tree_control.add_theme_stylebox_override("focus", panel_box)
+	tree_control.add_theme_stylebox_override("selected", selected_box)
+	tree_control.add_theme_stylebox_override("selected_focus", selected_box)
+	tree_control.add_theme_stylebox_override("title_button_normal", header_box)
+	tree_control.add_theme_stylebox_override("title_button_hover", header_box)
+	tree_control.add_theme_stylebox_override("title_button_pressed", header_box)
+	tree_control.add_theme_color_override("font_color", INK_COLOR)
+	tree_control.add_theme_color_override("font_selected_color", Color(0.10, 0.05, 0.02))
+	tree_control.add_theme_color_override("title_button_color", INK_COLOR)
+	tree_control.add_theme_color_override("guide_color", Color(0.45, 0.34, 0.24, 0.35))
 
 func _build_gui():
 	var assets = OD.Assets.load_game_menu()
 	var dialog_assets = OD.Assets.dialog()
-	_font_res = dialog_assets.font if dialog_assets != null and dialog_assets.font != null else assets.fonts.default
-	_blank_tex = dialog_assets.textures.blank if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("blank") else null
-	var parchment_bg = dialog_assets.textures.alert_bigger if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("alert_bigger") else null
+	_font_result = dialog_assets.font if dialog_assets != null and dialog_assets.font != null else assets.fonts.default
+	_blank_texture = dialog_assets.textures.blank if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("blank") else null
+	var parchment_background = dialog_assets.textures.alert_bigger if dialog_assets != null and dialog_assets.has("textures") and dialog_assets.textures.has("alert_bigger") else null
 	var container = get_node("/root/Container")
 	container.set_size(OD.Settings.display_size())
 
 	if OD.Load.exists("ui/menus/bg_stonetile.png"):
-		var bg_tile = TextureRect.new()
-		bg_tile.texture = OD.Load.image("ui/menus/bg_stonetile.png")
-		bg_tile.stretch_mode = TextureRect.STRETCH_TILE
-		bg_tile.set_anchors_preset(Control.PRESET_FULL_RECT)
-		bg_tile.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		container.add_child(bg_tile)
+		var background_tile = TextureRect.new()
+		background_tile.texture = OD.Load.image("ui/menus/bg_stonetile.png")
+		background_tile.stretch_mode = TextureRect.STRETCH_TILE
+		background_tile.set_anchors_preset(Control.PRESET_FULL_RECT)
+		background_tile.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		container.add_child(background_tile)
 
 	var header_background = TextureRect.new()
 	header_background.texture = assets.textures.header_background
@@ -133,7 +133,7 @@ func _build_gui():
 	title_label.offset_top = 12
 	title_label.custom_minimum_size = Vector2(400, 48)
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title_label.add_theme_font_override("font", _font_res)
+	title_label.add_theme_font_override("font", _font_result)
 	title_label.add_theme_font_size_override("font_size", 34)
 	title_label.add_theme_color_override("font_color", Color(0.95, 0.90, 0.80))
 	title_label.add_theme_constant_override("outline_size", 3)
@@ -154,71 +154,71 @@ func _build_gui():
 	outer_panel.anchor_top = 0.13
 	outer_panel.anchor_right = 0.94
 	outer_panel.anchor_bottom = 0.94
-	outer_panel.add_theme_stylebox_override("panel", _create_parchment_panel_style(parchment_bg))
+	outer_panel.add_theme_stylebox_override("panel", _create_parchment_panel_style(parchment_background))
 	container.add_child(outer_panel)
 
-	var main_vbox = VBoxContainer.new()
-	main_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	main_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	main_vbox.add_theme_constant_override("separation", 14)
-	outer_panel.add_child(main_vbox)
+	var main_vertical_box = VBoxContainer.new()
+	main_vertical_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_vertical_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	main_vertical_box.add_theme_constant_override("separation", 14)
+	outer_panel.add_child(main_vertical_box)
 
-	var top_vbox = VBoxContainer.new()
-	top_vbox.add_theme_constant_override("separation", 8)
-	main_vbox.add_child(top_vbox)
+	var top_vertical_box = VBoxContainer.new()
+	top_vertical_box.add_theme_constant_override("separation", 8)
+	main_vertical_box.add_child(top_vertical_box)
 
 	var scan_row = HBoxContainer.new()
 	scan_row.add_theme_constant_override("separation", 10)
-	top_vbox.add_child(scan_row)
+	top_vertical_box.add_child(scan_row)
 
-	var dir_lbl = Label.new()
-	dir_lbl.text = "Save Dir:"
-	dir_lbl.add_theme_font_override("font", _font_res)
-	dir_lbl.add_theme_font_size_override("font_size", 20)
-	dir_lbl.add_theme_color_override("font_color", INK_COLOR)
-	scan_row.add_child(dir_lbl)
+	var directory_label = Label.new()
+	directory_label.text = "Save Dir:"
+	directory_label.add_theme_font_override("font", _font_result)
+	directory_label.add_theme_font_size_override("font_size", 20)
+	directory_label.add_theme_color_override("font_color", INK_COLOR)
+	scan_row.add_child(directory_label)
 
-	_dir_input = LineEdit.new()
-	_dir_input.placeholder_text = "Enter Dungeons of Dredmor save folder path or drag & drop a .dredmorsave here..."
-	_dir_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_dir_input.add_theme_font_override("font", _font_res)
-	_dir_input.add_theme_font_size_override("font_size", 18)
-	_dir_input.add_theme_color_override("font_color", INK_COLOR)
-	_dir_input.add_theme_color_override("font_placeholder_color", Color(0.28, 0.20, 0.14, 0.65))
+	_directory_input = LineEdit.new()
+	_directory_input.placeholder_text = "Enter Dungeons of Dredmor save folder path or drag & drop a .dredmorsave here..."
+	_directory_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_directory_input.add_theme_font_override("font", _font_result)
+	_directory_input.add_theme_font_size_override("font_size", 18)
+	_directory_input.add_theme_color_override("font_color", INK_COLOR)
+	_directory_input.add_theme_color_override("font_placeholder_color", Color(0.28, 0.20, 0.14, 0.65))
 	var inset_style = _create_inset_style()
-	_dir_input.add_theme_stylebox_override("normal", inset_style)
-	_dir_input.add_theme_stylebox_override("focus", inset_style)
-	_dir_input.text_submitted.connect(func(_text): _scan_custom_dir())
-	scan_row.add_child(_dir_input)
+	_directory_input.add_theme_stylebox_override("normal", inset_style)
+	_directory_input.add_theme_stylebox_override("focus", inset_style)
+	_directory_input.text_submitted.connect(func(_text): _scan_custom_dir())
+	scan_row.add_child(_directory_input)
 
-	var scan_btn = OD.Chrome.parchment_button("Scan Dir", _font_res, INK_COLOR, _blank_tex, 18)
-	scan_btn.custom_minimum_size = Vector2(124, 36)
-	scan_btn.pressed.connect(_scan_custom_dir)
-	scan_row.add_child(scan_btn)
+	var scan_button = OD.Chrome.parchment_button("Scan Dir", _font_result, INK_COLOR, _blank_texture, 18)
+	scan_button.custom_minimum_size = Vector2(124, 36)
+	scan_button.pressed.connect(_scan_custom_dir)
+	scan_row.add_child(scan_button)
 
-	var rescan_btn = OD.Chrome.parchment_button("Common Paths", _font_res, INK_COLOR, _blank_tex, 18)
-	rescan_btn.custom_minimum_size = Vector2(158, 36)
-	rescan_btn.pressed.connect(_scan_common_dirs)
-	scan_row.add_child(rescan_btn)
+	var rescan_button = OD.Chrome.parchment_button("Common Paths", _font_result, INK_COLOR, _blank_texture, 18)
+	rescan_button.custom_minimum_size = Vector2(158, 36)
+	rescan_button.pressed.connect(_scan_common_dirs)
+	scan_row.add_child(rescan_button)
 
 	_status_label = Label.new()
 	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_status_label.add_theme_font_override("font", _font_res)
+	_status_label.add_theme_font_override("font", _font_result)
 	_status_label.add_theme_font_size_override("font_size", 18)
 	_status_label.add_theme_color_override("font_color", MUTED_INK)
-	top_vbox.add_child(_status_label)
+	top_vertical_box.add_child(_status_label)
 
 	var content_row = HBoxContainer.new()
 	content_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content_row.add_theme_constant_override("separation", 20)
-	main_vbox.add_child(content_row)
+	main_vertical_box.add_child(content_row)
 
-	var left_vbox = VBoxContainer.new()
-	left_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	left_vbox.size_flags_stretch_ratio = 1.65
-	left_vbox.add_theme_constant_override("separation", 12)
-	content_row.add_child(left_vbox)
+	var left_vertical_box = VBoxContainer.new()
+	left_vertical_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left_vertical_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	left_vertical_box.size_flags_stretch_ratio = 1.65
+	left_vertical_box.add_theme_constant_override("separation", 12)
+	content_row.add_child(left_vertical_box)
 
 	_save_tree = Tree.new()
 	_save_tree.columns = 2
@@ -230,32 +230,32 @@ func _build_gui():
 	_save_tree.set_column_custom_minimum_width(0, 88)
 	_save_tree.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_save_tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_save_tree.add_theme_font_override("font", _font_res)
+	_save_tree.add_theme_font_override("font", _font_result)
 	_save_tree.add_theme_font_size_override("font_size", 20)
 	_style_tree(_save_tree)
 	_save_tree.item_selected.connect(_on_tree_item_selected)
-	left_vbox.add_child(_save_tree)
+	left_vertical_box.add_child(_save_tree)
 
 	var batch_row = HBoxContainer.new()
 	batch_row.add_theme_constant_override("separation", 12)
-	left_vbox.add_child(batch_row)
+	left_vertical_box.add_child(batch_row)
 
-	_select_all_btn = OD.Chrome.parchment_button("Select All", _font_res, INK_COLOR, _blank_tex, 18)
-	_select_all_btn.custom_minimum_size = Vector2(130, 38)
-	_select_all_btn.pressed.connect(_on_toggle_select_all)
-	batch_row.add_child(_select_all_btn)
+	_select_all_button = OD.Chrome.parchment_button("Select All", _font_result, INK_COLOR, _blank_texture, 18)
+	_select_all_button.custom_minimum_size = Vector2(130, 38)
+	_select_all_button.pressed.connect(_on_toggle_select_all)
+	batch_row.add_child(_select_all_button)
 
-	_import_one_btn = OD.Chrome.parchment_button("Import Selected", _font_res, INK_COLOR, _blank_tex, 18)
-	_import_one_btn.custom_minimum_size = Vector2(170, 38)
-	_import_one_btn.disabled = true
-	_import_one_btn.pressed.connect(_on_import_selected_pressed)
-	batch_row.add_child(_import_one_btn)
+	_import_one_button = OD.Chrome.parchment_button("Import Selected", _font_result, INK_COLOR, _blank_texture, 18)
+	_import_one_button.custom_minimum_size = Vector2(170, 38)
+	_import_one_button.disabled = true
+	_import_one_button.pressed.connect(_on_import_selected_pressed)
+	batch_row.add_child(_import_one_button)
 
-	_import_batch_btn = OD.Chrome.parchment_button("Import Checked", _font_res, INK_COLOR, _blank_tex, 18)
-	_import_batch_btn.custom_minimum_size = Vector2(170, 38)
-	_import_batch_btn.disabled = true
-	_import_batch_btn.pressed.connect(_on_import_batch_pressed)
-	batch_row.add_child(_import_batch_btn)
+	_import_batch_button = OD.Chrome.parchment_button("Import Checked", _font_result, INK_COLOR, _blank_texture, 18)
+	_import_batch_button.custom_minimum_size = Vector2(170, 38)
+	_import_batch_button.disabled = true
+	_import_batch_button.pressed.connect(_on_import_batch_pressed)
+	batch_row.add_child(_import_batch_button)
 
 	var info_panel = PanelContainer.new()
 	info_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -264,11 +264,11 @@ func _build_gui():
 	info_panel.add_theme_stylebox_override("panel", _create_inset_style())
 	content_row.add_child(info_panel)
 
-	var info_vbox = VBoxContainer.new()
-	info_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	info_vbox.add_theme_constant_override("separation", 12)
-	info_panel.add_child(info_vbox)
+	var info_vertical_box = VBoxContainer.new()
+	info_vertical_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_vertical_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	info_vertical_box.add_theme_constant_override("separation", 12)
+	info_panel.add_child(info_vertical_box)
 
 	_thumb_frame = PanelContainer.new()
 	_thumb_frame.visible = false
@@ -278,7 +278,7 @@ func _build_gui():
 	frame_style.set_border_width_all(3)
 	frame_style.set_content_margin_all(4)
 	_thumb_frame.add_theme_stylebox_override("panel", frame_style)
-	info_vbox.add_child(_thumb_frame)
+	info_vertical_box.add_child(_thumb_frame)
 
 	_thumb_rect = TextureRect.new()
 	_thumb_rect.custom_minimum_size = Vector2(200, 150)
@@ -290,49 +290,49 @@ func _build_gui():
 	details_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	details_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	details_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	info_vbox.add_child(details_scroll)
+	info_vertical_box.add_child(details_scroll)
 
 	_details_label = Label.new()
 	_details_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_details_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_details_label.add_theme_font_override("font", _font_res)
+	_details_label.add_theme_font_override("font", _font_result)
 	_details_label.add_theme_font_size_override("font_size", 18)
 	_details_label.add_theme_color_override("font_color", INK_COLOR)
 	details_scroll.add_child(_details_label)
 
-	var win = get_window()
-	if win != null and not win.files_dropped.is_connected(_on_files_dropped):
-		win.files_dropped.connect(_on_files_dropped)
+	var window = get_window()
+	if window != null and not window.files_dropped.is_connected(_on_files_dropped):
+		window.files_dropped.connect(_on_files_dropped)
 
 	_scan_common_dirs()
 
 func _scan_common_dirs():
-	var res = RetailSaveImporterScript.scan_common_directories()
-	_saves = res.saves
-	if not res.matched_dirs.is_empty():
-		_dir_input.text = res.matched_dirs[0]
+	var result = RetailSaveImporterScript.scan_common_directories()
+	_saves = result.saves
+	if not result.matched_dirs.is_empty():
+		_directory_input.text = result.matched_dirs[0]
 		_status_label.text = "Found %d retail save(s). Drag & drop a .dredmorsave folder anytime to import." % _saves.size()
 	else:
 		_status_label.text = "No retail saves found in common locations. Enter a directory to scan or drag & drop a .dredmorsave folder."
 	_populate_tree()
 
 func _scan_custom_dir():
-	var dir_path = _dir_input.text.strip_edges()
-	if dir_path == "":
+	var directory_path = _directory_input.text.strip_edges()
+	if directory_path == "":
 		_status_label.text = "Enter a directory path to scan."
 		return
-	_saves = RetailSaveImporterScript.scan_directory(dir_path)
+	_saves = RetailSaveImporterScript.scan_directory(directory_path)
 	if _saves.is_empty():
-		_status_label.text = "No .dredmorsave folders found in " + dir_path
+		_status_label.text = "No .dredmorsave folders found in " + directory_path
 	else:
-		_status_label.text = "Found %d retail save(s) in %s" % [_saves.size(), dir_path]
+		_status_label.text = "Found %d retail save(s) in %s" % [_saves.size(), directory_path]
 	_populate_tree()
 
 func _populate_tree():
 	_save_tree.clear()
 	_selected_index = -1
-	_import_one_btn.disabled = true
-	_import_batch_btn.disabled = _saves.is_empty()
+	_import_one_button.disabled = true
+	_import_batch_button.disabled = _saves.is_empty()
 	if _done_button != null:
 		_done_button.visible = not _saves.is_empty()
 	_thumb_frame.visible = false
@@ -357,13 +357,13 @@ func _on_tree_item_selected():
 	var selected = _save_tree.get_selected()
 	if selected == null:
 		return
-	var idx = int(selected.get_metadata(0))
-	if idx < 0 or idx >= _saves.size():
+	var index = int(selected.get_metadata(0))
+	if index < 0 or index >= _saves.size():
 		return
-	_selected_index = idx
-	var entry = _saves[idx]
+	_selected_index = index
+	var entry = _saves[index]
 	_details_label.text = entry.details
-	_import_one_btn.disabled = false
+	_import_one_button.disabled = false
 	_thumb_frame.visible = false
 	if entry.thumbnail_path != "":
 		var img = Image.load_from_file(entry.thumbnail_path)
@@ -391,12 +391,12 @@ func _on_import_selected_pressed():
 	if _selected_index < 0 or _selected_index >= _saves.size():
 		return
 	var entry = _saves[_selected_index]
-	var res = RetailSaveImporterScript.import_save(entry.path)
-	if res.ok:
-		var warn_str = " (" + str(res.warnings.size()) + " warning(s))" if not res.warnings.is_empty() else ""
-		_status_label.text = "Imported '%s' -> %s%s" % [res.name, res.path.get_file(), warn_str]
+	var result = RetailSaveImporterScript.import_save(entry.path)
+	if result.ok:
+		var warning_text = " (" + str(result.warnings.size()) + " warning(s))" if not result.warnings.is_empty() else ""
+		_status_label.text = "Imported '%s' -> %s%s" % [result.name, result.path.get_file(), warning_text]
 	else:
-		_status_label.text = "Import failed: " + str(res.get("error", "Unknown error"))
+		_status_label.text = "Import failed: " + str(result.get("error", "Unknown error"))
 
 func _on_import_batch_pressed():
 	var root = _save_tree.get_root()
@@ -406,9 +406,9 @@ func _on_import_batch_pressed():
 	var child = root.get_first_child()
 	while child != null:
 		if child.is_checked(0):
-			var idx = int(child.get_metadata(0))
-			if idx >= 0 and idx < _saves.size():
-				targets.append(_saves[idx])
+			var index = int(child.get_metadata(0))
+			if index >= 0 and index < _saves.size():
+				targets.append(_saves[index])
 		child = child.get_next()
 	if targets.is_empty():
 		_status_label.text = "No saves checked for batch import."
@@ -416,8 +416,8 @@ func _on_import_batch_pressed():
 	var ok_count = 0
 	var fail_count = 0
 	for entry in targets:
-		var res = RetailSaveImporterScript.import_save(entry.path)
-		if res.ok:
+		var result = RetailSaveImporterScript.import_save(entry.path)
+		if result.ok:
 			ok_count += 1
 		else:
 			fail_count += 1
@@ -433,8 +433,8 @@ func _on_files_dropped(files):
 		if cleaned.ends_with(".dredmorsave") or DirAccess.dir_exists_absolute(cleaned):
 			var found = RetailSaveImporterScript.scan_directory(cleaned)
 			for entry in found:
-				var res = RetailSaveImporterScript.import_save(entry.path)
-				if res.ok:
+				var result = RetailSaveImporterScript.import_save(entry.path)
+				if result.ok:
 					imported_count += 1
 				added_entries.append(entry)
 	if not added_entries.is_empty():

@@ -29,26 +29,26 @@ func _build_gui():
 	margin.add_theme_constant_override("margin_bottom", 24)
 	container.add_child(margin)
 
-	var root_vbox = VBoxContainer.new()
-	root_vbox.add_theme_constant_override("separation", 12)
-	margin.add_child(root_vbox)
+	var root_vertical_box = VBoxContainer.new()
+	root_vertical_box.add_theme_constant_override("separation", 12)
+	margin.add_child(root_vertical_box)
 
 	var title_label = Label.new()
 	title_label.text = "Audio Debug Scene (" + str(_all_cues.size()) + " SFX cues indexed)"
-	root_vbox.add_child(title_label)
+	root_vertical_box.add_child(title_label)
 
 	_status_label = Label.new()
 	_status_label.text = "Ready"
-	root_vbox.add_child(_status_label)
+	root_vertical_box.add_child(_status_label)
 
-	root_vbox.add_child(_build_settings_row())
-	root_vbox.add_child(_build_music_row())
-	root_vbox.add_child(_build_sfx_test_row())
-	root_vbox.add_child(_build_filter_row())
+	root_vertical_box.add_child(_build_settings_row())
+	root_vertical_box.add_child(_build_music_row())
+	root_vertical_box.add_child(_build_sfx_test_row())
+	root_vertical_box.add_child(_build_filter_row())
 
 	var scroll = ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root_vbox.add_child(scroll)
+	root_vertical_box.add_child(scroll)
 
 	_cue_grid = GridContainer.new()
 	_cue_grid.columns = 5
@@ -99,20 +99,20 @@ func _build_music_row():
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 
-	var title_btn = Button.new()
-	title_btn.text = "Play Title Music"
-	title_btn.pressed.connect(func(): _play_music(OD.Resources.paths.main_menu.music, "Title"))
-	row.add_child(title_btn)
+	var title_button = Button.new()
+	title_button.text = "Play Title Music"
+	title_button.pressed.connect(func(): _play_music(OD.Resources.paths.main_menu.music, "Title"))
+	row.add_child(title_button)
 
-	var game_btn = Button.new()
-	game_btn.text = "Play Game Music"
-	game_btn.pressed.connect(func(): _play_music(OD.Resources.paths.game.music, "Game"))
-	row.add_child(game_btn)
+	var game_button = Button.new()
+	game_button.text = "Play Game Music"
+	game_button.pressed.connect(func(): _play_music(OD.Resources.paths.game.music, "Game"))
+	row.add_child(game_button)
 
-	var stop_btn = Button.new()
-	stop_btn.text = "Stop All Audio"
-	stop_btn.pressed.connect(_on_stop_pressed)
-	row.add_child(stop_btn)
+	var stop_button = Button.new()
+	stop_button.text = "Stop All Audio"
+	stop_button.pressed.connect(_on_stop_pressed)
+	row.add_child(stop_button)
 
 	return row
 
@@ -127,20 +127,20 @@ func _build_sfx_test_row():
 	_cue_input.text_submitted.connect(func(text): _play_cue(text))
 	row.add_child(_cue_input)
 
-	var play_btn = Button.new()
-	play_btn.text = "Play Cue"
-	play_btn.pressed.connect(func(): _play_cue(_cue_input.text))
-	row.add_child(play_btn)
+	var play_button = Button.new()
+	play_button.text = "Play Cue"
+	play_button.pressed.connect(func(): _play_cue(_cue_input.text))
+	row.add_child(play_button)
 
-	var burst_btn = Button.new()
-	burst_btn.text = "Pool Burst (5x)"
-	burst_btn.pressed.connect(_on_pool_burst_pressed)
-	row.add_child(burst_btn)
+	var burst_button = Button.new()
+	burst_button.text = "Pool Burst (5x)"
+	burst_button.pressed.connect(_on_pool_burst_pressed)
+	row.add_child(burst_button)
 
-	var unknown_btn = Button.new()
-	unknown_btn.text = "Test Unknown Cue"
-	unknown_btn.pressed.connect(func(): _play_cue("__nonexistent_cue__"))
-	row.add_child(unknown_btn)
+	var unknown_button = Button.new()
+	unknown_button.text = "Test Unknown Cue"
+	unknown_button.pressed.connect(func(): _play_cue("__nonexistent_cue__"))
+	row.add_child(unknown_button)
 
 	return row
 
@@ -167,11 +167,11 @@ func _populate_cue_grid(filter_text):
 	for cue_name in _all_cues:
 		if query != "" and not cue_name.to_lower().contains(query):
 			continue
-		var btn = Button.new()
-		btn.text = cue_name
-		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		btn.pressed.connect(func(): _play_cue(cue_name))
-		_cue_grid.add_child(btn)
+		var button = Button.new()
+		button.text = cue_name
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.pressed.connect(func(): _play_cue(cue_name))
+		_cue_grid.add_child(button)
 
 func _play_cue(cue_name):
 	var trimmed = cue_name.strip_edges()

@@ -55,15 +55,15 @@ func init(room_database_name):
 	add_child(entity_grid)
 	
 	_definition = room_database_name if typeof(room_database_name) == TYPE_DICTIONARY else OD.Database.get_room(room_database_name)
-	var room_name_str = _definition.name if _definition != null and _definition.has("name") else str(room_database_name)
+	var room_name_text = _definition.name if _definition != null and _definition.has("name") else str(room_database_name)
 	# Rough passage 3 in game/rooms.xml has a width/height that doesn't match the data
 	# Count the strings lengths instead of trusting the reported values
 	grid_width = _definition.row[0].text.length()
 	grid_height = _definition.row.size()
 
 	name_details = OD.Database.create_room_name()
-	name_details.database_id = room_name_str
-	var resolved_name = str(name_details.name) if name_details != null and name_details.get("name") != null and str(name_details.name) != "" else room_name_str
+	name_details.database_id = room_name_text
+	var resolved_name = str(name_details.name) if name_details != null and name_details.get("name") != null and str(name_details.name) != "" else room_name_text
 	entity_grid.room_name = resolved_name
 	#print("Generating room id " + room_database_name + " with name " + name_details.name)
 	for layer_name in layer_names:
@@ -367,8 +367,8 @@ func custombreakable_tile_handler(item, x, y):
 	
 func trap_tile_handler(item, x, y):
 	var trap_name = item.name if item.has("name") else null
-	var trap_def = OD.Database.get_trap(trap_name)
-	entity_grid.add_trap(x, y, trap_def)
+	var trap_definition = OD.Database.get_trap(trap_name)
+	entity_grid.add_trap(x, y, trap_definition)
 	
 func possible_doors():
 	var result = []

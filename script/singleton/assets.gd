@@ -7,9 +7,9 @@ func _button_textures(lookup,internal=false):
 	var images = {}
 	for key in lookup.keys():
 		if OD.Load.exists(lookup[key],internal):
-			var loaded_tex = OD.Load.image(lookup[key], internal)
-			if loaded_tex != null:
-				images[key] = loaded_tex
+			var loaded_texture = OD.Load.image(lookup[key], internal)
+			if loaded_texture != null:
+				images[key] = loaded_texture
 	return images
 
 func main_menu():	
@@ -193,9 +193,9 @@ func element(element_type):
 		"boltvending":
 			return OD.Load.split_animation(element_paths.vendor.bolt)
 		"bookshelf":
-			var bookshelf_anim = OD.Load.animation(element_paths.bookshelf)
-			bookshelf_anim.set_step_only(true)
-			return bookshelf_anim
+			var bookshelf_animation = OD.Load.animation(element_paths.bookshelf)
+			bookshelf_animation.set_step_only(true)
+			return bookshelf_animation
 		"craftvending":
 			return OD.Load.split_animation(element_paths.vendor.craft)
 		"dredmorstatue":
@@ -211,9 +211,9 @@ func element(element_type):
 		"freezer":
 			return OD.Load.animation(element_paths.freezer)
 		"lever":
-			var lever_anim = OD.Load.animation(element_paths.lever)
-			lever_anim.set_step_only(true)
-			return lever_anim
+			var lever_animation = OD.Load.animation(element_paths.lever)
+			lever_animation.set_step_only(true)
+			return lever_animation
 		"lutefiskstatue":
 			return OD.Load.animation(element_paths.lutefisk_statue)
 		"portal":
