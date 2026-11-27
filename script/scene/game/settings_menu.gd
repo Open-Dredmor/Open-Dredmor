@@ -227,7 +227,7 @@ func _build_gui():
 		_keybind_buttons[action_name] = bind_button
 
 		var gamepad_code = _pending_gamepad_binds.get(action_name, -1)
-		var gamepad_text = OD.Settings.gamepad_button_name(gamepad_code) if gamepad_code >= 0 else "Unbound"
+		var gamepad_text = OD.Settings.gamepad_bind_name(gamepad_code)
 		var gamepad_button = OD.Chrome.parchment_button(
 			gamepad_text,
 			_font_result,
@@ -236,7 +236,7 @@ func _build_gui():
 			18
 		)
 		gamepad_button.custom_minimum_size = Vector2(180, 34)
-		gamepad_button.disabled = gamepad_code < 0
+		gamepad_button.disabled = not OD.Settings.is_gamepad_bind_valid(gamepad_code)
 		gamepad_button.pressed.connect(_on_keybind_button_pressed.bind(action_name, "gamepad"))
 		keybind_grid.add_child(gamepad_button)
 		_gamepad_buttons[action_name] = gamepad_button
@@ -265,7 +265,7 @@ func _build_gui():
 func _unhandled_input(event):
 	if _listening_action != null:
 		return
-	if (event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_B) or event.is_action_pressed("ui_cancel"):
+	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("cancel"):
 		get_viewport().set_input_as_handled()
 		_on_CancelButton_pressed()
 	elif event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_START:
@@ -316,7 +316,7 @@ func _restore_listening_button_text():
 	if _listening_action == null:
 		return
 	if _listening_mode == "gamepad" and _gamepad_buttons.has(_listening_action):
-		_gamepad_buttons[_listening_action].text = OD.Settings.gamepad_button_name(_pending_gamepad_binds[_listening_action])
+		_gamepad_buttons[_listening_action].text = OD.Settings.gamepad_bind_name(_pending_gamepad_binds[_listening_action])
 	elif _keybind_buttons.has(_listening_action):
 		_keybind_buttons[_listening_action].text = OS.get_keycode_string(_pending_keybinds[_listening_action])
 
@@ -325,7 +325,7 @@ func _on_keybind_button_pressed(action_name, mode = "keyboard"):
 	_listening_action = action_name
 	_listening_mode = mode
 	if mode == "gamepad":
-		_gamepad_buttons[action_name].text = "Press a button..."
+		_gamepad_buttons[action_name].text = "Press button/stick..."
 	else:
 		_keybind_buttons[action_name].text = "Press a key..."
 
@@ -345,6 +345,14 @@ func _input(event):
 			_listening_action = null
 			_listening_mode = ""
 			get_viewport().set_input_as_handled()
+			return
+		if event is InputEventJoypadMotion:
+			get_viewport().set_input_as_handled()
+			if abs(event.axis_value) >= 0.5:
+				_pending_gamepad_binds[_listening_action] = OD.Settings.encode_gamepad_axis_bind(event.axis, event.axis_value)
+				_restore_listening_button_text()
+				_listening_action = null
+				_listening_mode = ""
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode != KEY_ESCAPE:
@@ -365,7 +373,11 @@ func _persist_settings():
 	for action_name in _pending_keybinds.keys():
 		OD.Settings.change("controls", action_name, int(_pending_keybinds[action_name]))
 	for action_name in _pending_gamepad_binds.keys():
-		OD.Settings.change("gamepad_controls", action_name, int(_pending_gamepad_binds[action_name]))
+		var gamepad_value = _pending_gamepad_binds[action_name]
+		if gamepad_value is String:
+			OD.Settings.change("gamepad_controls", action_name, gamepad_value)
+		else:
+			OD.Settings.change("gamepad_controls", action_name, int(gamepad_value))
 	OD.Settings.apply_display_settings()
 	OD.Settings.apply_keybinds()
 	OD.Audio.apply_volume_settings()

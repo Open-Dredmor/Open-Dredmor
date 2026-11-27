@@ -11,6 +11,8 @@ const DEFAULT_KEYBINDS = {
 	"move_right": KEY_D,
 	"wait": KEY_SPACE,
 	"interact": KEY_E,
+	"cancel": KEY_BACKSPACE,
+	"menu": KEY_M,
 	"inventory": KEY_I,
 	"character": KEY_C,
 	"skills": KEY_K,
@@ -24,6 +26,8 @@ const DEFAULT_GAMEPAD_BINDS = {
 	"move_right": JOY_BUTTON_DPAD_RIGHT,
 	"wait": JOY_BUTTON_X,
 	"interact": JOY_BUTTON_A,
+	"cancel": JOY_BUTTON_B,
+	"menu": JOY_BUTTON_START,
 	"inventory": JOY_BUTTON_Y,
 	"character": JOY_BUTTON_BACK,
 	"skills": JOY_BUTTON_LEFT_SHOULDER,
@@ -551,20 +555,111 @@ func get_keybinds():
 		binds[action_name] = code
 	return binds
 
+const GAMEPAD_AXIS_PREFIX = "axis:"
+
+const GAMEPAD_AXIS_NAMES = {
+	JOY_AXIS_LEFT_X: ["Left Stick Left", "Left Stick Right"],
+	JOY_AXIS_LEFT_Y: ["Left Stick Up", "Left Stick Down"],
+	JOY_AXIS_RIGHT_X: ["Right Stick Left", "Right Stick Right"],
+	JOY_AXIS_RIGHT_Y: ["Right Stick Up", "Right Stick Down"],
+	JOY_AXIS_TRIGGER_LEFT: ["LT / L2", "LT / L2"],
+	JOY_AXIS_TRIGGER_RIGHT: ["RT / R2", "RT / R2"]
+}
+
+func is_gamepad_bind_valid(bind_value):
+	if bind_value is String:
+		return parse_gamepad_axis_bind(bind_value) != null
+	if bind_value is int or bind_value is float:
+		return int(bind_value) >= 0
+	return false
+
+func encode_gamepad_axis_bind(axis, axis_value):
+	var direction = 1 if float(axis_value) >= 0.0 else -1
+	return GAMEPAD_AXIS_PREFIX + str(int(axis)) + ":" + str(direction)
+
+func parse_gamepad_axis_bind(bind_value):
+	if not (bind_value is String):
+		return null
+	if not bind_value.begins_with(GAMEPAD_AXIS_PREFIX):
+		return null
+	var parts = bind_value.split(":")
+	if parts.size() != 3:
+		return null
+	if not parts[1].is_valid_int():
+		return null
+	var direction_text = parts[2]
+	if direction_text != "1" and direction_text != "-1":
+		return null
+	return {
+		"axis": int(parts[1]),
+		"direction": int(direction_text)
+	}
+
 func get_gamepad_binds():
 	var binds = {}
 	for action_name in DEFAULT_GAMEPAD_BINDS.keys():
-		var button_index = DEFAULT_GAMEPAD_BINDS[action_name]
+		var raw_value = DEFAULT_GAMEPAD_BINDS[action_name]
 		if _settings != null:
-			button_index = int(_settings.get_value("gamepad_controls", action_name, button_index))
-		binds[action_name] = button_index
+			raw_value = _settings.get_value("gamepad_controls", action_name, raw_value)
+		if raw_value is String and parse_gamepad_axis_bind(raw_value) != null:
+			binds[action_name] = raw_value
+		else:
+			binds[action_name] = int(raw_value)
 	return binds
 
+func gamepad_bind_name(bind_value):
+	var axis_info = parse_gamepad_axis_bind(bind_value)
+	if axis_info != null:
+		var axis_index = axis_info.axis
+		var direction = axis_info.direction
+		if GAMEPAD_AXIS_NAMES.has(axis_index):
+			var labels = GAMEPAD_AXIS_NAMES[axis_index]
+			return labels[1] if direction > 0 else labels[0]
+		var suffix = " +" if direction > 0 else " -"
+		return "Axis " + str(axis_index) + suffix
+	if bind_value is int or bind_value is float:
+		var button_index = int(bind_value)
+		if button_index < 0:
+			return "Unbound"
+		if GAMEPAD_BUTTON_NAMES.has(button_index):
+			return GAMEPAD_BUTTON_NAMES[button_index]
+		return "Button " + str(button_index)
+	return "Unbound"
+
 func gamepad_button_name(button_index):
-	var idx = int(button_index)
-	if GAMEPAD_BUTTON_NAMES.has(idx):
-		return GAMEPAD_BUTTON_NAMES[idx]
-	return "Button " + str(idx)
+	return gamepad_bind_name(button_index)
+
+func _create_gamepad_input_event(bind_value):
+	var axis_info = parse_gamepad_axis_bind(bind_value)
+	if axis_info != null:
+		var motion_event = InputEventJoypadMotion.new()
+		motion_event.axis = axis_info.axis
+		motion_event.axis_value = float(axis_info.direction)
+		return motion_event
+	if (bind_value is int or bind_value is float) and int(bind_value) >= 0:
+		var joy_event = InputEventJoypadButton.new()
+		joy_event.button_index = int(bind_value)
+		return joy_event
+	return null
+
+func _sync_ui_action(action_name, keyboard_code, gamepad_bind_value, fallback_button_index):
+	if not InputMap.has_action(action_name):
+		return
+	var existing_events = InputMap.action_get_events(action_name)
+	for existing_event in existing_events:
+		if existing_event is InputEventJoypadButton or existing_event is InputEventJoypadMotion:
+			InputMap.action_erase_event(action_name, existing_event)
+		elif action_name == "ui_cancel" and existing_event is InputEventKey and existing_event.keycode != KEY_ESCAPE:
+			InputMap.action_erase_event(action_name, existing_event)
+	if keyboard_code != null and int(keyboard_code) > 0:
+		var key_event = InputEventKey.new()
+		key_event.keycode = int(keyboard_code)
+		InputMap.action_add_event(action_name, key_event)
+	var joy_event = _create_gamepad_input_event(gamepad_bind_value)
+	if joy_event == null and fallback_button_index >= 0:
+		joy_event = _create_gamepad_input_event(fallback_button_index)
+	if joy_event != null:
+		InputMap.action_add_event(action_name, joy_event)
 
 func apply_keybinds():
 	var binds = get_keybinds()
@@ -577,9 +672,11 @@ func apply_keybinds():
 		key_event.keycode = binds[action_name]
 		InputMap.action_add_event(action_name, key_event)
 		if gamepad_binds.has(action_name):
-			var joy_event = InputEventJoypadButton.new()
-			joy_event.button_index = gamepad_binds[action_name]
-			InputMap.action_add_event(action_name, joy_event)
+			var joy_event = _create_gamepad_input_event(gamepad_binds[action_name])
+			if joy_event != null:
+				InputMap.action_add_event(action_name, joy_event)
+	_sync_ui_action("ui_accept", null, gamepad_binds.get("interact", JOY_BUTTON_A), JOY_BUTTON_A)
+	_sync_ui_action("ui_cancel", binds.get("cancel", KEY_BACKSPACE), gamepad_binds.get("cancel", JOY_BUTTON_B), JOY_BUTTON_B)
 
 func last_selected_skill_ids():
 	if _settings == null:

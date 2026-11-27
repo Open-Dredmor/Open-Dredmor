@@ -124,14 +124,10 @@ func _build_gui():
 	_select_hero_button.call_deferred("grab_focus")
 
 func _unhandled_input(event):
-	if event is InputEventJoypadButton and event.pressed:
-		if event.button_index == JOY_BUTTON_B:
-			get_viewport().set_input_as_handled()
-			_on_BackButton_pressed()
-		elif event.button_index == JOY_BUTTON_START and _done_button != null and _done_button.visible:
-			get_viewport().set_input_as_handled()
-			_on_DoneButton_pressed()
-	elif event.is_action_pressed("ui_cancel") and not (get_viewport().gui_get_focus_owner() is LineEdit):
+	if event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_START and _done_button != null and _done_button.visible:
+		get_viewport().set_input_as_handled()
+		_on_DoneButton_pressed()
+	elif (event.is_action_pressed("ui_cancel") or event.is_action_pressed("cancel")) and (not (get_viewport().gui_get_focus_owner() is LineEdit) or event is InputEventJoypadButton or event is InputEventJoypadMotion):
 		get_viewport().set_input_as_handled()
 		_on_BackButton_pressed()
 

@@ -190,7 +190,7 @@ func _build_gui():
 	_refresh_saves()
 
 func _unhandled_input(event):
-	if (event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_B) or event.is_action_pressed("ui_cancel"):
+	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("cancel"):
 		get_viewport().set_input_as_handled()
 		_on_BackButton_pressed()
 	elif event is InputEventJoypadButton and event.pressed:

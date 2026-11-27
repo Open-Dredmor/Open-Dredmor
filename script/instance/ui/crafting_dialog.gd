@@ -160,11 +160,11 @@ func _unhandled_input(event):
 		elif event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER:
 			get_viewport().set_input_as_handled()
 			_execute_craft()
+	elif event.is_action_pressed("ui_cancel") or event.is_action_pressed("cancel"):
+		get_viewport().set_input_as_handled()
+		dismiss()
 	elif event is InputEventJoypadButton and event.pressed:
-		if event.button_index == JOY_BUTTON_B:
-			get_viewport().set_input_as_handled()
-			dismiss()
-		elif event.button_index == JOY_BUTTON_X:
+		if event.button_index == JOY_BUTTON_X:
 			get_viewport().set_input_as_handled()
 			_execute_craft()
 		elif event.button_index == JOY_BUTTON_LEFT_SHOULDER:

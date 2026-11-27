@@ -342,6 +342,10 @@ func _handle_ui_action(ui_action):
 			if not _dungeon.has_interaction_dialog_open() and _core_hud != null:
 				_core_hud.toggle_pause_menu()
 				return true
+		"open_menu_selector":
+			if not _dungeon.has_interaction_dialog_open() and _core_hud != null:
+				_core_hud.open_menu_selector()
+				return true
 		"cancel":
 			if _dungeon.get_pending_spell_name() != "":
 				_dungeon.cancel_spell_targeting()
@@ -377,7 +381,7 @@ func _input(event):
 					window_owner.dismiss()
 					get_viewport().set_input_as_handled()
 					return
-		if event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_B:
+		if (event is InputEventJoypadButton or event is InputEventJoypadMotion) and (event.is_action_pressed("cancel") or event.is_action_pressed("ui_cancel")):
 			var top_window = FloatingWindowScript.get_topmost_window(get_tree())
 			if top_window != null:
 				var window_owner = top_window.get_parent()

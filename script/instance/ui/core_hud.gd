@@ -9,6 +9,7 @@ const MinimapOverlayScript = preload("res://script/instance/ui/minimap.gd")
 const SkillTreeDialogScript = preload("res://script/instance/ui/skill_tree_dialog.gd")
 const QuestDialogScript = preload("res://script/instance/ui/quest_dialog.gd")
 const PauseDialogScript = preload("res://script/instance/ui/pause_dialog.gd")
+const MenuSelectorDialogScript = preload("res://script/instance/ui/menu_selector_dialog.gd")
 
 const BAR_WIDTH = 1024.0
 const BAR_HEIGHT = 120.0
@@ -50,6 +51,7 @@ var _skill_points_badge = null
 var _skill_dialog = null
 var _quest_dialog = null
 var _pause_dialog = null
+var _menu_selector_dialog = null
 
 func _ready():
 	_update_bar_scale()
@@ -662,13 +664,14 @@ func _on_menu_tab_pressed(tab_id):
 			toggle_quest_log()
 
 func is_modal_open():
-	return is_instance_valid(_pause_dialog)
+	return is_instance_valid(_pause_dialog) or is_instance_valid(_menu_selector_dialog)
 
 func is_spellbook_open():
 	return is_instance_valid(_skill_dialog)
 
 func close_all_modals():
 	_close_pause_menu()
+	_close_menu_selector()
 	_close_skill_tree()
 	_close_quest_log()
 
@@ -744,6 +747,23 @@ func _close_pause_menu():
 	if is_instance_valid(_pause_dialog):
 		_pause_dialog.queue_free()
 		_pause_dialog = null
+
+func open_menu_selector():
+	if is_instance_valid(_menu_selector_dialog):
+		return
+	_notify_before_open_modal()
+	_menu_selector_dialog = MenuSelectorDialogScript.new().init({
+		on_select = func(menu_id):
+			_menu_selector_dialog = null
+			_on_menu_tab_pressed(menu_id),
+		on_close = func(): _menu_selector_dialog = null
+	})
+	add_child(_menu_selector_dialog)
+
+func _close_menu_selector():
+	if is_instance_valid(_menu_selector_dialog):
+		_menu_selector_dialog.queue_free()
+		_menu_selector_dialog = null
 
 func toggle_skill_tree(initial_tab = "skills"):
 	if is_instance_valid(_skill_dialog):

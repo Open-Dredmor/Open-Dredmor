@@ -446,9 +446,6 @@ func _on_files_dropped(files):
 	_status_label.text = "Drag & drop: imported %d save(s)." % imported_count
 
 func _unhandled_input(event):
-	if event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_B:
-		get_viewport().set_input_as_handled()
-		OD.Scenes.goto(OD.Scenes.MAIN_MENU)
-	elif event.is_action_pressed("ui_cancel") and not (get_viewport().gui_get_focus_owner() is LineEdit):
+	if (event.is_action_pressed("ui_cancel") or event.is_action_pressed("cancel")) and (not (get_viewport().gui_get_focus_owner() is LineEdit) or event is InputEventJoypadButton or event is InputEventJoypadMotion):
 		get_viewport().set_input_as_handled()
 		OD.Scenes.goto(OD.Scenes.MAIN_MENU)

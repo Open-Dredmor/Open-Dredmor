@@ -61,6 +61,10 @@ static func is_gamepad_button(event, button_index):
 	return event is InputEventJoypadButton and event.pressed and event.button_index == button_index
 
 static func is_gamepad_cancel(event):
+	if event == null:
+		return false
+	if InputMap.has_action("cancel") and event.is_action_pressed("cancel"):
+		return true
 	return is_gamepad_button(event, JOY_BUTTON_B)
 
 static func make_texture_button(texture_paths, minimum_size, cache = null):
